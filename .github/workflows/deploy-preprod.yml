@@ -1,0 +1,87 @@
+name: CI - PREPROD-BACK
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: build back
+        run: |
+          npm i
+          npm run build
+      - name: build back image
+        run: docker build -t mo29172/mouzoun_back:v${{ github.run_number }} -f docker/back/Dockerfile .
+      - name: push back image to docker hub
+        run: |
+          docker push mo29172/mouzoun_back:v${{ github.run_number }}
+      - name: update back deployment file version
+        run: |
+          sed -i -e"s/:latest/:v${{ github.run_number }}/" docker/k8s/back-deployment.yaml
+
+
+        - name: copy k8s files via ssh
+          uses: appleboy/scp-action@master
+          with:
+            host: ${{ secrets.SERVER_HOST }}
+            username: ${{ secrets.SERVER_USER }}
+            key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'docker/k8s/back-deployment.yaml,docker/k8s/back-hpa.yaml,docker/k8s/back-cluster-ip-service.yaml,docker/k8s/back-ingress-service.yaml,docker/k8s/db-deployment.yaml,docker/k8s/db-persistent-volume-claim.yaml,docker/k8s/db-cluster-ip-service.yaml,docker/k8s/redis-deployment.yaml,docker/k8s/redis-persistent-volume-claim.yaml,docker/k8s/redist-cluster-ip-service.yaml,'
+          target: '/srv/k8s/back'
+          strip_components: 2
+
+      - name: copy nginx file via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: 'docker/nginx/default.conf'
+          target: '/etc/nginx/conf.d'
+          strip_components: 2
+
+      - name: apply k8s files
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_USER_PASSWORD }}
+          script: |
+            kubectl delete secret back-envs --ignore-not-found=true
+            kubectl create secret generic back-envs \
+            --from-literal NODE_ENV=${{ secrets.NODE_ENV }} \
+            --from-literal ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }} \
+            --from-literal APP_URL=${{ secrets.APP_URL }} \
+            --from-literal BACK_PORT=${{ secrets.BACK_PORT }} \
+            --from-literal TYPEORM_HOST=${{ secrets.TYPEORM_HOST }} \
+            --from-literal TYPEORM_PORT=${{ secrets.TYPEORM_PORT }} \
+            --from-literal TYPEORM_USERNAME=${{ secrets.TYPEORM_USERNAME }} \
+            --from-literal TYPEORM_PASSWORD=${{ secrets.TYPEORM_PASSWORD }} \
+            --from-literal TYPEORM_DATABASE=${{ secrets.TYPEORM_DATABASE }} \
+            --from-literal JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --from-literal JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
+            --from-literal ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }} \
+            --from-literal ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }} \
+            --from-literal GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }} \
+            --from-literal GCS_PROJECT_ID=${{ secrets.GCS_PROJECT_ID }} \
+            --from-literal GCS_CLIENT_EMAIL=${{ secrets.GCS_CLIENT_EMAIL }} \
+            --from-literal GCS_PRIVATE_KEY_ID=${{ secrets.GCS_PRIVATE_KEY_ID }} \
+            --from-literal GCS_PRIVATE_KEY=${{ secrets.GCS_PRIVATE_KEY }} \
+            --from-literal REDIS_HOST=${{ secrets.REDIS_HOST }} \
+            --from-literal REDIS_PORT=${{ secrets.REDIS_PORT }} \
+            --from-literal REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} \
+            --from-literal REDIS_DB=${{ secrets.REDIS_DB }}
+            kubectl apply -f /srv/k8s/back
+            minikube addons enable ingress
+            echo ${{ secrets.SERVER_USER_PASSWORD }} | sudo -S systemctl restart nginx
+            echo y | docker exec -i minikube docker system prune -a --volumes
+            

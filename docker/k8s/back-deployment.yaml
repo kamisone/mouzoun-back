@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: back-deployment
+spec:
+  selector: 
+    matchLabels:
+      component: back
+  template:
+    metadata:
+      labels:
+        component: back
+    spec:
+      containers:
+        - name: back-container
+          image: mo29172/mouzoun_back:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: 500m
+            requests:
+              cpu: 200m
+          env:
+            - name: TZ
+              value: UTC
+            - name: NODE_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: NODE_ENV 
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: ALLOWED_ORIGINS 
+            - name: BACK_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: BACK_PORT 
+            - name: APP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: APP_URL 
+            - name: TYPEORM_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: TYPEORM_HOST
+            - name: TYPEORM_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: TYPEORM_PORT
+            - name: TYPEORM_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: TYPEORM_USERNAME
+            - name: TYPEORM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: TYPEORM_PASSWORD 
+            - name: TYPEORM_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: TYPEORM_DATABASE
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: JWT_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: JWT_REFRESH_SECRET
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: ADMIN_EMAIL
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: ADMIN_PASSWORD
+            - name: GCS_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: GCS_BUCKET_NAME
+            - name: GCS_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: GCS_PROJECT_ID
+            - name: GCS_CLIENT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: GCS_CLIENT_EMAIL
+            - name: GCS_PRIVATE_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: GCS_PRIVATE_KEY_ID
+            - name: GCS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: GCS_PRIVATE_KEY
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: REDIS_PASSWORD
+            - name: REDIS_DB
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: REDIS_DB
+            

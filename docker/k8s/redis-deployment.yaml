@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      component: redis
+  template:
+    metadata:
+      labels:
+        component: redis
+    spec:
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-persistent-volume-claim
+      containers:
+        - name: redis-container
+          image: redis:7-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: back-envs
+                  key: REDIS_PASSWORD 
+            
+            
