@@ -29,12 +29,12 @@ jobs:
           sed -i -e"s/:latest/:v${{ github.run_number }}/" docker/k8s/back-deployment.yaml
 
 
-        - name: copy k8s files via ssh
-          uses: appleboy/scp-action@master
-          with:
-            host: ${{ secrets.SERVER_HOST }}
-            username: ${{ secrets.SERVER_USER }}
-            key: ${{ secrets.SERVER_SSH_KEY }}
+      - name: copy k8s files via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           source: 'docker/k8s/back-deployment.yaml,docker/k8s/back-hpa.yaml,docker/k8s/back-cluster-ip-service.yaml,docker/k8s/back-ingress-service.yaml,docker/k8s/db-deployment.yaml,docker/k8s/db-persistent-volume-claim.yaml,docker/k8s/db-cluster-ip-service.yaml,docker/k8s/redis-deployment.yaml,docker/k8s/redis-persistent-volume-claim.yaml,docker/k8s/redist-cluster-ip-service.yaml,'
           target: '/srv/k8s/back'
           strip_components: 2

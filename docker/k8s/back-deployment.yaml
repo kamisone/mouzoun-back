@@ -133,4 +133,4 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: back-envs
-                  key: REDIS_DB
+                  key: REDIS_DB         
