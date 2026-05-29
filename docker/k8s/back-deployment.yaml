@@ -134,4 +134,3 @@ spec:
                 secretKeyRef:
                   name: back-envs
                   key: REDIS_DB
-            
