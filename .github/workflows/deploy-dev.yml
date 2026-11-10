@@ -116,7 +116,9 @@ jobs:
 
           mkdir -p release/nginx
           cp deploy/deploy.sh release/
-          sed "s/__DOMAIN__/$domain/g" deploy/nginx/web.conf > release/nginx/web.conf
+          for f in web.conf routes.conf; do
+            sed "s/__DOMAIN__/$domain/g" "deploy/nginx/$f" > "release/nginx/$f"
+          done
 
           # The key may be pasted as a real multi-line PEM or with \n escapes: store it on one line.
           gcs_key="${GCS_PRIVATE_KEY//$'\r'/}"

@@ -114,8 +114,8 @@ push dev ─► test (fmt, clippy, unit + integration tests on Postgres/Redis)
          ─► build image  <DOCKER_HUB_USERNAME>/mouzoun_back:v<run_number>  (+ :dev)
          ─► deploy over SSH: deploy/deploy.sh
               1. creates network + mouzoun-postgres + mouzoun-redis on the first run
-              2. installs the nginx site deploy/nginx/web.conf → conf.d/default.conf
-                 (validated, previous restored on any failure)
+              2. installs the nginx site: web.conf → conf.d/default.conf, routes.conf →
+                 /etc/nginx/mouzoun/routes.conf (validated, previous restored on any failure)
               3. starts the new release on the free color (blue 127.0.0.1:18081 / green :18082)
               4. waits for /health/ready (migrations run during boot)
               5. switches the nginx upstream, graceful reload
@@ -142,7 +142,11 @@ docker network "mouzoun": back ⇄ mouzoun-postgres, mouzoun-redis (no published
 **nginx is owned by the back repo**: the site file, the API upstream and every reload. The front
 deploy never touches nginx and does not depend on the back being deployed.
 
-One host, one site file (`deploy/nginx/web.conf` → `conf.d/default.conf`, `default_server`):
+One host. `deploy/nginx/web.conf` (→ `conf.d/default.conf`) keeps the original server structure:
+an HTTP `default_server` that includes `/etc/ssl/mouzoun/ssl_redirect.conf*` (may be an
+unconditional `return 301`, so it is **never** included in the HTTPS server) and an HTTPS server that
+includes `/etc/ssl/mouzoun/ssl_config.conf*`. Both serve the same routes from
+`deploy/nginx/routes.conf` (→ `/etc/nginx/mouzoun/routes.conf`):
 
 | URL | Goes to |
 |---|---|
@@ -155,8 +159,6 @@ One host, one site file (`deploy/nginx/web.conf` → `conf.d/default.conf`, `def
 - Website: both front ports are listed; the front deploy starts the new color, keeps both running
   15 s, then stops the old one; nginx skips the stopped port and retries requests on the live one
   (verified on Linux with host networking: 6 switches, ~59 000 requests, 0 errors).
-- Your SSL includes are kept: `/etc/ssl/mouzoun/ssl_config.conf*` (certificate) and
-  `ssl_redirect.conf*` (HTTP → HTTPS).
 
 ### First-time setup
 

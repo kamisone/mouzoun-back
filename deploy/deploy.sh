@@ -32,7 +32,8 @@ NETWORK="${NETWORK:-$PREFIX}"
 NGINX_DIR="${NGINX_DIR:-/etc/nginx/mouzoun}"
 # nginx is owned by the back: both site files are shipped and installed by this script.
 NGINX_CONF_DIR="${NGINX_CONF_DIR:-/etc/nginx/conf.d}"
-SITES="web.conf:default.conf" # <release file>:<conf.d file>
+# <release file>:<installed path>
+SITES="web.conf:$NGINX_CONF_DIR/default.conf routes.conf:$NGINX_DIR/routes.conf"
 # Files installed by earlier versions, removed (with backup/restore) because they now conflict.
 OBSOLETE_SITES="mouzoun-api.conf"
 NGINX_TEST="${NGINX_TEST:-nginx -t -q}"
@@ -169,7 +170,7 @@ for name in $OBSOLETE_SITES; do
 done
 for pair in $SITES; do
   src="$ROOT/nginx/${pair%%:*}"
-  dst="$NGINX_CONF_DIR/${pair#*:}"
+  dst="${pair#*:}"
   [ -f "$src" ] || continue
   cmp -s "$src" "$dst" && continue
   log "installing nginx site config $dst"
