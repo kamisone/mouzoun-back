@@ -151,8 +151,9 @@ silomis), `SERVER_USER` allowed to `sudo`.
 
 1. **DNS**: `DOMAIN`, `www.DOMAIN`, `api.DOMAIN` → VPS IP (Cloudflare proxied recommended).
 2. **GitHub → back repo → Settings → Environments → `dev`**: one secret per value, like silomis.
-   The env file on the server (`/srv/mouzoun/back/back.env`, root only) is generated from them on
-   every deploy; the domain, `api.` sub-domain and CORS origins are derived from `APP_URL`.
+   On every deploy the workflow assembles them in memory and streams them through the SSH session
+   into `/srv/mouzoun/back/back.env` (root only, 600): no secret file is ever uploaded or left in a
+   home directory; the domain, `api.` sub-domain and CORS origins are derived from `APP_URL`.
 
    | Secret | Example | Status |
    |---|---|---|

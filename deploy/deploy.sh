@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Zero-downtime blue/green deployment of the Mouzoun API on a single VPS (no Kubernetes).
 #
-# Called by GitHub Actions over SSH, as root:   sudo bash ~/mouzoun/back/deploy.sh <image:tag>
-# The release files (this script, back.env, nginx/) are uploaded next to it by the CI and
-# installed into $ROOT (/srv/mouzoun/back); the env file never stays in the user's home.
+# Called by GitHub Actions over SSH, as root:
+#   <env file content> | sudo bash ~/mouzoun/back/deploy.sh <image:tag> --env-stdin
+# The env content (secrets) arrives through the SSH session's stdin and is written straight to
+# $ROOT/back.env (root only, 600): it never exists as a file on the runner or in the user's home.
+# The other release files (this script, nginx/) are uploaded next to the script by the CI.
 #
 #   0. installs the release files, nightly database backup (cron)
 #   1. ensures the private network, PostgreSQL and Redis containers exist (first deploy)
@@ -18,7 +20,9 @@
 
 set -Eeuo pipefail
 
-IMAGE="${1:?usage: deploy.sh <image:tag>}"
+IMAGE="${1:?usage: deploy.sh <image:tag> [--env-stdin]}"
+ENV_FROM_STDIN=false
+[ "${2:-}" = "--env-stdin" ] && ENV_FROM_STDIN=true
 RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PREFIX="${PREFIX:-mouzoun}"
@@ -71,15 +75,14 @@ command -v nginx >/dev/null || [ -n "${ALLOW_NON_ROOT:-}" ] || fail "nginx is no
 
 mkdir -p "$ROOT"
 chmod 700 "$ROOT"
-if [ "$RELEASE_DIR" != "$ROOT" ]; then
-  if [ -f "$RELEASE_DIR/back.env" ]; then
-    install -m 600 "$RELEASE_DIR/back.env" "$ENV_FILE"
-    rm -f "$RELEASE_DIR/back.env"
-  fi
-  if [ -d "$RELEASE_DIR/nginx" ]; then
-    rm -rf "$ROOT/nginx"
-    cp -r "$RELEASE_DIR/nginx" "$ROOT/nginx"
-  fi
+if [ "$ENV_FROM_STDIN" = true ]; then
+  (umask 077 && cat >"$ENV_FILE.new")
+  [ -s "$ENV_FILE.new" ] || { rm -f "$ENV_FILE.new"; fail "--env-stdin given but nothing received"; }
+  mv -f "$ENV_FILE.new" "$ENV_FILE"
+fi
+if [ "$RELEASE_DIR" != "$ROOT" ] && [ -d "$RELEASE_DIR/nginx" ]; then
+  rm -rf "$ROOT/nginx"
+  cp -r "$RELEASE_DIR/nginx" "$ROOT/nginx"
 fi
 [ -f "$ENV_FILE" ] || fail "missing env file $ENV_FILE"
 chmod 600 "$ENV_FILE"
