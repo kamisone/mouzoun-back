@@ -50,8 +50,6 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
       - id: meta
@@ -81,15 +79,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: resolve image
-        id: image
-        run: |
-          if [ -n "${{ inputs.image_tag }}" ]; then
-            echo "ref=${{ secrets.DOCKER_HUB_USERNAME }}/mouzoun_back:${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=${{ needs.build.outputs.image }}" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: prepare release files
         id: release
@@ -171,7 +160,9 @@ jobs:
       - name: deploy
         uses: appleboy/ssh-action@v1.2.0
         env:
-          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          # Built here, not passed between jobs/steps: GitHub drops outputs containing a secret
+          # (the Docker Hub username). Rollback tag if given, else this run's image (same run number).
+          IMAGE_REF: ${{ secrets.DOCKER_HUB_USERNAME }}/mouzoun_back:${{ inputs.image_tag || format('v{0}', github.run_number) }}
           BACK_ENV_B64: ${{ env.BACK_ENV_B64 }}
           DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKER_HUB_PASSWORD }}
@@ -185,6 +176,7 @@ jobs:
           command_timeout: 15m
           script: |
             set -e
+            test -n "$IMAGE_REF" || { echo "IMAGE_REF is empty"; exit 1; }
             # Everything runs as root through sudo (password from SERVER_USER_PASSWORD, never echoed).
             # sudo reads its password line, docker login reads the next one.
             { printf '%s\n' "$SUDO_PASS"; printf '%s\n' "$DOCKER_PASS"; } | sudo -S -p '' docker login -u "$DOCKER_USER" --password-stdin >/dev/null
