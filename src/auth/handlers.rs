@@ -20,11 +20,13 @@ pub struct UserDto {
     pub created_at: DateTime<Utc>,
 }
 
+/// Login only bounds the input size: format or strength rules here would reject valid accounts
+/// (e.g. an admin created with a short password) with a 422. Wrong input is simply a 401.
 #[derive(Debug, Deserialize, Validate)]
 pub struct LoginRequest {
-    #[validate(email)]
+    #[validate(length(min = 1, max = 254))]
     pub email: String,
-    #[validate(length(min = 8, max = 128))]
+    #[validate(length(min = 1, max = 1024))]
     pub password: String,
 }
 
@@ -56,7 +58,7 @@ pub async fn login(
         "SELECT id, email, full_name, role, created_at, password_hash
          FROM users WHERE email = $1 AND is_active = TRUE",
     )
-    .bind(body.email.to_lowercase())
+    .bind(body.email.trim().to_lowercase())
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::Unauthorized)?;

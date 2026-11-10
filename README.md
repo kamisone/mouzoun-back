@@ -34,7 +34,7 @@ src/
   jobs/              background workers (abandoned upload cleanup)
 migrations/          SQL migrations (sqlx)
 tests/               integration tests: real router + Postgres + Redis, in-memory storage
-deploy/             CI/CD: deploy.sh (blue/green), nginx site, TLS snippets, env template
+deploy/             CI/CD: deploy.sh (blue/green), nginx site (web.conf + routes.conf)
 ```
 
 Rules: handlers only do HTTP; services hold business rules; repositories only SQL;
@@ -193,10 +193,10 @@ silomis), `SERVER_USER` allowed to `sudo`.
 3. **GCS bucket**: see "Bucket setup" above, with the production origins in `deploy/gcs-cors.json`.
 4. Push the **back** and the **front** to `dev`, in any order (until the back is deployed the
    website is up but shows no API data, and is only reachable once nginx is configured by the back).
-5. **TLS** (Cloudflare Origin Certificate, mode "Full (strict)"): put `origin.pem` / `origin.key` in
-   `/etc/ssl/mouzoun/`, copy `deploy/ssl/ssl_config.conf.example` → `/etc/ssl/mouzoun/ssl_config.conf`
-   (and `ssl_redirect.conf.example` → `ssl_redirect.conf`), then `sudo nginx -t && sudo systemctl reload nginx`.
-   Until then the site is served over HTTP (fine behind Cloudflare in "Flexible" mode for a first test).
+5. **TLS**: the certificate files and `/etc/ssl/mouzoun/ssl_config.conf` / `ssl_redirect.conf` are
+   managed on the server, by hand. The deploy never writes them, nginx only includes them
+   (`ssl_redirect.conf*` in the HTTP server, `ssl_config.conf*` in the HTTPS server). Renewing the
+   certificate = replacing the files they reference, then `sudo nginx -t && sudo systemctl reload nginx`.
 
 Docker Hub repositories are public by default: make `mouzoun_back` / `mouzoun_front` private
 (images contain no secrets — configuration is injected at runtime — but there is no reason to publish them).

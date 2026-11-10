@@ -8,6 +8,10 @@ pub async fn ensure_admin(db: &PgPool, config: &Config) -> anyhow::Result<()> {
         return Ok(());
     };
 
+    if pass.chars().count() < 12 {
+        tracing::warn!("ADMIN_PASSWORD is shorter than 12 characters: use a stronger password");
+    }
+
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE role = 'admin')")
             .fetch_one(db)
@@ -22,7 +26,7 @@ pub async fn ensure_admin(db: &PgPool, config: &Config) -> anyhow::Result<()> {
     sqlx::query(
         "INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, 'Administrator', 'admin')",
     )
-    .bind(email.to_lowercase())
+    .bind(email.trim().to_lowercase())
     .bind(hash)
     .execute(db)
     .await?;
