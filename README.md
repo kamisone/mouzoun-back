@@ -114,7 +114,7 @@ push dev ─► test (fmt, clippy, unit + integration tests on Postgres/Redis)
          ─► build image  <DOCKER_HUB_USERNAME>/mouzoun_back:v<run_number>  (+ :dev)
          ─► deploy over SSH: deploy/deploy.sh
               1. creates network + mouzoun-postgres + mouzoun-redis on the first run
-              2. installs deploy/nginx/mouzoun.conf (validated, restored on error)
+              2. installs deploy/nginx/default.conf (validated, previous restored on any failure)
               3. starts the new release on the free color (blue 127.0.0.1:18081 / green :18082)
               4. waits for /health/ready (migrations run during boot)
               5. switches the nginx upstream, graceful reload
@@ -135,10 +135,10 @@ nginx (host)  :80/:443 ── api.DOMAIN ──► 127.0.0.1:1808{1,2}  mouzoun-
               └── 127.0.0.1:18080 (front SSR → API, loopback only)
 docker network "mouzoun": back ⇄ mouzoun-postgres, mouzoun-redis (no published ports)
 /srv/mouzoun/{back,front}   installed release + env (root, chmod 600)    /srv/mouzoun/backups  nightly pg_dump
-/etc/nginx/conf.d/mouzoun.conf · /etc/nginx/mouzoun/*-upstream.conf · /etc/ssl/mouzoun/
+/etc/nginx/conf.d/default.conf (previous kept as .bak) · /etc/nginx/mouzoun/ (upstreams, routes, snippets) · /etc/ssl/mouzoun/
 ```
 
-It coexists with other sites on the same VPS (own conf.d file, own ports, own containers).
+nginx keeps your previous structure: one HTTP `default_server` (redirects to HTTPS when `/etc/ssl/mouzoun/ssl_redirect.conf` exists) and one TLS server (`/etc/ssl/mouzoun/ssl_config.conf`), each include used once; requests are routed by host (`api.` → API, the rest → website).
 
 ### First-time setup
 

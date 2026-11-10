@@ -26,7 +26,7 @@ ROOT="${ROOT:-/srv/mouzoun/back}"
 ENV_FILE="${ENV_FILE:-$ROOT/back.env}"
 NETWORK="${NETWORK:-$PREFIX}"
 NGINX_DIR="${NGINX_DIR:-/etc/nginx/mouzoun}"
-NGINX_SITE="${NGINX_SITE:-/etc/nginx/conf.d/mouzoun.conf}"
+NGINX_SITE="${NGINX_SITE:-/etc/nginx/conf.d/default.conf}"
 NGINX_TEST="${NGINX_TEST:-nginx -t -q}"
 NGINX_RELOAD="${NGINX_RELOAD:-systemctl reload nginx}"
 BACKUP_DIR="${BACKUP_DIR:-/srv/mouzoun/backups}"
@@ -146,15 +146,22 @@ mkdir -p "$NGINX_DIR"
 [ -f "$NGINX_DIR/front-upstream.conf" ] ||
   echo "upstream mouzoun_front { server 127.0.0.1:$FRONT_PORT_DEFAULT; keepalive 64; }" >"$NGINX_DIR/front-upstream.conf"
 
-for snippet in proxy.conf security-headers.conf; do
+for snippet in proxy.conf security-headers.conf routes.conf; do
   [ -f "$ROOT/nginx/$snippet" ] && cp -f "$ROOT/nginx/$snippet" "$NGINX_DIR/$snippet"
 done
-if [ -f "$ROOT/nginx/mouzoun.conf" ] && ! cmp -s "$ROOT/nginx/mouzoun.conf" "$NGINX_SITE"; then
-  log "installing nginx site config"
-  cp -f "$NGINX_SITE" "$NGINX_SITE.bak" 2>/dev/null || true
-  cp "$ROOT/nginx/mouzoun.conf" "$NGINX_SITE"
-  if ! $NGINX_TEST; then
+SITE_CHANGED=false
+restore_site() {
+  if [ "$SITE_CHANGED" = true ]; then
     if [ -f "$NGINX_SITE.bak" ]; then cp -f "$NGINX_SITE.bak" "$NGINX_SITE"; else rm -f "$NGINX_SITE"; fi
+  fi
+}
+if [ -f "$ROOT/nginx/default.conf" ] && ! cmp -s "$ROOT/nginx/default.conf" "$NGINX_SITE"; then
+  log "installing nginx site config"
+  SITE_CHANGED=true
+  cp -f "$NGINX_SITE" "$NGINX_SITE.bak" 2>/dev/null || true
+  cp "$ROOT/nginx/default.conf" "$NGINX_SITE"
+  if ! $NGINX_TEST; then
+    restore_site
     fail "new nginx config is invalid, previous config restored"
   fi
 fi
@@ -193,6 +200,7 @@ done
 if [ "$ready" != true ]; then
   docker logs --tail 80 "$NEW_CONTAINER" >&2 || true
   docker rm -f "$NEW_CONTAINER" >/dev/null 2>&1 || true
+  restore_site
   fail "new release failed its health check; $ACTIVE release is still serving"
 fi
 
@@ -202,6 +210,7 @@ cp -f "$UPSTREAM" "$UPSTREAM.bak"
 echo "upstream mouzoun_back { server 127.0.0.1:$NEW_PORT; keepalive 64; }" >"$UPSTREAM"
 if ! { $NGINX_TEST && $NGINX_RELOAD; }; then
   cp -f "$UPSTREAM.bak" "$UPSTREAM"
+  restore_site
   docker rm -f "$NEW_CONTAINER" >/dev/null 2>&1 || true
   fail "nginx reload failed; traffic left on the $ACTIVE release"
 fi
