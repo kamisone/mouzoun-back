@@ -1,0 +1,194 @@
+name: CI/CD - DEV - BACK
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Rollback: redeploy an existing image tag (e.g. v42) without rebuilding. Empty = build this commit."
+        required: false
+        default: ""
+
+# Never run two deployments to the same server at once; never cancel one half-way.
+concurrency:
+  group: deploy-dev-back
+  cancel-in-progress: false
+
+jobs:
+  # ── Quality gate: format, lint, unit + integration tests on real Postgres/Redis ────────────
+  test:
+    if: inputs.image_tag == ''
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: mouzoun
+          POSTGRES_PASSWORD: mouzoun
+          POSTGRES_DB: mouzoun
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mouzoun" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgres://mouzoun:mouzoun@localhost:5432/mouzoun
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  # ── Build the image once, tag it with the run number (immutable) ──────────────────────────
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image=${{ secrets.DOCKER_HUB_USERNAME }}/mouzoun_back:v${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/mouzoun_back:dev
+          # Rust builds are slow: reuse layers (dependencies) across runs.
+          cache-from: type=gha,scope=back
+          cache-to: type=gha,scope=back,mode=max
+
+  # ── Ship to the VPS: blue/green switch with health gate (see deploy/deploy.sh) ────────────
+  deploy:
+    needs: [test, build]
+    # Runs after a successful build, or alone for a rollback (test/build skipped).
+    if: always() && (needs.build.result == 'success' || (inputs.image_tag != '' && needs.build.result == 'skipped'))
+    environment: dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: resolve image
+        id: image
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "ref=${{ secrets.DOCKER_HUB_USERNAME }}/mouzoun_back:${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ needs.build.outputs.image }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: prepare release files
+        id: release
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+          GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
+          GCS_CLIENT_EMAIL: ${{ secrets.GCS_CLIENT_EMAIL }}
+          GCS_PRIVATE_KEY_ID: ${{ secrets.GCS_PRIVATE_KEY_ID }}
+          GCS_PRIVATE_KEY: ${{ secrets.GCS_PRIVATE_KEY }}
+          # optional
+          GCS_PRIVATE_BUCKET_NAME: ${{ secrets.GCS_PRIVATE_BUCKET_NAME }}
+          GCS_PUBLIC_BASE_URL: ${{ secrets.GCS_PUBLIC_BASE_URL }}
+        run: |
+          missing=""
+          for name in APP_URL POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET \
+                      ADMIN_EMAIL ADMIN_PASSWORD GCS_BUCKET_NAME GCS_PROJECT_ID GCS_CLIENT_EMAIL \
+                      GCS_PRIVATE_KEY_ID GCS_PRIVATE_KEY; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          [ -z "$missing" ] || { echo "::error::Missing secrets on the 'dev' environment:$missing"; exit 1; }
+
+          # https://mouzoun.com → mouzoun.com (nginx server names, API sub-domain, CORS)
+          app_url="${APP_URL%/}"
+          domain="${app_url#*://}"
+          domain="${domain#www.}"
+          echo "domain=$domain" >> "$GITHUB_OUTPUT"
+
+          mkdir -p release/nginx
+          cp deploy/deploy.sh release/
+          sed "s/__DOMAIN__/$domain/g" deploy/nginx/mouzoun.conf > release/nginx/mouzoun.conf
+          cp deploy/nginx/proxy.conf deploy/nginx/security-headers.conf release/nginx/
+
+          # The key may be pasted as a real multi-line PEM or with \n escapes: store it on one line.
+          gcs_key="${GCS_PRIVATE_KEY//$'\r'/}"
+          gcs_key="${gcs_key//$'\n'/\\n}"
+
+          umask 077
+          {
+            # Infrastructure containers (DATABASE_URL / REDIS_URL are derived by deploy.sh)
+            printf '%s\n' "POSTGRES_USER=$POSTGRES_USER" "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
+              "POSTGRES_DB=$POSTGRES_DB" "REDIS_PASSWORD=$REDIS_PASSWORD"
+            # API
+            printf '%s\n' "LOG_JSON=true" "RUST_LOG=mouzoun_api=info,tower_http=info" \
+              "DATABASE_MAX_CONNECTIONS=30" "JWT_SECRET=$JWT_SECRET" "JWT_TTL_MINUTES=720" \
+              "CORS_ORIGINS=https://$domain,https://www.$domain" \
+              "ADMIN_EMAIL=$ADMIN_EMAIL" "ADMIN_PASSWORD=$ADMIN_PASSWORD"
+            # Google Cloud Storage
+            printf '%s\n' "GCS_BUCKET_NAME=$GCS_BUCKET_NAME" "GCS_PRIVATE_BUCKET_NAME=$GCS_PRIVATE_BUCKET_NAME" \
+              "GCS_PUBLIC_BASE_URL=$GCS_PUBLIC_BASE_URL" "GCS_PROJECT_ID=$GCS_PROJECT_ID" \
+              "GCS_CLIENT_EMAIL=$GCS_CLIENT_EMAIL" "GCS_PRIVATE_KEY_ID=$GCS_PRIVATE_KEY_ID" \
+              "GCS_PRIVATE_KEY=$gcs_key"
+          } > release/back.env
+
+      - name: copy release files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_USER_PASSWORD }}
+          source: release/*
+          target: mouzoun/back
+          strip_components: 1
+          overwrite: true
+
+      - name: deploy
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_PASS: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          SUDO_PASS: ${{ secrets.SERVER_USER_PASSWORD }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_USER_PASSWORD }}
+          envs: IMAGE_REF,DOCKER_USER,DOCKER_PASS,SUDO_PASS
+          command_timeout: 15m
+          script: |
+            set -e
+            # Everything runs as root through sudo (password from SERVER_USER_PASSWORD, never echoed).
+            # sudo reads its password line, docker login reads the next one.
+            { printf '%s\n' "$SUDO_PASS"; printf '%s\n' "$DOCKER_PASS"; } | sudo -S -p '' docker login -u "$DOCKER_USER" --password-stdin >/dev/null
+            printf '%s\n' "$SUDO_PASS" | sudo -S -p '' bash "$HOME/mouzoun/back/deploy.sh" "$IMAGE_REF"
+
+      - name: public smoke test
+        run: |
+          for _ in $(seq 1 10); do
+            curl -fsS -m 5 "https://api.${{ steps.release.outputs.domain }}/health/ready" && exit 0
+            curl -fsS -m 5 "http://api.${{ steps.release.outputs.domain }}/health/ready" && exit 0
+            sleep 3
+          done
+          echo "::warning::API not reachable from the internet yet (DNS/TLS?). The container itself passed its health gate."

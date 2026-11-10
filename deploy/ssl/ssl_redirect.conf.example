@@ -1,0 +1,4 @@
+# Copy to /etc/ssl/mouzoun/ssl_redirect.conf to force HTTPS (after ssl_config.conf works).
+if ($scheme = http) {
+    return 301 https://$host$request_uri;
+}
