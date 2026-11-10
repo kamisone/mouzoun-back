@@ -114,7 +114,8 @@ push dev ─► test (fmt, clippy, unit + integration tests on Postgres/Redis)
          ─► build image  <DOCKER_HUB_USERNAME>/mouzoun_back:v<run_number>  (+ :dev)
          ─► deploy over SSH: deploy/deploy.sh
               1. creates network + mouzoun-postgres + mouzoun-redis on the first run
-              2. installs deploy/nginx/default.conf (validated, previous restored on any failure)
+              2. installs the nginx site deploy/nginx/web.conf → conf.d/default.conf
+                 (validated, previous restored on any failure)
               3. starts the new release on the free color (blue 127.0.0.1:18081 / green :18082)
               4. waits for /health/ready (migrations run during boot)
               5. switches the nginx upstream, graceful reload
@@ -130,15 +131,32 @@ release keeps serving. **Rollback**: Actions → "CI/CD - DEV - BACK" → Run wo
 ### VPS layout
 
 ```
-nginx (host)  :80/:443 ── api.DOMAIN ──► 127.0.0.1:1808{1,2}  mouzoun-back-{blue,green}
-              │           DOMAIN     ──► 127.0.0.1:1300{1,2}  mouzoun-front-{blue,green}
+nginx (host)  :80/:443 ── DOMAIN/api/ ──► 127.0.0.1:1808{1,2}  mouzoun-back-{blue,green}
+              │           DOMAIN/     ──► 127.0.0.1:1300{1,2}  mouzoun-front-{blue,green}
               └── 127.0.0.1:18080 (front SSR → API, loopback only)
 docker network "mouzoun": back ⇄ mouzoun-postgres, mouzoun-redis (no published ports)
 /srv/mouzoun/{back,front}   installed release + env (root, chmod 600)    /srv/mouzoun/backups  nightly pg_dump
-/etc/nginx/conf.d/default.conf (previous kept as .bak) · /etc/nginx/mouzoun/ (upstreams, routes, snippets) · /etc/ssl/mouzoun/
+/etc/nginx/conf.d/default.conf (previous kept as .bak) · /etc/nginx/mouzoun/back-upstream.conf · /etc/ssl/mouzoun/
 ```
 
-nginx keeps your previous structure: one HTTP `default_server` (redirects to HTTPS when `/etc/ssl/mouzoun/ssl_redirect.conf` exists) and one TLS server (`/etc/ssl/mouzoun/ssl_config.conf`), each include used once; requests are routed by host (`api.` → API, the rest → website).
+**nginx is owned by the back repo**: the site file, the API upstream and every reload. The front
+deploy never touches nginx and does not depend on the back being deployed.
+
+One host, one site file (`deploy/nginx/web.conf` → `conf.d/default.conf`, `default_server`):
+
+| URL | Goes to |
+|---|---|
+| `https://DOMAIN/api/...` | API — the `/api` prefix is stripped (`/api/v1/activities` → `/v1/activities`), rate limited, login 5/min |
+| `https://DOMAIN/...` | website + `/admin` (Nuxt) |
+| `https://www.DOMAIN/...` | 301 → `https://DOMAIN/...` |
+| `127.0.0.1:18080` (loopback only) | API, for the website's server-side rendering |
+
+- API: blue/green upstream file switched by the back deploy.
+- Website: both front ports are listed; the front deploy starts the new color, keeps both running
+  15 s, then stops the old one; nginx skips the stopped port and retries requests on the live one
+  (verified on Linux with host networking: 6 switches, ~59 000 requests, 0 errors).
+- Your SSL includes are kept: `/etc/ssl/mouzoun/ssl_config.conf*` (certificate) and
+  `ssl_redirect.conf*` (HTTP → HTTPS).
 
 ### First-time setup
 
@@ -149,11 +167,11 @@ network, PostgreSQL, Redis, the nginx site and the nightly backup cron (03:30, 1
 `/srv/mouzoun/backups`). Requirements on the VPS: Docker and nginx installed (already the case for
 silomis), `SERVER_USER` allowed to `sudo`.
 
-1. **DNS**: `DOMAIN`, `www.DOMAIN`, `api.DOMAIN` → VPS IP (Cloudflare proxied recommended).
+1. **DNS**: `DOMAIN` and `www.DOMAIN` → VPS IP (Cloudflare proxied recommended).
 2. **GitHub → back repo → Settings → Environments → `dev`**: one secret per value, like silomis.
    On every deploy the workflow assembles them in memory and streams them through the SSH session
    into `/srv/mouzoun/back/back.env` (root only, 600): no secret file is ever uploaded or left in a
-   home directory; the domain, `api.` sub-domain and CORS origins are derived from `APP_URL`.
+   home directory; the domain (nginx) and CORS origins are derived from `APP_URL`.
 
    | Secret | Example | Status |
    |---|---|---|
@@ -171,7 +189,8 @@ silomis), `SERVER_USER` allowed to `sudo`.
    If your secrets are repository secrets rather than `dev` environment secrets, they work too
    once the `dev` environment exists (or remove `environment: dev` from the workflow).
 3. **GCS bucket**: see "Bucket setup" above, with the production origins in `deploy/gcs-cors.json`.
-4. Push the **back** to `dev` first (database + nginx site), then the **front**.
+4. Push the **back** and the **front** to `dev`, in any order (until the back is deployed the
+   website is up but shows no API data, and is only reachable once nginx is configured by the back).
 5. **TLS** (Cloudflare Origin Certificate, mode "Full (strict)"): put `origin.pem` / `origin.key` in
    `/etc/ssl/mouzoun/`, copy `deploy/ssl/ssl_config.conf.example` → `/etc/ssl/mouzoun/ssl_config.conf`
    (and `ssl_redirect.conf.example` → `ssl_redirect.conf`), then `sudo nginx -t && sudo systemctl reload nginx`.

@@ -30,7 +30,11 @@ ROOT="${ROOT:-/srv/mouzoun/back}"
 ENV_FILE="${ENV_FILE:-$ROOT/back.env}"
 NETWORK="${NETWORK:-$PREFIX}"
 NGINX_DIR="${NGINX_DIR:-/etc/nginx/mouzoun}"
-NGINX_SITE="${NGINX_SITE:-/etc/nginx/conf.d/default.conf}"
+# nginx is owned by the back: both site files are shipped and installed by this script.
+NGINX_CONF_DIR="${NGINX_CONF_DIR:-/etc/nginx/conf.d}"
+SITES="web.conf:default.conf" # <release file>:<conf.d file>
+# Files installed by earlier versions, removed (with backup/restore) because they now conflict.
+OBSOLETE_SITES="mouzoun-api.conf"
 NGINX_TEST="${NGINX_TEST:-nginx -t -q}"
 NGINX_RELOAD="${NGINX_RELOAD:-systemctl reload nginx}"
 BACKUP_DIR="${BACKUP_DIR:-/srv/mouzoun/backups}"
@@ -43,8 +47,6 @@ KEEP_IMAGES="${KEEP_IMAGES:-3}"
 # Loopback ports of the two colors (never exposed publicly; nginx proxies to them).
 PORT_BLUE="${PORT_BLUE:-18081}"
 PORT_GREEN="${PORT_GREEN:-18082}"
-# Default front port, only used to create the front upstream before the first front deploy.
-FRONT_PORT_DEFAULT="${FRONT_PORT_DEFAULT:-13001}"
 
 PG_CONTAINER="$PREFIX-postgres"
 REDIS_CONTAINER="$PREFIX-redis"
@@ -142,31 +144,42 @@ fi
 wait_healthy_container "$PG_CONTAINER"
 wait_healthy_container "$REDIS_CONTAINER"
 
-# 2. Nginx site config (shipped with the release) ---------------------------------------------
+# 2. Nginx: website + API site files (the back owns nginx) ----------------------------------
 mkdir -p "$NGINX_DIR"
 [ -f "$NGINX_DIR/back-upstream.conf" ] ||
   echo "upstream mouzoun_back { server 127.0.0.1:$PORT_BLUE; keepalive 64; }" >"$NGINX_DIR/back-upstream.conf"
-[ -f "$NGINX_DIR/front-upstream.conf" ] ||
-  echo "upstream mouzoun_front { server 127.0.0.1:$FRONT_PORT_DEFAULT; keepalive 64; }" >"$NGINX_DIR/front-upstream.conf"
 
-for snippet in proxy.conf security-headers.conf routes.conf; do
-  [ -f "$ROOT/nginx/$snippet" ] && cp -f "$ROOT/nginx/$snippet" "$NGINX_DIR/$snippet"
-done
-SITE_CHANGED=false
+CHANGED_SITES=()
+REMOVED_SITES=()
 restore_site() {
-  if [ "$SITE_CHANGED" = true ]; then
-    if [ -f "$NGINX_SITE.bak" ]; then cp -f "$NGINX_SITE.bak" "$NGINX_SITE"; else rm -f "$NGINX_SITE"; fi
-  fi
+  local dst
+  for dst in ${CHANGED_SITES[@]+"${CHANGED_SITES[@]}"}; do
+    if [ -f "$dst.bak" ]; then cp -f "$dst.bak" "$dst"; else rm -f "$dst"; fi
+  done
+  for dst in ${REMOVED_SITES[@]+"${REMOVED_SITES[@]}"}; do
+    cp -f "$dst.removed" "$dst"
+  done
 }
-if [ -f "$ROOT/nginx/default.conf" ] && ! cmp -s "$ROOT/nginx/default.conf" "$NGINX_SITE"; then
-  log "installing nginx site config"
-  SITE_CHANGED=true
-  cp -f "$NGINX_SITE" "$NGINX_SITE.bak" 2>/dev/null || true
-  cp "$ROOT/nginx/default.conf" "$NGINX_SITE"
-  if ! $NGINX_TEST; then
-    restore_site
-    fail "new nginx config is invalid, previous config restored"
-  fi
+for name in $OBSOLETE_SITES; do
+  dst="$NGINX_CONF_DIR/$name"
+  [ -f "$dst" ] || continue
+  log "removing obsolete nginx site config $dst"
+  mv -f "$dst" "$dst.removed"
+  REMOVED_SITES+=("$dst")
+done
+for pair in $SITES; do
+  src="$ROOT/nginx/${pair%%:*}"
+  dst="$NGINX_CONF_DIR/${pair#*:}"
+  [ -f "$src" ] || continue
+  cmp -s "$src" "$dst" && continue
+  log "installing nginx site config $dst"
+  if [ -f "$dst" ]; then cp -f "$dst" "$dst.bak"; else rm -f "$dst.bak"; fi
+  cp "$src" "$dst"
+  CHANGED_SITES+=("$dst")
+done
+if [ $((${#CHANGED_SITES[@]} + ${#REMOVED_SITES[@]})) -gt 0 ] && ! $NGINX_TEST; then
+  restore_site
+  fail "new nginx config is invalid, previous config restored"
 fi
 
 # 3. Start the new release next to the current one --------------------------------------------
