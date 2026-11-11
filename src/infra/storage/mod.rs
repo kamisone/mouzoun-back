@@ -45,6 +45,9 @@ pub trait ObjectStorage: Send + Sync + 'static {
     /// Stable public URL (only meaningful for publicly readable buckets).
     fn public_url(&self, key: &str) -> String;
 
+    /// Bucket name, as stored in `media_assets.bucket`.
+    fn bucket_name(&self) -> &str;
+
     /// Cheap authenticated round-trip, used by startup diagnostics.
     async fn check(&self) -> Result<(), StorageError>;
 }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status AS \"status: BookingStatus\", hold_expires_at FROM bookings WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: BookingStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "hold_expires_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "5e845b471483b1522b9144bfc58924f795ad6f809ad31d67f9f6b5f235f92710"
+}

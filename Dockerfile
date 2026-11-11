@@ -17,7 +17,9 @@ ARG CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
-RUN cargo build --release --locked
+# sqlx macros check queries against the committed .sqlx metadata: no database at build time.
+ENV SQLX_OFFLINE=true
+RUN cargo build --release --locked --bin mouzoun-api
 
 # ---- Runtime: tiny, no shell, non-root ----
 FROM gcr.io/distroless/cc-debian12:nonroot

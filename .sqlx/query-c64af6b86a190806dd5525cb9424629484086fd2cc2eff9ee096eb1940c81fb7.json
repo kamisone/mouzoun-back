@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accommodation_units (id, product_id, code, sort_order) VALUES ($1, $2, $3::text::citext, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c64af6b86a190806dd5525cb9424629484086fd2cc2eff9ee096eb1940c81fb7"
+}

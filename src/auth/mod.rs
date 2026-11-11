@@ -8,26 +8,10 @@ use axum::{
     Router,
     routing::{get, post},
 };
-use serde::{Deserialize, Serialize};
 
 use crate::state::AppState;
 
 pub use extractor::{AuthUser, require_staff};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "user_role", rename_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-pub enum Role {
-    Admin,
-    Staff,
-    Customer,
-}
-
-impl Role {
-    pub fn is_staff(self) -> bool {
-        matches!(self, Role::Admin | Role::Staff)
-    }
-}
 
 pub fn routes() -> Router<AppState> {
     Router::new()

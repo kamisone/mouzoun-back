@@ -1,0 +1,142 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, folder_id, storage_provider, bucket, object_key, original_filename, mime_type,\n                      kind AS \"kind: MediaKind\", size_bytes, width, height, duration_seconds, checksum_sha256,\n                      blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at\n               FROM media_assets WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "folder_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage_provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "bucket",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "object_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "original_filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "mime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "kind: MediaKind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "size_bytes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "duration_seconds",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "checksum_sha256",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "blurhash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "focal_x",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "focal_y",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "variants",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "uploaded_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 18,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ace1af354d7342cacf2420f3a89e0219fd4398fa30246e3a1186b326626712f3"
+}

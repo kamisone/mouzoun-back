@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT product_id, resource_kind AS \"resource_kind: ResourceKind\", units_per_group,\n                  participants_per_group, created_at, updated_at\n           FROM product_resource_requirements WHERE product_id = $1 ORDER BY resource_kind",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "resource_kind: ResourceKind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "units_per_group",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "participants_per_group",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8b28269bfb07436bc538470d7e3b48cd870692a3e2280b3465d93596a892b984"
+}

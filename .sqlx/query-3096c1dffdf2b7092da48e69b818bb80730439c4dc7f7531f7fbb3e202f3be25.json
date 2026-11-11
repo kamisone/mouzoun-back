@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM media_assets WHERE deleted_at IS NULL AND ($1::text IS NULL OR kind = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3096c1dffdf2b7092da48e69b818bb80730439c4dc7f7531f7fbb3e202f3be25"
+}

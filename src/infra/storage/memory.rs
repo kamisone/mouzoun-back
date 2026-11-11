@@ -11,9 +11,15 @@ use super::{
     ObjectMeta, ObjectStorage, SignedRequest, StorageError, UploadConstraints, upload_headers,
 };
 
-#[derive(Default)]
 pub struct InMemoryStorage {
+    name: String,
     objects: Mutex<HashMap<String, StoredObject>>,
+}
+
+impl Default for InMemoryStorage {
+    fn default() -> Self {
+        Self::named("memory-bucket")
+    }
 }
 
 #[derive(Clone)]
@@ -25,6 +31,13 @@ struct StoredObject {
 impl InMemoryStorage {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn named(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            objects: Mutex::default(),
+        }
     }
 
     /// Simulates the client-side upload to the signed URL.
@@ -98,6 +111,10 @@ impl ObjectStorage for InMemoryStorage {
 
     fn public_url(&self, key: &str) -> String {
         format!("https://cdn.test/{key}")
+    }
+
+    fn bucket_name(&self) -> &str {
+        &self.name
     }
 
     async fn check(&self) -> Result<(), StorageError> {

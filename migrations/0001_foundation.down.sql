@@ -1,0 +1,8 @@
+DROP TABLE exchange_rates;
+DROP TABLE currencies;
+DROP TABLE locales;
+DROP FUNCTION set_updated_at();
+DROP EXTENSION IF EXISTS unaccent;
+DROP EXTENSION IF EXISTS pg_trgm;
+DROP EXTENSION IF EXISTS btree_gist;
+DROP EXTENSION IF EXISTS citext;

@@ -7,7 +7,7 @@ use axum::{
 use axum_extra::extract::cookie::CookieJar;
 use uuid::Uuid;
 
-use super::{Role, jwt, session};
+use super::{jwt, session};
 use crate::{error::AppError, state::AppState};
 
 /// Any authenticated user.
@@ -17,7 +17,8 @@ use crate::{error::AppError, state::AppState};
 #[derive(Debug, Clone, Copy)]
 pub struct AuthUser {
     pub id: Uuid,
-    pub role: Role,
+    /// May enter the back-office (`users.is_staff`).
+    pub is_staff: bool,
 }
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -44,12 +45,12 @@ impl FromRequestParts<AppState> for AuthUser {
         let claims = jwt::verify(&state.config.jwt_secret, &token)?;
         Ok(AuthUser {
             id: claims.sub,
-            role: claims.role,
+            is_staff: claims.staff,
         })
     }
 }
 
-/// Guard for the whole back-office router (`/v1/admin/...`): admin or staff only.
+/// Guard for the whole back-office router (`/v1/admin/...`): staff users only.
 ///
 /// Applied once with `route_layer`, so every admin route, present or future, is protected by
 /// construction. The verified user is stored in the request extensions for handlers that need
@@ -59,7 +60,7 @@ pub async fn require_staff(
     mut request: Request,
     next: Next,
 ) -> Result<Response, AppError> {
-    if !user.role.is_staff() {
+    if !user.is_staff {
         return Err(AppError::Forbidden);
     }
     request.extensions_mut().insert(user);

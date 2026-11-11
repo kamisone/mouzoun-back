@@ -11,6 +11,8 @@ pub struct Config {
     pub port: u16,
     pub database_url: String,
     pub database_max_connections: u32,
+    /// Apply pending migrations at startup (`DATABASE_RUN_MIGRATIONS`, default true).
+    pub run_migrations: bool,
     pub redis_url: String,
     pub jwt_secret: String,
     pub jwt_ttl_minutes: i64,
@@ -91,6 +93,7 @@ impl Config {
             port: parse_or("APP_PORT", 8080)?,
             database_url: required("DATABASE_URL")?,
             database_max_connections: parse_or("DATABASE_MAX_CONNECTIONS", 20)?,
+            run_migrations: parse_or("DATABASE_RUN_MIGRATIONS", true)?,
             redis_url: required("REDIS_URL")?,
             jwt_secret,
             jwt_ttl_minutes: parse_or("JWT_TTL_MINUTES", 60 * 12)?,

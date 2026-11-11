@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max_redemptions, max_per_customer FROM promotions WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_redemptions",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_per_customer",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "906b863d65d0162699710c54c05b2e3b34f78c7bcc760ee7d82789eb62b0c833"
+}

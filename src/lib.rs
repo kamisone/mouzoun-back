@@ -4,10 +4,12 @@
 pub mod app;
 pub mod auth;
 pub mod config;
+pub mod db;
 pub mod error;
 pub mod infra;
 pub mod jobs;
 pub mod modules;
 pub mod seed;
+pub mod services;
 pub mod state;
 pub mod web;

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO invoice_counters (year) VALUES ($1) ON CONFLICT (year) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b90050c5ad3cad54f216e06d716b758b7b8f7ca1914660713310a1c3cc6bb3e3"
+}

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT rp.payment_mode AS \"payment_mode: PaymentMode\", rp.deposit_type AS \"deposit_type: DepositType\",\n                  rp.deposit_percent, rp.deposit_amount_minor,\n                  rp.deposit_currency AS \"deposit_currency: CurrencyCode\", cp.rules AS \"rules?\"\n           FROM rate_plans rp\n           LEFT JOIN cancellation_policies cp ON cp.id = rp.cancellation_policy_id\n           WHERE rp.id = $1 AND rp.is_active",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payment_mode: PaymentMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "deposit_type: DepositType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "deposit_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "deposit_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "deposit_currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "rules?",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "123ecc3c7ef0c815df1e0fff56acc4902270631ee4f5e09872c7270a25901053"
+}

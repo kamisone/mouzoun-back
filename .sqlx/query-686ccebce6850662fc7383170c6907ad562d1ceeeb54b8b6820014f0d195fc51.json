@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO unit_allocations (id, booking_item_id, unit_id, stay) VALUES ($1, $2, $3, daterange($4, $5))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "686ccebce6850662fc7383170c6907ad562d1ceeeb54b8b6820014f0d195fc51"
+}

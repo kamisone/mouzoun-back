@@ -12,17 +12,20 @@ axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
 bytes = "1.12.1"
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10.4"
 dotenvy = "0.15"
 google-cloud-auth = "1.18.0"
 google-cloud-gax = "1.15.0"
 google-cloud-storage = "1.21.0"
 google-cloud-wkt = "1.10.0"
+ipnetwork = { version = "0.20", features = ["serde"] }
 jsonwebtoken = "9"
 redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
+rust_decimal = { version = "1.43.0", features = ["serde-str"] }
 rustls = { version = "0.23.46", default-features = false, features = ["aws_lc_rs", "std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate", "macros"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json", "ipnetwork", "rust_decimal", "migrate", "macros"] }
 thiserror = "2"
 time = "0.3.55"
 tokio = { version = "1", features = ["full"] }
@@ -31,7 +34,7 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-full", "timeout", "request-id"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-uuid = { version = "1", features = ["v4", "serde"] }
+uuid = { version = "1", features = ["v4", "v7", "serde"] }
 validator = { version = "0.20", features = ["derive"] }
 
 [profile.release]

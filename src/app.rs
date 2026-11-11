@@ -17,8 +17,14 @@ use crate::{
 
 pub async fn run(config: Config) -> anyhow::Result<()> {
     let pool = db::connect(&config.database_url, config.database_max_connections).await?;
-    db::migrate(&pool).await?;
-    tracing::info!("database connected, migrations applied");
+    if config.run_migrations {
+        db::migrate(&pool).await?;
+        tracing::info!("database connected, migrations applied");
+    } else {
+        tracing::info!(
+            "database connected (DATABASE_RUN_MIGRATIONS=false: migrations not applied)"
+        );
+    }
 
     let cache = Cache::connect(&config.redis_url, "mouzoun").await?;
     tracing::info!("redis connected");

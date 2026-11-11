@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO promotion_redemptions (id, promotion_id, booking_id, customer_id, discount_minor)\n         VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "af5bc716e9dd55801c37bb026221044ccd6e4a91daabf23db4b3a539a2bf41be"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accommodation_types (product_id, accommodation_kind, inventory_mode, max_guests, standard_occupancy,\n                                          check_in_from, check_out_until)\n         VALUES ($1, $2, $3, $4, $5, '14:00', '11:00')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18026bf9ad5b789d1298e23f8c130d5217942f9fc67248df40ee1d2b8c21323b"
+}

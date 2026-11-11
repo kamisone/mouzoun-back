@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.status AS \"status: ProductStatus\", p.booking_mode AS \"booking_mode: BookingMode\",\n                  a.max_participants, a.booking_cutoff_hours, a.duration_minutes\n           FROM products p JOIN activities a ON a.product_id = p.id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: ProductStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "booking_mode: BookingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "booking_cutoff_hours",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "475bfb179a991036008429425e11669864a3adacfa487c46509b950117853050"
+}

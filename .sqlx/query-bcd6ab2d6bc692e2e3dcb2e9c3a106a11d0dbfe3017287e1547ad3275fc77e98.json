@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, sku, status, is_featured, place_id, published_at)\n         VALUES ($1, $2, $3::text::citext, 'published', $4, $5, now()) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bcd6ab2d6bc692e2e3dcb2e9c3a106a11d0dbfe3017287e1547ad3275fc77e98"
+}

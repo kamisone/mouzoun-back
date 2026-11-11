@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_calendar SET reserved = reserved - $4\n                     WHERE product_id = $1 AND day >= $2 AND day < $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bb1a9e53c6677f7dc04e39f7445fee9d0325ceddff2e9bf52d31a6e64183deb5"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rate_plans (id, code, cancellation_policy_id, deposit_type, deposit_percent, payment_mode, sort_order)\n         VALUES ($1, $2::text::citext, $3, $4, $5::bigint::numeric, $6, $7) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "58ab79e8c49c3948760e6b9b862e321391b9e5892a47cc2a89b3d5b75660f843"
+}

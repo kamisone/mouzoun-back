@@ -1,0 +1,13 @@
+DROP TABLE redirects;
+DROP TABLE banner_translations;
+DROP TABLE banners;
+DROP TABLE faq_translations;
+DROP TABLE faqs;
+DROP TABLE nav_menu_item_translations;
+DROP TABLE nav_menu_items;
+DROP TABLE nav_menus;
+DROP TABLE content_block_translations;
+DROP TABLE content_blocks;
+DROP TABLE page_translations;
+DROP TABLE pages;
+DROP TABLE reviews;

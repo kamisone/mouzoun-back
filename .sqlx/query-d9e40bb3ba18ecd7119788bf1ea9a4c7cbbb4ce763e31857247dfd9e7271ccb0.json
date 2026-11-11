@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT product_id, starts_at, ends_at, capacity, reserved, status AS \"status: SlotStatus\"\n           FROM activity_slots WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "ends_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: SlotStatus",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d9e40bb3ba18ecd7119788bf1ea9a4c7cbbb4ce763e31857247dfd9e7271ccb0"
+}

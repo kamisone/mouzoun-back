@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM bookings\n         WHERE status IN ('pending', 'awaiting_payment') AND hold_expires_at < $1\n         ORDER BY hold_expires_at\n         LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c68bba1af73173fcc548e728242ae478b45c470cd7776c5b41c341fe03e1fb7a"
+}

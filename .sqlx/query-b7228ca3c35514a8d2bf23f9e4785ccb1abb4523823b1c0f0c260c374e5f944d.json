@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kind, p.sku::text AS \"sku\", pt.name AS \"name?\", pt.slug AS \"slug?\"\n           FROM products p\n           LEFT JOIN product_translations pt\n                  ON pt.product_id = p.id AND pt.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE p.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sku",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "slug?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "b7228ca3c35514a8d2bf23f9e4785ccb1abb4523823b1c0f0c260c374e5f944d"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings\n         SET status = $2, cancelled_at = $3, cancelled_by = $4, cancellation_reason = $5, hold_expires_at = NULL\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a26882475868116227577b040fdfd26164b33b215cc7bd72341eaaa38e82a866"
+}

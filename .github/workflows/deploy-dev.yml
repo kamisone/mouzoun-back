@@ -36,6 +36,9 @@ jobs:
     env:
       DATABASE_URL: postgres://mouzoun:mouzoun@localhost:5432/mouzoun
       REDIS_URL: redis://localhost:6379
+      # Queries are checked against the committed .sqlx metadata: a query changed without
+      # `cargo sqlx prepare -- --all-targets --all-features` fails the build here.
+      SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

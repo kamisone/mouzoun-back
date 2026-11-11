@@ -30,7 +30,6 @@ pub fn router(state: AppState) -> Router {
     // Back-office: every route under /v1/admin requires a staff token (secure by default:
     // a route added here cannot be exposed by forgetting a check in its handler).
     let admin = Router::new()
-        .nest("/activities", modules::activities::admin_routes())
         .nest("/media", modules::media::admin_routes())
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -39,7 +38,6 @@ pub fn router(state: AppState) -> Router {
 
     let api_v1 = Router::new()
         .nest("/auth", auth::routes())
-        .nest("/activities", modules::activities::public_routes())
         .nest("/admin", admin);
 
     Router::new()

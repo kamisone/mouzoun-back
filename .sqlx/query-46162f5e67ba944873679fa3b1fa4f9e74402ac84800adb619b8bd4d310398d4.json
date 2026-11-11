@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_calendar (product_id, day, capacity)\n         SELECT a.product_id, day::date,\n                (SELECT count(*) FROM accommodation_units u\n                 WHERE u.product_id = a.product_id AND u.status = 'active')::int\n         FROM accommodation_types a\n         JOIN products p ON p.id = a.product_id AND p.deleted_at IS NULL\n         CROSS JOIN generate_series($2::date, ($2::date + make_interval(months => $3))::date - 1, interval '1 day') AS day\n         WHERE $1::uuid IS NULL OR a.product_id = $1\n         ON CONFLICT (product_id, day) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "46162f5e67ba944873679fa3b1fa4f9e74402ac84800adb619b8bd4d310398d4"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cancellation_policy_translations (cancellation_policy_id, locale, name) VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b95c36c16c509b82df1b1b9b6eeea0505e1e3f66ce285364ebe28df2f60f96cf"
+}

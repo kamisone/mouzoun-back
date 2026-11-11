@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO resources (id, kind, code, name, seats) VALUES ($1, 'vehicle', $2::text::citext, $3, 2) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8c2fd8d26d41e4f48b4d3e1e0e1cf742770ceb093ffe0d2ac4307035a140a6fa"
+}

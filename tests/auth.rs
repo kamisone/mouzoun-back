@@ -8,17 +8,9 @@ use sqlx::PgPool;
 
 const COOKIE: &str = "__Host-mouzoun_session";
 
-async fn create_user(app: &TestApp, email: &str, pass: &str, role: &str) {
+async fn create_user(app: &TestApp, email: &str, pass: &str, staff: bool) -> uuid::Uuid {
     let hash = password::hash(pass.to_string()).await.unwrap();
-    sqlx::query(
-        "INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, 'U', $3::user_role)",
-    )
-    .bind(email)
-    .bind(hash)
-    .bind(role)
-    .execute(&app.db)
-    .await
-    .unwrap();
+    common::create_user(&app.db, email, &hash, staff, staff.then_some("manager")).await
 }
 
 fn set_cookie(headers: &HeaderMap) -> String {
@@ -49,7 +41,7 @@ async fn login(app: &TestApp, email: &str, pass: &str) -> (StatusCode, Option<St
 #[sqlx::test(migrations = "./migrations")]
 async fn login_sets_a_hardened_session_cookie_and_never_exposes_the_token(db: PgPool) {
     let app = TestApp::new(db).await;
-    create_user(&app, "boss@mouzoun.com", "abc123", "admin").await;
+    create_user(&app, "boss@mouzoun.com", "abc123", true).await;
 
     let (status, headers, body) = app
         .send(
@@ -82,7 +74,17 @@ async fn login_sets_a_hardened_session_cookie_and_never_exposes_the_token(db: Pg
         body.get("access_token").is_none(),
         "token must never reach JavaScript: {body}"
     );
-    assert_eq!(body["user"]["role"], "admin");
+    assert_eq!(body["user"]["is_staff"], true);
+    assert_eq!(body["user"]["roles"], json!(["manager"]));
+    let permissions = body["user"]["permissions"].as_array().unwrap();
+    assert!(
+        permissions.contains(&json!("bookings.write")),
+        "manager can write bookings"
+    );
+    assert!(
+        !permissions.contains(&json!("users.manage")),
+        "manager cannot manage users"
+    );
     assert_eq!(body["expires_in"], 3600);
 }
 
@@ -90,7 +92,7 @@ async fn login_sets_a_hardened_session_cookie_and_never_exposes_the_token(db: Pg
 async fn the_cookie_authenticates_and_logout_ends_the_session(db: PgPool) {
     // Regression: login used to reject passwords < 8 chars with 422, locking out such admins.
     let app = TestApp::new(db).await;
-    create_user(&app, "boss@mouzoun.com", "abc123", "admin").await;
+    create_user(&app, "boss@mouzoun.com", "abc123", true).await;
     let (_, cookie, _) = login(&app, "boss@mouzoun.com", "abc123").await;
     let cookie = cookie.unwrap();
 
@@ -107,7 +109,7 @@ async fn the_cookie_authenticates_and_logout_ends_the_session(db: PgPool) {
     let (status, _, _) = app
         .send(
             Method::GET,
-            "/v1/admin/activities",
+            "/v1/admin/media",
             None,
             &[("cookie", cookie.clone())],
         )
@@ -133,15 +135,15 @@ async fn the_cookie_authenticates_and_logout_ends_the_session(db: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn a_customer_session_cannot_reach_the_back_office(db: PgPool) {
+async fn a_non_staff_session_cannot_reach_the_back_office(db: PgPool) {
     let app = TestApp::new(db).await;
-    create_user(&app, "client@mouzoun.com", "abc123", "customer").await;
+    create_user(&app, "client@mouzoun.com", "abc123", false).await;
     let (status, cookie, _) = login(&app, "client@mouzoun.com", "abc123").await;
     assert_eq!(status, StatusCode::OK);
     let (status, _, _) = app
         .send(
             Method::GET,
-            "/v1/admin/activities",
+            "/v1/admin/media",
             None,
             &[("cookie", cookie.unwrap())],
         )
@@ -152,14 +154,10 @@ async fn a_customer_session_cannot_reach_the_back_office(db: PgPool) {
 #[sqlx::test(migrations = "./migrations")]
 async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
     let app = TestApp::new(db).await;
-    create_user(&app, "boss@mouzoun.com", "abc123", "admin").await;
+    create_user(&app, "boss@mouzoun.com", "abc123", true).await;
     let (_, cookie, _) = login(&app, "boss@mouzoun.com", "abc123").await;
     let cookie = cookie.unwrap();
-    let activity = json!({
-        "slug": "csrf", "title_fr": "Titre", "title_en": "Title", "description_fr": "",
-        "description_en": "", "price_mad": 1, "duration_minutes": 1, "cover_media_id": null,
-        "is_published": false,
-    });
+    let upload = json!({ "filename": "dune.png", "content_type": "image/png", "size_bytes": 1024 });
 
     let evil = [
         ("cookie", cookie.clone()),
@@ -168,8 +166,8 @@ async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
     let (status, _, _) = app
         .send(
             Method::POST,
-            "/v1/admin/activities",
-            Some(activity.clone()),
+            "/v1/admin/media/uploads",
+            Some(upload.clone()),
             &evil,
         )
         .await;
@@ -189,13 +187,13 @@ async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
         ("origin", ALLOWED_ORIGIN.to_string()),
     ];
     let (status, _, body) = app
-        .send(Method::POST, "/v1/admin/activities", Some(activity), &ours)
+        .send(Method::POST, "/v1/admin/media/uploads", Some(upload), &ours)
         .await;
     assert_eq!(status, StatusCode::CREATED, "{body}");
     let (status, _, _) = app
         .send(
             Method::GET,
-            "/v1/admin/activities",
+            "/v1/admin/media",
             None,
             &[
                 ("cookie", cookie),
@@ -209,7 +207,7 @@ async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
 #[sqlx::test(migrations = "./migrations")]
 async fn wrong_or_malformed_credentials_are_401_never_422(db: PgPool) {
     let app = TestApp::new(db).await;
-    create_user(&app, "boss@mouzoun.com", "abc123", "admin").await;
+    create_user(&app, "boss@mouzoun.com", "abc123", true).await;
     for (email, pass) in [
         ("boss@mouzoun.com", "nope"),
         ("admin", "abc123"),
@@ -225,4 +223,21 @@ async fn wrong_or_malformed_credentials_are_401_never_422(db: PgPool) {
         StatusCode::UNPROCESSABLE_ENTITY,
         "empty fields are a malformed request"
     );
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn invited_and_suspended_users_cannot_log_in(db: PgPool) {
+    let app = TestApp::new(db).await;
+    let id = create_user(&app, "new@mouzoun.com", "abc123", true).await;
+    for status in ["invited", "suspended"] {
+        sqlx::query("UPDATE users SET status = $2 WHERE id = $1")
+            .bind(id)
+            .bind(status)
+            .execute(&app.db)
+            .await
+            .unwrap();
+        let (code, cookie, _) = login(&app, "new@mouzoun.com", "abc123").await;
+        assert_eq!(code, StatusCode::UNAUTHORIZED, "{status}");
+        assert!(cookie.is_none());
+    }
 }

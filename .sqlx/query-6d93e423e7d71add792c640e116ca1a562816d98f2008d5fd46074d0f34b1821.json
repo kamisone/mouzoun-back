@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO booking_items (id, booking_id, product_id, product_kind, rate_plan_id, activity_slot_id,\n                                    service_period, starts_at, quantity, unit_price_minor, subtotal_minor,\n                                    discount_minor, tax_minor, total_minor, price_breakdown, product_snapshot)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "DateRange",
+        "Timestamptz",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6d93e423e7d71add792c640e116ca1a562816d98f2008d5fd46074d0f34b1821"
+}

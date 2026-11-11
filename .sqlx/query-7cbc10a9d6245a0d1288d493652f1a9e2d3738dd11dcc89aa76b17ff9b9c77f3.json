@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO booking_reference_counters (year, last_number) VALUES ($1, 1)\n         ON CONFLICT (year) DO UPDATE SET last_number = booking_reference_counters.last_number + 1\n         RETURNING last_number",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_number",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7cbc10a9d6245a0d1288d493652f1a9e2d3738dd11dcc89aa76b17ff9b9c77f3"
+}

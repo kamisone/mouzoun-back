@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.status AS \"status: ProductStatus\", p.booking_mode AS \"booking_mode: BookingMode\",\n                  a.inventory_mode AS \"inventory_mode: InventoryMode\", a.max_guests, a.min_nights, a.max_nights,\n                  a.standard_occupancy\n           FROM products p\n           JOIN accommodation_types a ON a.product_id = p.id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: ProductStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "booking_mode: BookingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "inventory_mode: InventoryMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_guests",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "max_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "standard_occupancy",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "44fdb797fb63117e3b7bc773b0f4d90b759365b639966a2f085b46d87c203417"
+}

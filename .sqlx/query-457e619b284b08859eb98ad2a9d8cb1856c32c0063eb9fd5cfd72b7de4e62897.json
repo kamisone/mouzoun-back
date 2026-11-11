@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT product_id, locale AS \"locale: Locale\", name, slug, subtitle, short_description, description,\n                  highlights, included, not_included, what_to_bring, requirements, important_info, seo_title,\n                  seo_description, og_media_id\n           FROM product_translations WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "locale: Locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "subtitle",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "short_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "highlights",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "included",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "not_included",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "what_to_bring",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 11,
+        "name": "requirements",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "important_info",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "seo_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "seo_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "og_media_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "457e619b284b08859eb98ad2a9d8cb1856c32c0063eb9fd5cfd72b7de4e62897"
+}

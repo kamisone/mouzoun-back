@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id\n             FROM accommodation_units u\n             WHERE u.product_id = $1 AND u.status = 'active'\n               AND NOT EXISTS (SELECT 1 FROM unit_allocations a\n                               WHERE a.unit_id = u.id AND a.released_at IS NULL AND a.stay && daterange($2, $3))\n               AND NOT EXISTS (SELECT 1 FROM closures c\n                               WHERE c.scope = 'unit' AND c.unit_id = u.id AND c.period && daterange($2, $3))\n             ORDER BY u.sort_order, u.code\n             LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "103ba83787afa82c7332fd807713fe834b1c7db443a4b7cdea80e866b7146ea5"
+}

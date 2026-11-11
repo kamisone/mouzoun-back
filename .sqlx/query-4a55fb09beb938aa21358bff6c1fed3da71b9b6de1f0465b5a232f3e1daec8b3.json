@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM closures\n               WHERE period && daterange($2, $3)\n                 AND (scope = 'site' OR (scope = 'product' AND product_id = $1))\n           ) AS \"closed!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "closed!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4a55fb09beb938aa21358bff6c1fed3da71b9b6de1f0465b5a232f3e1daec8b3"
+}

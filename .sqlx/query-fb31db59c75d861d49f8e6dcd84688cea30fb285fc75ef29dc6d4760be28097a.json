@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET status = 'confirmed', confirmed_at = $2, hold_expires_at = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb31db59c75d861d49f8e6dcd84688cea30fb285fc75ef29dc6d4760be28097a"
+}

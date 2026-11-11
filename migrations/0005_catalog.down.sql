@@ -1,0 +1,14 @@
+DROP TABLE package_items;
+DROP TABLE product_extras;
+DROP TABLE itinerary_step_translations;
+DROP TABLE itinerary_steps;
+DROP TABLE packages;
+DROP TABLE extras;
+DROP TABLE activities;
+DROP TABLE accommodation_types;
+DROP TABLE related_products;
+DROP TABLE product_amenities;
+DROP TABLE product_tags;
+DROP TABLE product_categories;
+DROP TABLE product_translations;
+DROP TABLE products;

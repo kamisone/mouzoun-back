@@ -1,6 +1,6 @@
 # Mouzoun — back (Rust API)
 
-Axum 0.8 · Tokio · SQLx (PostgreSQL 17) · Redis 8 · Google Cloud Storage (official SDK) · JWT + Argon2
+Axum 0.8 · Tokio · SQLx (PostgreSQL 16+, 17 in production) · Redis 8 · Google Cloud Storage (official SDK) · JWT + Argon2
 
 ## Run locally
 
@@ -9,9 +9,12 @@ docker compose up -d          # PostgreSQL (:5433) + Redis (:6380)
 cp .env.example .env          # then fill the GCS_* values (see "Google Cloud Storage")
 cargo run                     # http://localhost:8080, migrations run at startup
 cargo test                    # unit + integration tests (needs the compose services)
+cargo run --bin seed_dev      # optional: fr/en/ar demo content (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD)
 ```
 
-The first admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if none exists.
+The first super admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if none exists.
+The database (schema, conventions, migrations, outbox, adding a language or a product kind) is
+documented in [`docs/database/README.md`](docs/database/README.md).
 
 ## Architecture
 
@@ -28,20 +31,27 @@ src/
     cache.rs         Redis JSON cache (namespaced, failures = cache miss)
     storage/         ObjectStorage trait · gcs.rs (production) · memory.rs (tests)
   auth/              login/logout/me, HttpOnly session cookie, JWT, Argon2, require_staff guard
-  modules/           business modules, each: routes · handlers · service · repository · model
+  db/                data layer: one module per schema section (models, text enums, Money,
+                     translations), mirrors migrations/ exactly
+  services/          business rules, no HTTP: booking (accommodation, activity, lifecycle),
+                     pricing (pure engine + loader), inventory & slot generators, catalog reads
+                     with locale fallback, numbering, outbox, identity
+  modules/           HTTP modules, each: routes · handlers · service · model
     media/           media library on GCS (+ policy.rs: allow-list, magic bytes, keys)
-    activities/      catalogue, cover image from the media library
-  jobs/              background workers (abandoned upload cleanup)
-migrations/          SQL migrations (sqlx)
+  bin/seed_dev.rs    development demo content
+  jobs/              background workers: booking holds, outbox, inventory horizon, uploads
+migrations/          reversible SQL migrations 0001–0012 (sqlx); .sqlx/ = offline query metadata
+docs/database/       database guide
 tests/               integration tests: real router + Postgres + Redis, in-memory storage
                      (the in-memory storage is compiled for tests only: `test-utils` feature)
 deploy/             CI/CD: deploy.sh (blue/green), nginx site (web.conf + routes.conf)
 ```
 
-Rules: handlers only do HTTP; services hold business rules; repositories only SQL;
-modules never touch vendor SDKs directly (storage goes through `ObjectStorage`).
-New module (camps, bookings, products...): copy `modules/activities`, expose `public_routes()`
-and/or `admin_routes()`, and mount them in `web/mod.rs` (admin routes are guarded automatically).
+Rules: handlers only do HTTP; business rules live in `services/` (or a module's service);
+SQL is compile-time checked (`query!`/`query_as!`); modules never touch vendor SDKs directly
+(storage goes through `ObjectStorage`). New HTTP module (products, bookings...): add
+`modules/<name>` exposing `public_routes()` and/or `admin_routes()` on top of `services/`, and
+mount them in `web/mod.rs` (admin routes are guarded automatically).
 
 ## Media uploads (Google Cloud Storage)
 
@@ -50,9 +60,9 @@ consume API memory, bandwidth or request time.
 
 ```
 admin ── POST /v1/admin/media/uploads {filename, content_type, size_bytes} ──► API
-      ◄── {media: {id, status: "pending"}, upload: {url, method: PUT, headers}} ──
+      ◄── {media_id, expires_at, upload: {url, method: PUT, headers}} ── (pending, kept in Redis)
 admin ── PUT <signed url> (file, with the returned headers) ──────────────► GCS
-admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type + magic bytes ► "ready"
+admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type + magic bytes ► media_assets row
 ```
 
 - The signed URL (V4, 15 min) pins content type, **exact size** and cache headers.
@@ -61,7 +71,8 @@ admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type
 - Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts). Max 15 MB.
 - Keys are opaque (`media/YYYY/MM/<uuid>.<ext>`), never derived from filenames, and
   public objects are served with `Cache-Control: public, max-age=31536000, immutable`.
-- Media in use (e.g. an activity cover) cannot be deleted (409).
+- Only completed uploads exist in `media_assets`; pending ones live in Redis until completed.
+- Deleting media is a soft delete (`deleted_at`): references from content keep working.
 - Uploads never completed are purged hourly after 24 h (`jobs/media_cleanup.rs`).
 - Private media (`"visibility": "private"`) needs `GCS_PRIVATE_BUCKET_NAME`; it is only ever
   served through short-lived signed download URLs.
@@ -106,18 +117,20 @@ Application Default Credentials.
 | GET | `/health/live` · `/health/ready` | public |
 | POST | `/v1/auth/login` · `/v1/auth/logout` | public (set / expire the session cookie) |
 | GET | `/v1/auth/me` | authenticated |
-| GET | `/v1/activities` · `/v1/activities/{slug}` | public, published only (Redis-cached) |
-| GET · POST | `/v1/admin/activities` (`?page=&per_page=`) | staff |
-| GET · PUT · DELETE | `/v1/admin/activities/{id}` | staff |
-| GET | `/v1/admin/media` (`?status=&page=&per_page=`) | staff |
+| GET | `/v1/admin/media` (`?kind=&page=&per_page=`) | staff |
 | POST | `/v1/admin/media/uploads` · `/v1/admin/media/{id}/complete` | staff |
-| GET · DELETE | `/v1/admin/media/{id}` | staff (DELETE: 409 if in use) |
+| GET · DELETE | `/v1/admin/media/{id}` | staff (DELETE = soft delete) |
+
+`/v1/auth/login` and `/v1/auth/me` return the profile: `is_staff`, `roles` and the effective
+`permissions` codes. The former `/v1/activities` endpoints were removed with the old schema;
+catalogue, booking and content endpoints will be built on `services/` (products, bookings, pages).
 
 Public and back-office APIs are separate namespaces. Every route under `/v1/admin` is protected
 by one `require_staff` middleware applied to the whole router: a new admin route cannot be
 exposed by forgetting a check in its handler, and public slugs never collide with admin paths.
 
-Add a migration: `sqlx migrate add <name>` (`cargo install sqlx-cli --no-default-features --features postgres,rustls`).
+Add a migration: `sqlx migrate add -r <name>`, then `cargo sqlx prepare -- --all-targets --all-features`
+(see [`docs/database/README.md`](docs/database/README.md)).
 
 ## CI/CD — push to `dev` = deployed
 
@@ -165,7 +178,7 @@ includes `/etc/ssl/mouzoun/ssl_config.conf*`. Both serve the same routes from
 
 | URL | Goes to |
 |---|---|
-| `https://DOMAIN/api/...` | API — the `/api` prefix is stripped (`/api/v1/activities` → `/v1/activities`), rate limited, login 5/min |
+| `https://DOMAIN/api/...` | API — the `/api` prefix is stripped (`/api/v1/auth/me` → `/v1/auth/me`), rate limited, login 5/min |
 | `https://DOMAIN/...` | website + `/admin` (Nuxt) |
 | `https://www.DOMAIN/...` | 301 → `https://DOMAIN/...` |
 | `127.0.0.1:18080` (loopback only) | API, for the website's server-side rendering |

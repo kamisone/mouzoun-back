@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_crops (id, code, harvest_months, is_published) VALUES ($1, $2::text::citext, $3, true) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int2Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "14cc6966a755abf9f8f15c4aa4243c6c6c5fb48cac855237dfaa4a3cccd4f074"
+}

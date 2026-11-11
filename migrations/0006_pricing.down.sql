@@ -1,0 +1,16 @@
+DROP TABLE promotion_products;
+DROP TABLE promotion_translations;
+DROP TABLE promotions;
+DROP TABLE product_taxes;
+DROP TABLE tax_translations;
+DROP TABLE taxes;
+DROP TABLE prices;
+DROP TABLE season_periods;
+DROP TABLE season_translations;
+DROP TABLE seasons;
+DROP TABLE rate_plan_translations;
+DROP TABLE rate_plans;
+DROP TABLE cancellation_policy_translations;
+DROP TABLE cancellation_policies;
+DROP TABLE guest_category_translations;
+DROP TABLE guest_categories;

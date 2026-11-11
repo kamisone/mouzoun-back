@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE activity_slots\n                     SET reserved = reserved - $2,\n                         status = CASE WHEN status = 'full' THEN 'open' ELSE status END\n                     WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f6a47b5b39eda0d806c4e7865d5280154d38cc91644045ffe62f44491a2574df"
+}

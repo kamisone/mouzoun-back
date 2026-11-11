@@ -25,8 +25,15 @@ impl Cache {
         })
     }
 
-    fn key(&self, key: &str) -> String {
+    /// Key in this cache's namespace.
+    pub fn key(&self, key: &str) -> String {
         format!("{}:{key}", self.prefix)
+    }
+
+    /// The underlying connection, for data that is not a cache (e.g. upload tickets): such
+    /// callers must handle Redis errors themselves.
+    pub fn connection(&self) -> ConnectionManager {
+        self.conn.clone()
     }
 
     pub async fn get_json<T: DeserializeOwned>(&self, key: &str) -> Option<T> {

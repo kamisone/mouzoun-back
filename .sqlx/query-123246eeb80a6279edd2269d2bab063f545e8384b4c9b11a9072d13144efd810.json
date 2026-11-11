@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO nav_menu_item_translations (nav_menu_item_id, locale, label) VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "123246eeb80a6279edd2269d2bab063f545e8384b4c9b11a9072d13144efd810"
+}

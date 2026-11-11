@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.priority, sp.period AS \"period: DateRange\"\n           FROM seasons s\n           JOIN season_periods sp ON sp.season_id = s.id\n           WHERE sp.period && daterange($1, $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "period: DateRange",
+        "type_info": "DateRange"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fed768b1e8f55d40bfe054b6bd1f863c9ef38a8a29efdeb2dad04c41beedcccb"
+}

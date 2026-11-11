@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO prices (id, product_id, rate_plan_id, season_id, guest_category_id, pricing_unit, amount_minor,\n                             currency, extra_guest_amount_minor)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, 'EUR', $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8b85e4339214a066805767e5a35eb1b91865d57a94c3a153994f038a4ec56629"
+}

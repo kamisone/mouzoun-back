@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, rate_plan_id, season_id, guest_category_id,\n                  pricing_unit AS \"pricing_unit: PricingUnit\", amount_minor, extra_guest_amount_minor,\n                  min_quantity, max_quantity, min_nights, days_of_week,\n                  valid_period AS \"valid_period: DateRange\", priority\n           FROM prices\n           WHERE product_id = $1 AND is_active AND currency = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rate_plan_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "season_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "guest_category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "pricing_unit: PricingUnit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "extra_guest_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "min_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "min_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "days_of_week",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 11,
+        "name": "valid_period: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 12,
+        "name": "priority",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "3afc1ddfe048a04f130b5936a5aad1b5c3180751fbf9dfda5f04b47832490f22"
+}

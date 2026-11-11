@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoice_counters SET last_number = $2 WHERE year = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4152f29f733d061ecd1e016075ecf658c9732fbf8cde82c06ff1c47245d33e7d"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO activities (product_id, location_type, scheduling_mode, duration_minutes, difficulty, min_age,\n                                 is_guided, guide_languages)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, ARRAY['fr', 'en', 'ar'])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Int2",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "200a9f4134f8bedc16b1aa28b6f7103c35e130bb4f256405a22017ec874c1b72"
+}

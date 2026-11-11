@@ -5,12 +5,12 @@
 //! 2. client `PUT`s the file to that URL (straight to GCS)
 //! 3. `POST /v1/admin/media/{id}/complete`  → verifies size, type and magic bytes, marks it `ready`
 //!
-//! Uploads never completed are purged by `jobs::media_cleanup`.
+//! Uploads in progress live in Redis (the `media_assets` row is only inserted once the file is
+//! verified); uploads never completed are purged by `jobs::media_cleanup`.
 
 mod handlers;
 pub mod model;
 pub mod policy;
-mod repository;
 mod service;
 
 use axum::{

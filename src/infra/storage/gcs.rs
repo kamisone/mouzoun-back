@@ -37,6 +37,7 @@ struct GcsClients {
 
 pub struct GcsBucket {
     clients: Arc<GcsClients>,
+    name: String,
     /// Bucket resource name: `projects/_/buckets/<name>`.
     resource: String,
     public_base_url: String,
@@ -123,6 +124,7 @@ impl GcsBucket {
     fn new(clients: Arc<GcsClients>, bucket: &str, public_base_url: String) -> Self {
         Self {
             clients,
+            name: bucket.to_owned(),
             resource: format!("projects/_/buckets/{bucket}"),
             public_base_url,
         }
@@ -233,6 +235,10 @@ impl ObjectStorage for GcsBucket {
 
     fn public_url(&self, key: &str) -> String {
         format!("{}/{key}", self.public_base_url)
+    }
+
+    fn bucket_name(&self) -> &str {
+        &self.name
     }
 
     async fn check(&self) -> Result<(), StorageError> {

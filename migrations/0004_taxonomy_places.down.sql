@@ -1,0 +1,12 @@
+DROP TABLE place_crops;
+DROP TABLE farm_crop_translations;
+DROP TABLE farm_crops;
+DROP TABLE place_amenities;
+DROP TABLE place_translations;
+DROP TABLE places;
+DROP TABLE amenity_translations;
+DROP TABLE amenities;
+DROP TABLE tag_translations;
+DROP TABLE tags;
+DROP TABLE category_translations;
+DROP TABLE categories;

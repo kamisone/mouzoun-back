@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.code::text AS \"code!\", t.calc_type AS \"calc_type: TaxCalcType\", t.rate_percent,\n                  t.amount_minor, t.currency AS \"currency: CurrencyCode\", t.is_inclusive,\n                  t.exempt_guest_category_ids, t.valid_period AS \"valid_period: DateRange\"\n           FROM taxes t\n           JOIN product_taxes pt ON pt.tax_id = t.id\n           WHERE pt.product_id = $1 AND t.is_active\n           ORDER BY t.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "calc_type: TaxCalcType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "rate_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_inclusive",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "exempt_guest_category_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "valid_period: DateRange",
+        "type_info": "DateRange"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "93c0c6f630aae9433c0424264604497ba06996f413837a3bacd5f739345a478f"
+}

@@ -31,6 +31,8 @@ pub enum AppError {
     #[error(transparent)]
     Storage(#[from] StorageError),
     #[error(transparent)]
+    Redis(#[from] redis::RedisError),
+    #[error(transparent)]
     Database(#[from] sqlx::Error),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
@@ -66,7 +68,7 @@ impl IntoResponse for AppError {
                 tracing::error!(error = ?self, "storage error");
                 (StatusCode::BAD_GATEWAY, "storage_unavailable", None)
             }
-            AppError::Database(_) | AppError::Internal(_) => {
+            AppError::Database(_) | AppError::Redis(_) | AppError::Internal(_) => {
                 tracing::error!(error = ?self, "internal error");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", None)
             }

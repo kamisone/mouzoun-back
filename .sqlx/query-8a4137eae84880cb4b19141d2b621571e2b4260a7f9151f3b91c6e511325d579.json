@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO customers (id, email, first_name, last_name, phone, country_code, preferred_locale)\n                 VALUES ($1, $2::text::citext, $3, $4, $5, $6, $7)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bpchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a4137eae84880cb4b19141d2b621571e2b4260a7f9151f3b91c6e511325d579"
+}

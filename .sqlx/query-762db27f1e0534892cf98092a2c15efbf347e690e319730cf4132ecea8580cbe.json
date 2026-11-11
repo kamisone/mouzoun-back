@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (id, email, password_hash, full_name, status, is_staff, email_verified_at)\n         VALUES ($1, $2::text::citext, $3, $4, 'active', true, now())\n         ON CONFLICT (email) DO UPDATE\n            SET password_hash = EXCLUDED.password_hash, status = 'active', is_staff = true, deleted_at = NULL\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "762db27f1e0534892cf98092a2c15efbf347e690e319730cf4132ecea8580cbe"
+}

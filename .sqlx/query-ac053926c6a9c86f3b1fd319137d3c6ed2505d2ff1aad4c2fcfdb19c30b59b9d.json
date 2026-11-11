@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO taxes (id, code, calc_type, amount_minor, currency, exempt_guest_category_ids)\n         VALUES ($1, 'tourist_tax', 'fixed_per_person_per_night', 250, 'EUR', $2) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ac053926c6a9c86f3b1fd319137d3c6ed2505d2ff1aad4c2fcfdb19c30b59b9d"
+}

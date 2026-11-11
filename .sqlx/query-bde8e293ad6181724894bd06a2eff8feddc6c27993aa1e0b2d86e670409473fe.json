@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_roles (user_id, role_id)\n         SELECT $1, id FROM roles WHERE code = 'super_admin'\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bde8e293ad6181724894bd06a2eff8feddc6c27993aa1e0b2d86e670409473fe"
+}

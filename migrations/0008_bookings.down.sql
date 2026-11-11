@@ -1,0 +1,16 @@
+DROP TABLE invoices;
+DROP TABLE payment_webhook_events;
+DROP TABLE refunds;
+DROP TABLE payments;
+DROP TABLE promotion_redemptions;
+DROP TABLE booking_status_history;
+DROP TABLE booking_guests;
+DROP TABLE resource_assignments;
+DROP TABLE unit_allocations;
+DROP TABLE booking_item_guests;
+DROP TABLE booking_items;
+DROP TABLE invoice_counters;
+DROP TABLE booking_reference_counters;
+DROP TABLE bookings;
+DROP SEQUENCE invoice_number_seq;
+DROP TABLE customers;

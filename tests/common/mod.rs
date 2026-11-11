@@ -1,7 +1,8 @@
-#![allow(dead_code)] // shared by several test binaries, each using a subset
-
 //! Test harness: real router + real Postgres (one fresh database per test via `sqlx::test`)
 //! + real Redis (namespaced per test) + in-memory object storage.
+#![allow(dead_code)] // shared by several test binaries, each using a subset
+
+pub mod fixtures;
 
 use std::{sync::Arc, time::Duration};
 
@@ -12,7 +13,7 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use mouzoun_api::{
-    auth::{Role, jwt},
+    auth::jwt,
     config::{Config, GcsCredentials, MediaConfig, StorageConfig},
     infra::{
         cache::Cache,
@@ -43,6 +44,7 @@ pub fn test_config() -> Config {
         port: 0,
         database_url: String::new(),
         database_max_connections: 5,
+        run_migrations: false,
         redis_url: redis_url(),
         jwt_secret: JWT_SECRET.into(),
         jwt_ttl_minutes: 60,
@@ -85,17 +87,11 @@ impl TestApp {
         let storage = Arc::new(InMemoryStorage::new());
         let buckets = Buckets {
             public: storage.clone(),
-            private: private.then(|| Arc::new(InMemoryStorage::new()) as _),
+            private: private.then(|| Arc::new(InMemoryStorage::named("memory-private")) as _),
         };
 
-        let admin_id: Uuid = sqlx::query_scalar(
-            "INSERT INTO users (email, password_hash, full_name, role)
-             VALUES ('admin@test.ma', 'x', 'Admin', 'admin') RETURNING id",
-        )
-        .fetch_one(&db)
-        .await
-        .unwrap();
-        let admin_token = jwt::issue(JWT_SECRET, admin_id, Role::Admin, 60).unwrap();
+        let admin_id = create_user(&db, "admin@test.ma", "x", true, Some("super_admin")).await;
+        let admin_token = jwt::issue(JWT_SECRET, admin_id, true, 60).unwrap();
 
         let state = AppState::new(config, db.clone(), cache, buckets);
         Self {
@@ -157,6 +153,38 @@ impl TestApp {
         let token = self.admin_token.clone();
         self.request(method, uri, body, Some(&token)).await
     }
+}
+
+/// Active user with an optional role. `password` is stored as given (hash it first for logins).
+pub async fn create_user(
+    db: &PgPool,
+    email: &str,
+    password_hash: &str,
+    is_staff: bool,
+    role: Option<&str>,
+) -> Uuid {
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO users (id, email, password_hash, full_name, status, is_staff)
+         VALUES ($1, $2, $3, 'User', 'active', $4) RETURNING id",
+    )
+    .bind(Uuid::now_v7())
+    .bind(email)
+    .bind(password_hash)
+    .bind(is_staff)
+    .fetch_one(db)
+    .await
+    .unwrap();
+    if let Some(role) = role {
+        sqlx::query(
+            "INSERT INTO user_roles (user_id, role_id) SELECT $1, id FROM roles WHERE code = $2",
+        )
+        .bind(id)
+        .bind(role)
+        .execute(db)
+        .await
+        .unwrap();
+    }
+    id
 }
 
 /// Smallest valid PNG header bytes (enough for magic-byte sniffing).
