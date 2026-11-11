@@ -1,4 +1,5 @@
-//! In-memory [`ObjectStorage`] used by the test-suite (and usable for offline dev).
+//! In-memory [`ObjectStorage`] for the test-suite. Compiled only with `cfg(test)` or the
+//! `test-utils` feature: it is not part of the production binary.
 
 use std::{collections::HashMap, sync::Mutex, time::Duration};
 

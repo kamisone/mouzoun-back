@@ -27,19 +27,21 @@ src/
     db.rs            Postgres pool + migrations
     cache.rs         Redis JSON cache (namespaced, failures = cache miss)
     storage/         ObjectStorage trait · gcs.rs (production) · memory.rs (tests)
-  auth/              login, /me, JWT, Argon2, AuthUser / AdminUser extractors
+  auth/              login/logout/me, HttpOnly session cookie, JWT, Argon2, require_staff guard
   modules/           business modules, each: routes · handlers · service · repository · model
     media/           media library on GCS (+ policy.rs: allow-list, magic bytes, keys)
     activities/      catalogue, cover image from the media library
   jobs/              background workers (abandoned upload cleanup)
 migrations/          SQL migrations (sqlx)
 tests/               integration tests: real router + Postgres + Redis, in-memory storage
+                     (the in-memory storage is compiled for tests only: `test-utils` feature)
 deploy/             CI/CD: deploy.sh (blue/green), nginx site (web.conf + routes.conf)
 ```
 
 Rules: handlers only do HTTP; services hold business rules; repositories only SQL;
 modules never touch vendor SDKs directly (storage goes through `ObjectStorage`).
-New module (camps, bookings, products...): copy `modules/activities`.
+New module (camps, bookings, products...): copy `modules/activities`, expose `public_routes()`
+and/or `admin_routes()`, and mount them in `web/mod.rs` (admin routes are guarded automatically).
 
 ## Media uploads (Google Cloud Storage)
 
@@ -47,10 +49,10 @@ Files go **directly from the browser to GCS**; the API never streams bytes, so u
 consume API memory, bandwidth or request time.
 
 ```
-admin ── POST /v1/media/uploads {filename, content_type, size_bytes} ──► API
+admin ── POST /v1/admin/media/uploads {filename, content_type, size_bytes} ──► API
       ◄── {media: {id, status: "pending"}, upload: {url, method: PUT, headers}} ──
 admin ── PUT <signed url> (file, with the returned headers) ──────────────► GCS
-admin ── POST /v1/media/{id}/complete ──► API checks size + type + magic bytes ► "ready"
+admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type + magic bytes ► "ready"
 ```
 
 - The signed URL (V4, 15 min) pins content type, **exact size** and cache headers.
@@ -86,21 +88,34 @@ service-account JSON key into `GCS_*` (keep `private_key` on one line with its `
 On GCP infrastructure, leave `GCS_CLIENT_EMAIL`/`GCS_PRIVATE_KEY` empty to use
 Application Default Credentials.
 
+## Authentication
+
+- **Browser session = `HttpOnly` cookie.** Login sets `__Host-mouzoun_session` (`Secure`,
+  `SameSite=Lax`, `Path=/`, no `Domain`) holding a signed JWT (`JWT_TTL_MINUTES`). JavaScript never
+  sees the token, so an XSS bug cannot steal the session; logout expires the cookie.
+- **CSRF**: `SameSite=Lax` keeps the cookie off cross-site writes, and every POST/PUT/PATCH/DELETE
+  whose `Origin` is not in `CORS_ORIGINS` is refused (403).
+- Non-browser clients may send the same JWT as `Authorization: Bearer <token>`.
+- `COOKIE_SECURE=false` only for plain-HTTP local development (the cookie is then named
+  `mouzoun_session`, since the `__Host-` prefix requires `Secure`).
+
 ## Endpoints (v1)
 
 | Method | Path | Access |
 |---|---|---|
 | GET | `/health/live` · `/health/ready` | public |
-| POST | `/v1/auth/login` | public |
+| POST | `/v1/auth/login` · `/v1/auth/logout` | public (set / expire the session cookie) |
 | GET | `/v1/auth/me` | authenticated |
-| GET | `/v1/activities` · `/v1/activities/{slug}` | public (Redis-cached) |
-| GET | `/v1/activities/admin?page=&per_page=` | staff |
-| POST | `/v1/activities` | staff |
-| GET · PUT · DELETE | `/v1/activities/id/{id}` | staff |
-| POST | `/v1/media/uploads` | staff |
-| POST | `/v1/media/{id}/complete` | staff |
-| GET | `/v1/media?status=&page=&per_page=` · `/v1/media/{id}` | staff |
-| DELETE | `/v1/media/{id}` | staff (409 if in use) |
+| GET | `/v1/activities` · `/v1/activities/{slug}` | public, published only (Redis-cached) |
+| GET · POST | `/v1/admin/activities` (`?page=&per_page=`) | staff |
+| GET · PUT · DELETE | `/v1/admin/activities/{id}` | staff |
+| GET | `/v1/admin/media` (`?status=&page=&per_page=`) | staff |
+| POST | `/v1/admin/media/uploads` · `/v1/admin/media/{id}/complete` | staff |
+| GET · DELETE | `/v1/admin/media/{id}` | staff (DELETE: 409 if in use) |
+
+Public and back-office APIs are separate namespaces. Every route under `/v1/admin` is protected
+by one `require_staff` middleware applied to the whole router: a new admin route cannot be
+exposed by forgetting a check in its handler, and public slugs never collide with admin paths.
 
 Add a migration: `sqlx migrate add <name>` (`cargo install sqlx-cli --no-default-features --features postgres,rustls`).
 
@@ -113,7 +128,7 @@ plain Docker behind the host nginx, and every release is a **zero-downtime blue/
 push dev ─► test (fmt, clippy, unit + integration tests on Postgres/Redis)
          ─► build image  <DOCKER_HUB_USERNAME>/mouzoun_back:v<run_number>  (+ :dev)
          ─► deploy over SSH: deploy/deploy.sh
-              1. creates network + mouzoun-postgres + mouzoun-redis on the first run
+              1. reconciles network + mouzoun-postgres + mouzoun-redis (see below)
               2. installs the nginx site: web.conf → conf.d/default.conf, routes.conf →
                  /etc/nginx/mouzoun/routes.conf (validated, previous restored on any failure)
               3. starts the new release on the free color (blue 127.0.0.1:18081 / green :18082)
@@ -161,6 +176,16 @@ includes `/etc/ssl/mouzoun/ssl_config.conf*`. Both serve the same routes from
   (verified on Linux with host networking: 6 switches, ~59 000 requests, 0 errors).
 
 ### First-time setup
+
+**Infrastructure containers are reconciled on every deploy.** Each one carries a fingerprint of
+its desired configuration (image, options, secrets) in a `mouzoun.spec` label. When it differs
+(older deploy, changed settings, rotated `POSTGRES_PASSWORD` / `REDIS_PASSWORD`), the container is
+recreated on its named volume (data kept); the database is backed up first to
+`/srv/mouzoun/backups/mouzoun-before-recreate-*.dump` and is never recreated if that backup fails.
+The database role password is then synced from the secret, so rotating it in GitHub just works.
+Secrets reach containers only through root-only env files (`/srv/mouzoun/back/*.env`, mode 600),
+never as command-line arguments, and each container only receives its own: the API gets its
+settings plus `DATABASE_URL`/`REDIS_URL`, Redis runs as the unprivileged `redis` user.
 
 The deploy is self-bootstrapping: no script to run by hand on the VPS. It connects as
 `SERVER_USER`, uploads the release to `~/mouzoun/back`, and runs `deploy.sh` as root through

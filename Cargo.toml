@@ -9,6 +9,7 @@ anyhow = "1"
 argon2 = "0.5"
 async-trait = "0.1.92"
 axum = { version = "0.8", features = ["macros"] }
+axum-extra = { version = "0.12.6", features = ["cookie"] }
 bytes = "1.12.1"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
@@ -23,6 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate", "macros"] }
 thiserror = "2"
+time = "0.3.55"
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7.20"
 tower = "0.5"
@@ -37,6 +39,12 @@ lto = "thin"
 codegen-units = 1
 strip = true
 
+[features]
+# Test helpers (in-memory object storage): enabled only by the test-suite, never in production.
+test-utils = []
+
 [dev-dependencies]
+# Integration tests (tests/) build this crate with its test helpers.
+mouzoun-api = { path = ".", features = ["test-utils"] }
 http-body-util = "0.1.5"
 tower = { version = "0.5", features = ["util"] }

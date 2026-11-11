@@ -16,7 +16,7 @@ async fn start_upload(app: &TestApp, size: usize) -> (String, String, Value) {
     let (status, body) = app
         .admin(
             Method::POST,
-            "/v1/media/uploads",
+            "/v1/admin/media/uploads",
             Some(
                 json!({ "filename": "dune.png", "content_type": "image/png", "size_bytes": size }),
             ),
@@ -47,13 +47,21 @@ async fn upload_flow_publishes_a_verified_image(db: PgPool) {
 
     // Completing before the upload landed is refused.
     let (status, _) = app
-        .admin(Method::POST, &format!("/v1/media/{id}/complete"), None)
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
         .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
     app.storage.put(&key, png_bytes(2048), "image/png");
     let (status, media) = app
-        .admin(Method::POST, &format!("/v1/media/{id}/complete"), None)
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
         .await;
     assert_eq!(status, StatusCode::OK, "{media}");
     assert_eq!(media["status"], "ready");
@@ -61,12 +69,16 @@ async fn upload_flow_publishes_a_verified_image(db: PgPool) {
 
     // Idempotent.
     let (status, again) = app
-        .admin(Method::POST, &format!("/v1/media/{id}/complete"), None)
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
         .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(again["url"], media["url"]);
 
-    let (status, list) = app.admin(Method::GET, "/v1/media", None).await;
+    let (status, list) = app.admin(Method::GET, "/v1/admin/media", None).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(list["total"], 1);
 }
@@ -82,7 +94,11 @@ async fn spoofed_content_is_rejected_and_removed(db: PgPool) {
     app.storage.put(&key, html, "image/png");
 
     let (status, body) = app
-        .admin(Method::POST, &format!("/v1/media/{id}/complete"), None)
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
         .await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
     assert!(
@@ -90,7 +106,7 @@ async fn spoofed_content_is_rejected_and_removed(db: PgPool) {
         "rejected object must be deleted"
     );
     let (status, _) = app
-        .admin(Method::GET, &format!("/v1/media/{id}"), None)
+        .admin(Method::GET, &format!("/v1/admin/media/{id}"), None)
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
@@ -101,7 +117,11 @@ async fn size_mismatch_is_rejected(db: PgPool) {
     let (id, key, _) = start_upload(&app, 100).await;
     app.storage.put(&key, png_bytes(90), "image/png");
     let (status, _) = app
-        .admin(Method::POST, &format!("/v1/media/{id}/complete"), None)
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
         .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
@@ -134,7 +154,7 @@ async fn upload_requests_are_validated(db: PgPool) {
     ];
     for (body, expected) in cases {
         let (status, res) = app
-            .admin(Method::POST, "/v1/media/uploads", Some(body.clone()))
+            .admin(Method::POST, "/v1/admin/media/uploads", Some(body.clone()))
             .await;
         assert_eq!(status, expected, "{body} -> {res}");
     }
@@ -146,7 +166,7 @@ async fn private_media_get_signed_urls(db: PgPool) {
     let (status, ticket) = app
         .admin(
             Method::POST,
-            "/v1/media/uploads",
+            "/v1/admin/media/uploads",
             Some(json!({ "filename": "facture.pdf", "content_type": "application/pdf", "size_bytes": 10, "visibility": "private" })),
         )
         .await;
@@ -160,7 +180,9 @@ async fn private_media_get_signed_urls(db: PgPool) {
 #[sqlx::test(migrations = "./migrations")]
 async fn media_endpoints_require_staff(db: PgPool) {
     let app = TestApp::new(db).await;
-    let (status, _) = app.request(Method::GET, "/v1/media", None, None).await;
+    let (status, _) = app
+        .request(Method::GET, "/v1/admin/media", None, None)
+        .await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 
     let customer_id: uuid::Uuid = sqlx::query_scalar(
@@ -177,7 +199,7 @@ async fn media_endpoints_require_staff(db: PgPool) {
     )
     .unwrap();
     let (status, _) = app
-        .request(Method::GET, "/v1/media", None, Some(&token))
+        .request(Method::GET, "/v1/admin/media", None, Some(&token))
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
 }

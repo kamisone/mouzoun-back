@@ -8,7 +8,7 @@ use std::{sync::Arc, time::Duration};
 use axum::{
     Router,
     body::Body,
-    http::{Method, Request, StatusCode, header},
+    http::{HeaderMap, Method, Request, StatusCode, header},
 };
 use http_body_util::BodyExt;
 use mouzoun_api::{
@@ -27,6 +27,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 pub const JWT_SECRET: &str = "test-secret-test-secret-test-secret-0000";
+pub const ALLOWED_ORIGIN: &str = "https://mouzoun.test";
 
 pub struct TestApp {
     pub router: Router,
@@ -45,7 +46,8 @@ pub fn test_config() -> Config {
         redis_url: redis_url(),
         jwt_secret: JWT_SECRET.into(),
         jwt_ttl_minutes: 60,
-        cors_origins: vec![],
+        cookie_secure: true,
+        cors_origins: vec![ALLOWED_ORIGIN.into()],
         log_json: false,
         admin_email: None,
         admin_password: None,
@@ -112,9 +114,24 @@ impl TestApp {
         body: Option<Value>,
         token: Option<&str>,
     ) -> (StatusCode, Value) {
+        let headers: Vec<(&str, String)> = token
+            .map(|t| vec![("authorization", format!("Bearer {t}"))])
+            .unwrap_or_default();
+        let (status, _, json) = self.send(method, uri, body, &headers).await;
+        (status, json)
+    }
+
+    /// Full control over request headers; returns the response headers too.
+    pub async fn send(
+        &self,
+        method: Method,
+        uri: &str,
+        body: Option<Value>,
+        headers: &[(&str, String)],
+    ) -> (StatusCode, HeaderMap, Value) {
         let mut req = Request::builder().method(method).uri(uri);
-        if let Some(t) = token {
-            req = req.header(header::AUTHORIZATION, format!("Bearer {t}"));
+        for (name, value) in headers {
+            req = req.header(*name, value);
         }
         let req = match body {
             Some(b) => req
@@ -125,9 +142,10 @@ impl TestApp {
         .unwrap();
         let res = self.router.clone().oneshot(req).await.unwrap();
         let status = res.status();
+        let headers = res.headers().clone();
         let bytes = res.into_body().collect().await.unwrap().to_bytes();
         let json = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-        (status, json)
+        (status, headers, json)
     }
 
     pub async fn admin(

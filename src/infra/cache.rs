@@ -56,11 +56,15 @@ impl Cache {
         }
     }
 
-    pub async fn delete(&self, keys: &[&str]) {
+    pub async fn delete<I>(&self, keys: I)
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let keys: Vec<String> = keys.into_iter().map(|k| self.key(k.as_ref())).collect();
         if keys.is_empty() {
             return;
         }
-        let keys: Vec<String> = keys.iter().map(|k| self.key(k)).collect();
         let mut conn = self.conn.clone();
         if let Err(e) = conn.del::<_, ()>(keys).await {
             tracing::warn!(error = %e, "cache: delete failed");

@@ -14,6 +14,9 @@ pub struct Config {
     pub redis_url: String,
     pub jwt_secret: String,
     pub jwt_ttl_minutes: i64,
+    /// `Secure` session cookie (HTTPS only). Disable only for plain-HTTP local development.
+    pub cookie_secure: bool,
+    /// Browser origins allowed to call the API (CORS) and to send state-changing requests (CSRF).
     pub cors_origins: Vec<String>,
     pub log_json: bool,
     pub admin_email: Option<String>,
@@ -91,6 +94,7 @@ impl Config {
             redis_url: required("REDIS_URL")?,
             jwt_secret,
             jwt_ttl_minutes: parse_or("JWT_TTL_MINUTES", 60 * 12)?,
+            cookie_secure: parse_or("COOKIE_SECURE", true)?,
             cors_origins: optional("CORS_ORIGINS")
                 .unwrap_or_default()
                 .split(',')

@@ -11,9 +11,6 @@ pub struct PageParams {
 }
 
 impl PageParams {
-    pub fn new(page: i64, per_page: i64) -> Self {
-        Self { page, per_page }
-    }
     pub fn page(&self) -> i64 {
         self.page.max(1)
     }
@@ -22,12 +19,6 @@ impl PageParams {
     }
     pub fn offset(&self) -> i64 {
         (self.page() - 1) * self.limit()
-    }
-}
-
-impl Default for PageParams {
-    fn default() -> Self {
-        Self::new(default_page(), default_per_page())
     }
 }
 

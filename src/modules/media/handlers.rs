@@ -1,61 +1,61 @@
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path, Query, State},
     http::StatusCode,
 };
 use uuid::Uuid;
 
 use super::{
-    model::{CreateUploadRequest, ListMediaQuery, MediaDto, UploadTicket},
+    model::{CreateUploadRequest, MediaDto, MediaFilter, UploadTicket},
     service::MediaService,
 };
 use crate::{
-    auth::AdminUser,
+    auth::AuthUser,
     error::AppResult,
-    web::{extract::ApiJson, pagination::Paginated},
+    web::{
+        extract::ApiJson,
+        pagination::{PageParams, Paginated},
+    },
 };
 
-/// POST /v1/media/uploads — staff only.
+/// GET /v1/admin/media?status=&page=&per_page=
+pub async fn list(
+    State(media): State<MediaService>,
+    Query(params): Query<PageParams>,
+    Query(filter): Query<MediaFilter>,
+) -> AppResult<Json<Paginated<MediaDto>>> {
+    Ok(Json(media.list(params, filter).await?))
+}
+
+/// POST /v1/admin/media/uploads
 pub async fn create_upload(
     State(media): State<MediaService>,
-    AdminUser(user): AdminUser,
+    Extension(user): Extension<AuthUser>,
     ApiJson(req): ApiJson<CreateUploadRequest>,
 ) -> AppResult<(StatusCode, Json<UploadTicket>)> {
     let ticket = media.create_upload(req, user.id).await?;
     Ok((StatusCode::CREATED, Json(ticket)))
 }
 
-/// POST /v1/media/{id}/complete — staff only.
+/// POST /v1/admin/media/{id}/complete
 pub async fn complete(
     State(media): State<MediaService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<MediaDto>> {
     Ok(Json(media.complete(id).await?))
 }
 
-/// GET /v1/media — staff only.
-pub async fn list(
-    State(media): State<MediaService>,
-    _admin: AdminUser,
-    Query(q): Query<ListMediaQuery>,
-) -> AppResult<Json<Paginated<MediaDto>>> {
-    Ok(Json(media.list(q).await?))
-}
-
-/// GET /v1/media/{id} — staff only.
+/// GET /v1/admin/media/{id}
 pub async fn get(
     State(media): State<MediaService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<MediaDto>> {
     Ok(Json(media.get(id).await?))
 }
 
-/// DELETE /v1/media/{id} — staff only. 409 if still referenced.
+/// DELETE /v1/admin/media/{id} — 409 if still referenced (e.g. an activity cover).
 pub async fn delete(
     State(media): State<MediaService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
     media.delete(id).await?;

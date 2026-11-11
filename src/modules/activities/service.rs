@@ -117,10 +117,11 @@ impl ActivityService {
     }
 
     async fn invalidate(&self, slugs: &[&str]) {
-        let slug_keys: Vec<String> = slugs.iter().map(|s| slug_cache_key(s)).collect();
-        let mut keys: Vec<&str> = slug_keys.iter().map(String::as_str).collect();
-        keys.push(CACHE_LIST_KEY);
-        self.cache.delete(&keys).await;
+        let keys = slugs
+            .iter()
+            .map(|slug| slug_cache_key(slug))
+            .chain([CACHE_LIST_KEY.to_string()]);
+        self.cache.delete(keys).await;
     }
 
     fn to_dto(&self, row: ActivityRow) -> Activity {

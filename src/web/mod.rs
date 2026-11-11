@@ -1,5 +1,6 @@
 //! HTTP layer: router composition and cross-cutting middleware.
 
+pub mod csrf;
 pub mod extract;
 pub mod health;
 pub mod pagination;
@@ -10,6 +11,7 @@ use axum::{
     Router,
     extract::DefaultBodyLimit,
     http::{HeaderName, HeaderValue, Method, StatusCode, header},
+    middleware,
 };
 use tower::ServiceBuilder;
 use tower_http::{
@@ -25,10 +27,20 @@ use crate::{auth, modules, state::AppState};
 const REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 
 pub fn router(state: AppState) -> Router {
+    // Back-office: every route under /v1/admin requires a staff token (secure by default:
+    // a route added here cannot be exposed by forgetting a check in its handler).
+    let admin = Router::new()
+        .nest("/activities", modules::activities::admin_routes())
+        .nest("/media", modules::media::admin_routes())
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_staff,
+        ));
+
     let api_v1 = Router::new()
         .nest("/auth", auth::routes())
-        .nest("/activities", modules::activities::routes())
-        .nest("/media", modules::media::routes());
+        .nest("/activities", modules::activities::public_routes())
+        .nest("/admin", admin);
 
     Router::new()
         .merge(health::routes())
@@ -45,7 +57,11 @@ pub fn router(state: AppState) -> Router {
                     Duration::from_secs(15),
                 ))
                 .layer(CompressionLayer::new())
-                .layer(cors(&state)),
+                .layer(cors(&state))
+                .layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    csrf::reject_foreign_origin,
+                )),
         )
         .with_state(state)
 }
@@ -67,6 +83,9 @@ fn cors(state: &AppState) -> CorsLayer {
             Method::DELETE,
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+        // The session cookie is sent cross-origin in local development (front :3001 → API :8080).
+        // Safe because the allowed origins are an explicit list, never `*`.
+        .allow_credentials(true)
         .expose_headers([REQUEST_ID])
         .max_age(Duration::from_secs(3600))
 }

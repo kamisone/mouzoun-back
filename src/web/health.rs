@@ -9,7 +9,6 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
-        .route("/health", get(ready))
 }
 
 /// The process is up. Never touches dependencies (a DB blip must not restart the container).

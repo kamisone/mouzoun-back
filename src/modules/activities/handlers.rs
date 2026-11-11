@@ -10,7 +10,6 @@ use super::{
     service::ActivityService,
 };
 use crate::{
-    auth::AdminUser,
     error::AppResult,
     web::{
         extract::ApiJson,
@@ -18,60 +17,59 @@ use crate::{
     },
 };
 
-/// GET /v1/activities — public.
+// ---- Public -----------------------------------------------------------------------------------
+
+/// GET /v1/activities
 pub async fn list_published(State(svc): State<ActivityService>) -> AppResult<Json<Vec<Activity>>> {
     Ok(Json(svc.list_published().await?))
 }
 
-/// GET /v1/activities/{slug} — public.
-pub async fn get_by_slug(
+/// GET /v1/activities/{slug}
+pub async fn get_published(
     State(svc): State<ActivityService>,
     Path(slug): Path<String>,
 ) -> AppResult<Json<Activity>> {
     Ok(Json(svc.get_published(&slug).await?))
 }
 
-/// GET /v1/activities/admin — staff only, includes drafts.
-pub async fn list_all(
+// ---- Back-office ------------------------------------------------------------------------------
+
+/// GET /v1/admin/activities
+pub async fn list(
     State(svc): State<ActivityService>,
-    _admin: AdminUser,
     Query(params): Query<PageParams>,
 ) -> AppResult<Json<Paginated<Activity>>> {
     Ok(Json(svc.list_all(params).await?))
 }
 
-/// GET /v1/activities/id/{id} — staff only.
-pub async fn get_by_id(
+/// GET /v1/admin/activities/{id}
+pub async fn get(
     State(svc): State<ActivityService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Activity>> {
     Ok(Json(svc.get(id).await?))
 }
 
-/// POST /v1/activities — staff only.
+/// POST /v1/admin/activities
 pub async fn create(
     State(svc): State<ActivityService>,
-    _admin: AdminUser,
     ApiJson(input): ApiJson<ActivityInput>,
 ) -> AppResult<(StatusCode, Json<Activity>)> {
     Ok((StatusCode::CREATED, Json(svc.create(input).await?)))
 }
 
-/// PUT /v1/activities/id/{id} — staff only.
+/// PUT /v1/admin/activities/{id}
 pub async fn update(
     State(svc): State<ActivityService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
     ApiJson(input): ApiJson<ActivityInput>,
 ) -> AppResult<Json<Activity>> {
     Ok(Json(svc.update(id, input).await?))
 }
 
-/// DELETE /v1/activities/id/{id} — staff only.
+/// DELETE /v1/admin/activities/{id}
 pub async fn delete(
     State(svc): State<ActivityService>,
-    _admin: AdminUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
     svc.delete(id).await?;

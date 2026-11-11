@@ -7,7 +7,7 @@ use validator::Validate;
 
 use super::{
     model::{
-        CreateUploadRequest, ListMediaQuery, Media, MediaDto, MediaStatus, MediaVisibility,
+        CreateUploadRequest, Media, MediaDto, MediaFilter, MediaStatus, MediaVisibility,
         UploadTicket,
     },
     policy,
@@ -143,9 +143,12 @@ impl MediaService {
         self.to_dto(media).await
     }
 
-    pub async fn list(&self, q: ListMediaQuery) -> AppResult<Paginated<MediaDto>> {
-        let params = PageParams::new(q.page.unwrap_or(1), q.per_page.unwrap_or(20));
-        let status = q.status.unwrap_or(MediaStatus::Ready);
+    pub async fn list(
+        &self,
+        params: PageParams,
+        filter: MediaFilter,
+    ) -> AppResult<Paginated<MediaDto>> {
+        let status = filter.status.unwrap_or(MediaStatus::Ready);
         let (rows, total) = tokio::try_join!(
             repository::list(&self.db, status, params.limit(), params.offset()),
             repository::count(&self.db, status),

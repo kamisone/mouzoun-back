@@ -8,7 +8,8 @@
 # The other release files (this script, nginx/) are uploaded next to the script by the CI.
 #
 #   0. installs the release files, nightly database backup (cron)
-#   1. ensures the private network, PostgreSQL and Redis containers exist (first deploy)
+#   1. reconciles the private network, PostgreSQL and Redis containers with their desired
+#      configuration (created on first deploy, recreated on their data volume when it changed)
 #   2. installs the nginx site config shipped with this release (validated, rolled back on error)
 #   3. starts the new release next to the running one (other "color", other loopback port)
 #   4. waits for /health/ready — the release runs its DB migrations while booting
@@ -30,12 +31,10 @@ ROOT="${ROOT:-/srv/mouzoun/back}"
 ENV_FILE="${ENV_FILE:-$ROOT/back.env}"
 NETWORK="${NETWORK:-$PREFIX}"
 NGINX_DIR="${NGINX_DIR:-/etc/nginx/mouzoun}"
-# nginx is owned by the back: both site files are shipped and installed by this script.
+# nginx is owned by the back: the site files are shipped and installed by this script.
 NGINX_CONF_DIR="${NGINX_CONF_DIR:-/etc/nginx/conf.d}"
 # <release file>:<installed path>
 SITES="web.conf:$NGINX_CONF_DIR/default.conf routes.conf:$NGINX_DIR/routes.conf"
-# Files installed by earlier versions, removed (with backup/restore) because they now conflict.
-OBSOLETE_SITES="mouzoun-api.conf"
 NGINX_TEST="${NGINX_TEST:-nginx -t -q}"
 NGINX_RELOAD="${NGINX_RELOAD:-systemctl reload nginx}"
 BACKUP_DIR="${BACKUP_DIR:-/srv/mouzoun/backups}"
@@ -97,7 +96,7 @@ if [ -n "$CRON_FILE" ]; then
   # $POSTGRES_* are expanded inside the container, $(date) by cron's shell; % must be escaped for cron.
   cat >"$CRON_FILE.tmp" <<'CRON'
 # Nightly PostgreSQL backup of Mouzoun, kept 14 days (managed by back/deploy/deploy.sh)
-30 3 * * * root docker exec __PG__ sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > __DIR__/mouzoun-$(date +\%F).dump && find __DIR__ -name '*.dump' -mtime +14 -delete
+30 3 * * * root f=__DIR__/mouzoun-$(date +\%F).dump; docker exec __PG__ sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > "$f.part" && mv "$f.part" "$f" && find __DIR__ -name '*.dump' -mtime +14 -delete; rm -f "$f.part"
 CRON
   sed -i.bak -e "s#__PG__#$PG_CONTAINER#g" -e "s#__DIR__#$BACKUP_DIR#g" "$CRON_FILE.tmp" && rm -f "$CRON_FILE.tmp.bak"
   mv -f "$CRON_FILE.tmp" "$CRON_FILE"
@@ -111,63 +110,119 @@ REDIS_PASSWORD="$(env_get REDIS_PASSWORD)"
 [ -n "$PG_USER" ] && [ -n "$PG_PASSWORD" ] && [ -n "$PG_DB" ] || fail "POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB missing in env file"
 [ -n "$REDIS_PASSWORD" ] || fail "REDIS_PASSWORD missing in env file"
 
+# Secrets are passed to containers through root-only env files, never as command-line arguments
+# (those are readable by any local user in the process list).
+PG_ENV_FILE="$ROOT/postgres.env"
+REDIS_ENV_FILE="$ROOT/redis.env"
+API_ENV_FILE="$ROOT/api.env"
+(
+  umask 077
+  # The API gets its own settings plus derived connection URLs, not the infrastructure secrets.
+  grep -vE '^(POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_DB|REDIS_PASSWORD)=' "$ENV_FILE" >"$API_ENV_FILE" || true
+  printf '%s\n' "POSTGRES_USER=$PG_USER" "POSTGRES_PASSWORD=$PG_PASSWORD" "POSTGRES_DB=$PG_DB" >"$PG_ENV_FILE"
+  printf '%s\n' "REDIS_PASSWORD=$REDIS_PASSWORD" "REDISCLI_AUTH=$REDIS_PASSWORD" >"$REDIS_ENV_FILE"
+  printf '%s\n' "DATABASE_URL=postgres://$PG_USER:$PG_PASSWORD@$PG_CONTAINER:5432/$PG_DB" \
+    "REDIS_URL=redis://:$REDIS_PASSWORD@$REDIS_CONTAINER:6379" \
+    "APP_HOST=0.0.0.0" "APP_PORT=8080" >>"$API_ENV_FILE"
+)
+
 # 1. Infrastructure ----------------------------------------------------------------------------
 docker network inspect "$NETWORK" >/dev/null 2>&1 || {
   log "creating network $NETWORK"
   docker network create "$NETWORK" >/dev/null
 }
 
-if ! container_exists "$PG_CONTAINER"; then
-  log "creating $PG_CONTAINER ($POSTGRES_IMAGE)"
-  docker run -d --name "$PG_CONTAINER" --network "$NETWORK" --restart unless-stopped \
-    -e POSTGRES_USER="$PG_USER" -e POSTGRES_PASSWORD="$PG_PASSWORD" -e POSTGRES_DB="$PG_DB" \
-    -v "$PREFIX-pgdata:/var/lib/postgresql/data" \
-    --health-cmd "pg_isready -U $PG_USER -d $PG_DB" --health-interval 5s --health-retries 12 \
-    --shm-size 256m --log-opt max-size=20m --log-opt max-file=5 \
-    "$POSTGRES_IMAGE" >/dev/null
-elif ! container_running "$PG_CONTAINER"; then
-  docker start "$PG_CONTAINER" >/dev/null
-fi
+# Dumps the database to $BACKUP_DIR (written to .part, renamed only when complete).
+backup_database() {
+  local file
+  file="$BACKUP_DIR/mouzoun-$1-$(date +%Y%m%d-%H%M%S).dump"
+  mkdir -p "$BACKUP_DIR"
+  chmod 700 "$BACKUP_DIR"
+  # shellcheck disable=SC2016 # expanded inside the container
+  docker exec "$PG_CONTAINER" sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' >"$file.part" &&
+    mv "$file.part" "$file" && log "database backup: $file"
+}
 
-if ! container_exists "$REDIS_CONTAINER"; then
-  log "creating $REDIS_CONTAINER ($REDIS_IMAGE)"
-  docker run -d --name "$REDIS_CONTAINER" --network "$NETWORK" --restart unless-stopped \
-    -v "$PREFIX-redisdata:/data" \
-    --health-cmd "redis-cli -a \"\$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG" \
-    --health-interval 5s --health-retries 12 -e REDIS_PASSWORD="$REDIS_PASSWORD" \
-    --log-opt max-size=20m --log-opt max-file=5 \
-    "$REDIS_IMAGE" redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes \
-    --maxmemory 256mb --maxmemory-policy allkeys-lru >/dev/null
-elif ! container_running "$REDIS_CONTAINER"; then
-  docker start "$REDIS_CONTAINER" >/dev/null
-fi
+# Reconciles a long-lived infrastructure container with its desired configuration.
+# The image, run arguments and env file content are fingerprinted into the `mouzoun.spec`
+# label. A container whose fingerprint differs (created by an older deploy, changed settings,
+# rotated secret) is recreated on its existing named volume: data is kept. The database is
+# backed up first, and is never recreated if that backup fails.
+ensure_container() {
+  local name="$1" env_file="$2"
+  shift 2 # remaining arguments: `docker run` options, image and command
+  local spec current
+  spec="$({ printf '%s\n' "$@"; cat "$env_file"; } | sha256sum | cut -c1-16)"
+  if container_exists "$name"; then
+    current="$(docker container inspect -f '{{index .Config.Labels "mouzoun.spec"}}' "$name")"
+    if [ "$current" = "$spec" ]; then
+      container_running "$name" || docker start "$name" >/dev/null
+      return 0
+    fi
+    log "recreating $name: configuration changed (data volume kept)"
+    if [ "$name" = "$PG_CONTAINER" ]; then
+      if container_running "$name"; then
+        backup_database before-recreate || fail "backup failed: $name left untouched"
+      else
+        log "WARNING: $name is stopped, recreating without a fresh backup (volume kept)"
+      fi
+    fi
+    docker stop -t 60 "$name" >/dev/null || true
+    docker rm "$name" >/dev/null
+  else
+    log "creating $name"
+  fi
+  docker run -d --name "$name" --label "mouzoun.spec=$spec" --env-file "$env_file" "$@" >/dev/null
+}
+
+# POSTGRES_PASSWORD is only read when the data directory is first initialised. Applying the
+# current secret on every deploy makes rotating it (in GitHub) effective. Sent through stdin,
+# never as a command-line argument.
+sync_database_password() {
+  local role="\"${PG_USER//\"/\"\"}\"" password="${PG_PASSWORD//\'/\'\'}"
+  printf "ALTER ROLE %s WITH PASSWORD '%s';\n" "$role" "$password" |
+    docker exec -i "$PG_CONTAINER" psql -q -v ON_ERROR_STOP=1 -U "$PG_USER" -d "$PG_DB" >/dev/null ||
+    fail "could not apply POSTGRES_PASSWORD to role $PG_USER"
+}
+
+ensure_container "$PG_CONTAINER" "$PG_ENV_FILE" \
+  --network "$NETWORK" --restart unless-stopped \
+  -v "$PREFIX-pgdata:/var/lib/postgresql/data" \
+  --health-cmd "pg_isready -U $PG_USER -d $PG_DB" --health-interval 5s --health-retries 12 \
+  --shm-size 256m --log-opt max-size=20m --log-opt max-file=5 \
+  "$POSTGRES_IMAGE"
+
+# The password is written to a root-only config file at start (never on redis-server's command
+# line), then the image entrypoint drops privileges to the `redis` user.
+# shellcheck disable=SC2016 # $REDIS_PASSWORD is expanded inside the container
+ensure_container "$REDIS_CONTAINER" "$REDIS_ENV_FILE" \
+  --network "$NETWORK" --restart unless-stopped \
+  -v "$PREFIX-redisdata:/data" \
+  --health-cmd "redis-cli ping | grep -q PONG" --health-interval 5s --health-retries 12 \
+  --log-opt max-size=20m --log-opt max-file=5 \
+  "$REDIS_IMAGE" sh -c '
+    umask 077
+    printf "requirepass %s\nappendonly yes\nmaxmemory 256mb\nmaxmemory-policy allkeys-lru\n" \
+      "$REDIS_PASSWORD" >/tmp/redis.conf
+    chown redis /tmp/redis.conf
+    exec docker-entrypoint.sh redis-server /tmp/redis.conf'
 
 wait_healthy_container "$PG_CONTAINER"
 wait_healthy_container "$REDIS_CONTAINER"
+sync_database_password
 
-# 2. Nginx: website + API site files (the back owns nginx) ----------------------------------
+# 2. Nginx site (the back owns nginx: website + /api) ------------------------------------------
 mkdir -p "$NGINX_DIR"
 [ -f "$NGINX_DIR/back-upstream.conf" ] ||
   echo "upstream mouzoun_back { server 127.0.0.1:$PORT_BLUE; keepalive 64; }" >"$NGINX_DIR/back-upstream.conf"
 
 CHANGED_SITES=()
-REMOVED_SITES=()
 restore_site() {
   local dst
   for dst in ${CHANGED_SITES[@]+"${CHANGED_SITES[@]}"}; do
     if [ -f "$dst.bak" ]; then cp -f "$dst.bak" "$dst"; else rm -f "$dst"; fi
   done
-  for dst in ${REMOVED_SITES[@]+"${REMOVED_SITES[@]}"}; do
-    cp -f "$dst.removed" "$dst"
-  done
 }
-for name in $OBSOLETE_SITES; do
-  dst="$NGINX_CONF_DIR/$name"
-  [ -f "$dst" ] || continue
-  log "removing obsolete nginx site config $dst"
-  mv -f "$dst" "$dst.removed"
-  REMOVED_SITES+=("$dst")
-done
 for pair in $SITES; do
   src="$ROOT/nginx/${pair%%:*}"
   dst="${pair#*:}"
@@ -178,7 +233,7 @@ for pair in $SITES; do
   cp "$src" "$dst"
   CHANGED_SITES+=("$dst")
 done
-if [ $((${#CHANGED_SITES[@]} + ${#REMOVED_SITES[@]})) -gt 0 ] && ! $NGINX_TEST; then
+if [ ${#CHANGED_SITES[@]} -gt 0 ] && ! $NGINX_TEST; then
   restore_site
   fail "new nginx config is invalid, previous config restored"
 fi
@@ -198,10 +253,7 @@ fi
 log "starting $NEW_CONTAINER on 127.0.0.1:$NEW_PORT (active: $ACTIVE)"
 docker rm -f "$NEW_CONTAINER" >/dev/null 2>&1 || true
 docker run -d --name "$NEW_CONTAINER" --network "$NETWORK" --restart unless-stopped --init \
-  --env-file "$ENV_FILE" \
-  -e DATABASE_URL="postgres://$PG_USER:$PG_PASSWORD@$PG_CONTAINER:5432/$PG_DB" \
-  -e REDIS_URL="redis://:$REDIS_PASSWORD@$REDIS_CONTAINER:6379" \
-  -e APP_HOST=0.0.0.0 -e APP_PORT=8080 \
+  --env-file "$API_ENV_FILE" \
   -p "127.0.0.1:$NEW_PORT:8080" \
   --stop-timeout 30 --log-opt max-size=20m --log-opt max-file=5 \
   "$IMAGE" >/dev/null

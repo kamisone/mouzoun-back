@@ -71,12 +71,9 @@ pub struct UploadTicket {
     pub upload: SignedRequest,
 }
 
+/// Query filter of the media list (pagination comes from the shared `PageParams`).
 #[derive(Debug, Deserialize)]
-pub struct ListMediaQuery {
-    #[serde(default)]
-    pub page: Option<i64>,
-    #[serde(default)]
-    pub per_page: Option<i64>,
+pub struct MediaFilter {
     /// Defaults to `ready`: pending uploads are an implementation detail.
     #[serde(default)]
     pub status: Option<MediaStatus>,

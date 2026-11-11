@@ -1,9 +1,10 @@
 //! Object storage abstraction.
 //!
 //! Business code talks to [`ObjectStorage`]; [`gcs::GcsBucket`] is the production
-//! implementation and [`memory::InMemoryStorage`] backs the test-suite.
+//! implementation. `memory::InMemoryStorage` backs the test-suite only (`test-utils` feature).
 
 pub mod gcs;
+#[cfg(any(test, feature = "test-utils"))]
 pub mod memory;
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};

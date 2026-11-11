@@ -2,6 +2,7 @@ mod extractor;
 mod handlers;
 pub mod jwt;
 pub mod password;
+pub mod session;
 
 use axum::{
     Router,
@@ -11,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::state::AppState;
 
-pub use extractor::{AdminUser, AuthUser};
+pub use extractor::{AuthUser, require_staff};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
@@ -31,5 +32,6 @@ impl Role {
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/login", post(handlers::login))
+        .route("/logout", post(handlers::logout))
         .route("/me", get(handlers::me))
 }
