@@ -1,4 +1,4 @@
-# Local development: databases only. Run the API with `cargo run` (see README).
+# Local development: databases and a fake mail server. Run the API with `cargo run` (see README).
 # Fixed project name: avoids clashing with other projects whose folder is also called "back".
 name: mouzoun
 
@@ -23,6 +23,13 @@ services:
     command: ["redis-server", "--requirepass", "mouzoun-redis", "--appendonly", "yes"]
     ports: ["${REDIS_PORT:-6380}:6379"]
     volumes: [redisdata:/data]
+
+  # Catches every email sent with EMAIL_PROVIDER=smtp SMTP_HOST=localhost SMTP_TLS=none:
+  # web UI on http://localhost:8025 (nothing ever leaves your machine).
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports: ["${MAILPIT_SMTP_PORT:-1025}:1025", "${MAILPIT_UI_PORT:-8025}:8025"]
 
 volumes:
   pgdata:

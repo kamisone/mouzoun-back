@@ -1,11 +1,11 @@
 # Mouzoun — back (Rust API)
 
-Axum 0.8 · Tokio · SQLx (PostgreSQL 16+, 17 in production) · Redis 8 · Google Cloud Storage (official SDK) · JWT + Argon2
+Axum 0.8 · Tokio · SQLx (PostgreSQL 16+, 17 in production) · Redis 8 · Google Cloud Storage (official SDK) · JWT + Argon2 · minijinja + lettre (emails)
 
 ## Run locally
 
 ```bash
-docker compose up -d          # PostgreSQL (:5433) + Redis (:6380)
+docker compose up -d          # PostgreSQL (:5433) + Redis (:6380) + Mailpit (:1025, UI :8025)
 cp .env.example .env          # then fill the GCS_* values (see "Google Cloud Storage")
 cargo run                     # http://localhost:8080, migrations run at startup
 cargo test                    # unit + integration tests (needs the compose services)
@@ -14,7 +14,8 @@ cargo run --bin seed_dev      # optional: fr/en/ar demo content (SEED_ADMIN_EMAI
 
 The first super admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if none exists.
 The database (schema, conventions, migrations, outbox, adding a language or a product kind) is
-documented in [`docs/database/README.md`](docs/database/README.md).
+documented in [`docs/database/README.md`](docs/database/README.md), transactional emails (outbox
+worker, templates, providers, retries) in [`docs/email/README.md`](docs/email/README.md).
 
 ## Architecture
 
@@ -35,13 +36,19 @@ src/
                      translations), mirrors migrations/ exactly
   services/          business rules, no HTTP: booking (accommodation, activity, lifecycle),
                      pricing (pure engine + loader), inventory & slot generators, catalog reads
-                     with locale fallback, numbering, outbox, identity
+                     with locale fallback, numbering, outbox events, email (templates, sender,
+                     handlers), cache invalidation, identity
+  worker/            outbox dispatcher (LISTEN/NOTIFY + polling, retries, dead events) and the
+                     email scheduler; runs in the API or as `--bin worker`
+  camp_time.rs       Africa/Casablanca conversions (bundled tz data, never SQL)
   modules/           HTTP modules, each: routes · handlers · service · model
     media/           media library on GCS (+ policy.rs: allow-list, magic bytes, keys)
-  bin/seed_dev.rs    development demo content
-  jobs/              background workers: booking holds, outbox, inventory horizon, uploads
+  bin/seed_dev.rs    development demo content (+ `confirm <reference>` to try emails)
+  bin/worker.rs      standalone outbox worker
+  bin/email.rs       email CLI: preview, send-test, retry, list-dead, validate
+  jobs/              periodic jobs: booking holds, inventory horizon, abandoned uploads
 migrations/          reversible SQL migrations 0001–0012 (sqlx); .sqlx/ = offline query metadata
-docs/database/       database guide
+docs/                database and email guides
 tests/               integration tests: real router + Postgres + Redis, in-memory storage
                      (the in-memory storage is compiled for tests only: `test-utils` feature)
 deploy/             CI/CD: deploy.sh (blue/green), nginx site (web.conf + routes.conf)
@@ -224,6 +231,8 @@ silomis), `SERVER_USER` allowed to `sudo`.
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | first admin account | to add |
    | `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, `GCS_CLIENT_EMAIL`, `GCS_PRIVATE_KEY_ID`, `GCS_PRIVATE_KEY` | from the service-account JSON; the key can be pasted as is (multi-line) | to add |
    | `GCS_PRIVATE_BUCKET_NAME`, `GCS_PUBLIC_BASE_URL` | | optional |
+   | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | your SMTP provider; `EMAIL_FROM` e.g. `reservations@mouzoun.com` | to add (without `SMTP_HOST`, emails are only logged) |
+   | `SMTP_PORT`, `SMTP_TLS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` | `587`, `starttls`, `Mouzoun`, `contact@mouzoun.com` | optional |
 
    Non-secret settings (log level, DB pool size, token lifetime) are set in the workflow.
    If your secrets are repository secrets rather than `dev` environment secrets, they work too

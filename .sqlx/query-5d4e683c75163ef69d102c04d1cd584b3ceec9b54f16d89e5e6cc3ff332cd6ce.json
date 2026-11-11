@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET value = to_jsonb($1::text) WHERE key = 'notifications.staff_email'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5d4e683c75163ef69d102c04d1cd584b3ceec9b54f16d89e5e6cc3ff332cd6ce"
+}

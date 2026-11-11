@@ -11,8 +11,9 @@ use crate::{
     config::Config,
     infra::{cache::Cache, db, storage},
     jobs, seed,
+    services::email::{EmailSettings, Mailer, sender},
     state::AppState,
-    web,
+    web, worker,
 };
 
 pub async fn run(config: Config) -> anyhow::Result<()> {
@@ -40,10 +41,28 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     seed::ensure_admin(&pool, &config).await?;
 
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
+    let mailer = Mailer::new(
+        pool.clone(),
+        sender::from_config(&config.email)?,
+        EmailSettings::from_config(&config),
+    );
+    tracing::info!(email = ?config.email, "email configured");
+    let worker_config = config.worker.clone();
     let state = AppState::new(config, pool, cache, buckets);
 
     let shutdown = CancellationToken::new();
-    let workers = jobs::spawn_all(&state, shutdown.clone());
+    let mut workers = jobs::spawn_all(&state, shutdown.clone());
+    if worker_config.in_api {
+        let registry = worker::registry(&state.db, &state.cache, &mailer);
+        workers.extend(worker::spawn(
+            state.db.clone(),
+            registry,
+            worker_config,
+            shutdown.clone(),
+        ));
+    } else {
+        tracing::info!("OUTBOX_WORKER_ENABLED=false: run the `worker` binary to dispatch events");
+    }
 
     let listener = TcpListener::bind(addr).await?;
     tracing::info!("mouzoun-api listening on http://{addr}");

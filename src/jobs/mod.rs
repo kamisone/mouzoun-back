@@ -4,7 +4,6 @@
 mod booking_holds;
 mod inventory;
 mod media_cleanup;
-mod outbox;
 
 use std::{future::Future, time::Duration};
 
@@ -36,10 +35,6 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
                 move || booking_holds::run_once(db.clone())
             },
         ),
-        every("outbox", Duration::from_secs(2), shutdown.clone(), {
-            let (db, redis) = (state.db.clone(), state.cache.connection());
-            move || outbox::run_once(db.clone(), redis.clone())
-        }),
         every("inventory", Duration::from_secs(24 * 3600), shutdown, {
             let db = state.db.clone();
             move || inventory::run_once(db.clone())

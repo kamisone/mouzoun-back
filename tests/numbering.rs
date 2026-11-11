@@ -32,8 +32,8 @@ async fn booking_references_restart_every_year_and_never_repeat(db: PgPool) {
     let expected: Vec<String> = (3..=22).map(|n| format!("MZ-27-{n:06}")).collect();
     assert_eq!(references, expected);
 
-    // The year is the Moroccan one: 2027-12-31 23:30 UTC is already 2028 in Casablanca (UTC+1).
-    let new_year = "2027-12-31T23:30:00Z".parse().unwrap();
+    // The year is the camp's (Morocco is UTC+0 since September 2026).
+    let new_year = "2028-01-01T00:30:00Z".parse().unwrap();
     assert_eq!(
         next_booking_reference(&db, new_year).await.unwrap(),
         "MZ-28-000001"

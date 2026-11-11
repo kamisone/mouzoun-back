@@ -3,6 +3,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod camp_time;
 pub mod config;
 pub mod db;
 pub mod error;
@@ -13,3 +14,4 @@ pub mod seed;
 pub mod services;
 pub mod state;
 pub mod web;
+pub mod worker;

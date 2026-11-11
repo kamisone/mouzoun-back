@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT amount_minor, currency::text AS \"currency!\", provider, purpose, paid_at, provider_payment_id\n           FROM payments WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "purpose",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "191d673d538386cbf5851c5cf5608e4a520fc6e0d6d3eb0581bf1ef92a99767e"
+}

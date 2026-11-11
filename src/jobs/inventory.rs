@@ -2,13 +2,12 @@
 //! guests may book (`booking.max_days_ahead`). Both are idempotent.
 
 use chrono::Utc;
-use chrono_tz::Africa::Casablanca;
 use sqlx::PgPool;
 
 use crate::services::{inventory, settings};
 
 pub async fn run_once(db: PgPool) -> anyhow::Result<()> {
-    let today = Utc::now().with_timezone(&Casablanca).date_naive();
+    let today = crate::camp_time::today(Utc::now());
     let nights = inventory::generate_inventory_calendar(
         &db,
         None,

@@ -14,7 +14,10 @@ use axum::{
 use http_body_util::BodyExt;
 use mouzoun_api::{
     auth::jwt,
-    config::{Config, GcsCredentials, MediaConfig, StorageConfig},
+    config::{
+        Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig, StorageConfig,
+        WorkerConfig,
+    },
     infra::{
         cache::Cache,
         storage::{Buckets, memory::InMemoryStorage},
@@ -65,6 +68,21 @@ pub fn test_config() -> Config {
             download_url_ttl: Duration::from_secs(900),
             pending_ttl: Duration::from_secs(3600),
             cleanup_interval: Duration::from_secs(3600),
+        },
+        email: EmailConfig {
+            provider: EmailProvider::Log,
+            from_email: "no-reply@mouzoun.test".into(),
+            from_name: "Mouzoun".into(),
+            reply_to: None,
+            smtp: None,
+            public_site_url: ALLOWED_ORIGIN.into(),
+        },
+        worker: WorkerConfig {
+            in_api: false,
+            max_attempts: 8,
+            batch_size: 20,
+            poll_interval: Duration::from_secs(60),
+            scheduler_interval: Duration::from_secs(3600),
         },
     }
 }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, max(h.created_at) AS \"completed_at!\"\n           FROM bookings b\n           JOIN booking_status_history h ON h.booking_id = b.id AND h.to_status = 'completed'\n           WHERE b.status = 'completed'\n           GROUP BY b.id\n           HAVING max(h.created_at) >= $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "completed_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "05727e8c91e39ac99e70c8b450b1e4e8d2a33bcc442712c95152f9e4c0e59f22"
+}

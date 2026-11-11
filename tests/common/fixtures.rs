@@ -152,7 +152,7 @@ pub struct ActivityFixture {
 }
 
 /// Quad tour: 45 €/person, one quad per 2 participants, `quads` quads, one slot of `capacity`
-/// places on 10 January 2027 at 09:00 Casablanca (08:00 UTC), 1 hour.
+/// places on 10 January 2027 at 08:00 UTC (08:00 in Casablanca, UTC+0), 1 hour.
 pub async fn quad_tour(db: &PgPool, capacity: i32, quads: i32) -> ActivityFixture {
     let product_id = product(
         db,

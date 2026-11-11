@@ -71,6 +71,9 @@ It refuses to run twice; reset the database to seed again
   every year from per-year counter rows (`booking_reference_counters`, `invoice_counters`).
 - Codes and emails are `citext`; ranges use `daterange` / `tstzrange` with `[start, end)` bounds,
   and double bookings are made impossible by `EXCLUDE USING gist` constraints.
+- Timestamps are UTC (`timestamptz`); local dates and times are the camp's, converted only in
+  Rust by `crate::camp_time` (bundled IANA data: Morocco is UTC+0 since 20 September 2026).
+  SQL never uses `AT TIME ZONE`, so a database with older tz data cannot disagree.
 
 ## The `updated_at` trigger rule
 
@@ -133,34 +136,21 @@ To add e.g. `vehicle_rental`, in a new migration:
 4. If it is bookable, add a booking service next to `services/booking/{accommodation,activity}.rs`
    (inventory, locking order, pricing via `services::pricing`).
 
-## Outbox → Redis → email
+## Outbox
 
-Side effects (emails, notifications, webhooks) never run inside a business transaction. The
-transaction writes an `outbox_events` row instead (`services::outbox::enqueue`), so the event
-exists **if and only if** the change was committed.
-
-```
-booking tx ── INSERT bookings ... + INSERT outbox_events ('booking.created') ── COMMIT
-                                                                │
-jobs/outbox.rs (every 2 s) ── SELECT ... FOR UPDATE SKIP LOCKED ┘   (safe with several API instances)
-     │  XADD mouzoun:events MAXLEN ~ 100000 * id type aggregate_type aggregate_id payload
-     ├─ ok    → processed_at = now()
-     └─ error → attempts + 1, last_error, retried after 2^attempts s (max 1 h)
-                                                                │
-consumers (XREADGROUP on mouzoun:events, one consumer group each) ┘
-     e.g. mailer: renders email_templates for the customer locale → sends → email_log
-```
-
-Delivery is **at least once**: a consumer must be idempotent (dedupe on the `id` field, the
-outbox row id). Events emitted today: `booking.created`, `booking.confirmed`,
-`booking.cancelled`, `booking.expired`. Event types follow `<aggregate>.<verb_past>`
-(enforced by a CHECK). The email consumer itself is not implemented yet.
+Side effects (emails, cache invalidation) never run inside a business transaction. The
+transaction writes an `outbox_events` row instead (`services::outbox::enqueue(tx, &Event::...)`),
+so the event exists **if and only if** the change was committed; payloads carry ids only.
+A trigger NOTIFYs the dispatcher on insert; failures retry with backoff, then the event is dead
+(`failed_at`) until replayed; `dedupe_key` makes scheduled events unique. Everything about the
+dispatcher, the handlers and the emails is in [`docs/email/README.md`](../email/README.md).
 
 ## Background jobs
 
 | Job | Period | Does |
 |---|---|---|
 | `booking_holds` | 60 s | expires unpaid holds past `hold_expires_at`, releases inventory |
-| `outbox` | 2 s | publishes pending outbox events to Redis |
+| outbox dispatcher | on NOTIFY + every `OUTBOX_POLL_SECS` | runs the handlers of due outbox events (`src/worker`) |
+| email scheduler | 5 min | plans pre-arrival and review-request emails |
 | `inventory` | 24 h | extends the inventory calendar to 18 months and activity slots to `booking.max_days_ahead`; never overwrites existing rows (manual overrides are kept) |
 | `media_cleanup` | `MEDIA_CLEANUP_INTERVAL_SECS` | deletes objects of uploads never completed |

@@ -1,0 +1,65 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="{{ dir }}" style="border-collapse:collapse;margin:20px 0;font-size:14px;">
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.reference }}</td>
+    <td style="padding:6px 0;font-weight:bold;text-align:{{ end }};"><span dir="ltr">{{ booking.reference }}</span></td>
+  </tr>
+  {%- if booking.arrival_date %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.arrival }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ date(booking.arrival_date) }}</td>
+  </tr>
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.departure }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ date(booking.departure_date) }} ({{ booking.nights_label }})</td>
+  </tr>
+  {%- endif %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.guests }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ booking.guests_label }}</td>
+  </tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="{{ dir }}" style="border-collapse:collapse;margin:0 0 20px 0;font-size:14px;">
+  <tr>
+    <td colspan="2" style="padding:8px 0;border-bottom:1px solid #e8dcc6;font-weight:bold;text-align:{{ start }};">{{ labels.details }}</td>
+  </tr>
+  {%- for line in lines %}
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #f1e8d8;text-align:{{ start }};vertical-align:top;">
+      <strong>{{ line.name }}</strong>
+      {%- if line.quantity > 1 %} × {{ line.quantity }}{% endif %}
+      <br><span style="color:#6b5e4e;font-size:13px;">
+      {%- if line.starts_at %}{{ datetime(line.starts_at) }}
+      {%- elif line.start_date and line.end_date %}{{ date(line.start_date) }} → {{ date(line.end_date) }}
+      {%- elif line.start_date %}{{ date(line.start_date) }}{% endif %}
+      {%- if line.participants_label %} · {{ line.participants_label }}{% endif %}</span>
+    </td>
+    <td style="padding:8px 0;border-bottom:1px solid #f1e8d8;text-align:{{ end }};vertical-align:top;white-space:nowrap;">{{ money(line.total_minor, booking.currency) }}</td>
+  </tr>
+  {%- endfor %}
+  {%- if booking.discount_minor > 0 %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.discount }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">-{{ money(booking.discount_minor, booking.currency) }}</td>
+  </tr>
+  {%- endif %}
+  {%- if booking.tax_minor > 0 %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.taxes }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ money(booking.tax_minor, booking.currency) }}</td>
+  </tr>
+  {%- endif %}
+  <tr>
+    <td style="padding:8px 0;font-weight:bold;font-size:16px;text-align:{{ start }};">{{ labels.total }}</td>
+    <td style="padding:8px 0;font-weight:bold;font-size:16px;text-align:{{ end }};">{{ money(booking.total_minor, booking.currency) }}</td>
+  </tr>
+  <tr>
+    <td style="padding:4px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.paid }}</td>
+    <td style="padding:4px 0;text-align:{{ end }};">{{ money(booking.amount_paid_minor, booking.currency) }}</td>
+  </tr>
+  {%- if booking.balance_minor > 0 %}
+  <tr>
+    <td style="padding:4px 0;color:#a3461f;font-weight:bold;text-align:{{ start }};">{{ labels.balance }}{% if booking.balance_due_on %} ({{ labels.due_on }} {{ date(booking.balance_due_on) }}){% endif %}</td>
+    <td style="padding:4px 0;color:#a3461f;font-weight:bold;text-align:{{ end }};">{{ money(booking.balance_minor, booking.currency) }}</td>
+  </tr>
+  {%- endif %}
+</table>

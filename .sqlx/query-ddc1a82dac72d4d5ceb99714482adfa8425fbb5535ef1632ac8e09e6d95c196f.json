@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.product_kind AS kind, i.quantity, lower(i.service_period) AS start_date,\n                  upper(i.service_period) AS end_date, i.starts_at, i.total_minor,\n                  COALESCE(tr.name, dtr.name, i.product_snapshot->>'name', '') AS \"name!\",\n                  COALESCE((SELECT sum(g.guest_count) FROM booking_item_guests g\n                            WHERE g.booking_item_id = i.id), 0)::bigint AS \"participants!\"\n           FROM booking_items i\n           LEFT JOIN product_translations tr ON tr.product_id = i.product_id AND tr.locale = $2\n           LEFT JOIN product_translations dtr ON dtr.product_id = i.product_id AND dtr.locale = $3\n           WHERE i.booking_id = $1 AND (i.status = 'active' OR $4)\n           ORDER BY COALESCE(i.starts_at, lower(i.service_period)::timestamptz), i.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "participants!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "ddc1a82dac72d4d5ceb99714482adfa8425fbb5535ef1632ac8e09e6d95c196f"
+}

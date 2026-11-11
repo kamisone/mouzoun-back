@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.email::text AS \"email!\", u.full_name, u.preferred_locale, u.is_staff, t.expires_at, t.used_at, t.purpose\n               FROM auth_tokens t JOIN users u ON u.id = t.user_id\n               WHERE t.id = $1 AND t.user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "full_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "preferred_locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_staff",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "used_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "purpose",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "671183e78bec1a4e68671676e94e5d9da7d9eecc8f7db97f2d2daa5ff5f824b2"
+}

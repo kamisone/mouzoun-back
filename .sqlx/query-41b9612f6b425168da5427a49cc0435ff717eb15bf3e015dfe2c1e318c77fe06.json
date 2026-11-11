@@ -1,0 +1,184 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.status, b.currency::text AS \"currency!\", b.arrival_date, b.departure_date,\n                  b.adults, b.children, b.infants, b.subtotal_minor, b.discount_minor, b.tax_minor, b.total_minor,\n                  b.amount_paid_minor, b.deposit_due_minor, b.balance_due_on, b.hold_expires_at,\n                  b.special_requests, b.estimated_arrival_time, b.cancelled_at, b.cancellation_reason,\n                  b.created_at, b.cancellation_policy_snapshot,\n                  c.first_name, c.last_name, c.email::text AS email, c.phone,\n                  (SELECT min(a.check_in_from) FROM booking_items i\n                   JOIN accommodation_types a ON a.product_id = i.product_id\n                   WHERE i.booking_id = b.id) AS check_in_from\n           FROM bookings b\n           JOIN customers c ON c.id = b.customer_id\n           WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "adults",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "children",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "infants",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "deposit_due_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "balance_due_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 16,
+        "name": "hold_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "special_requests",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "estimated_arrival_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 19,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "cancellation_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "cancellation_policy_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 23,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 25,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "check_in_from",
+        "type_info": "Time"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      null,
+      true,
+      null
+    ]
+  },
+  "hash": "41b9612f6b425168da5427a49cc0435ff717eb15bf3e015dfe2c1e318c77fe06"
+}

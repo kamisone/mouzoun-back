@@ -4,8 +4,6 @@
 //! final guarantee that a resource is never in two places at once.
 
 use chrono::{DateTime, NaiveDate, Utc};
-use chrono_tz::Africa::Casablanca;
-use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -25,7 +23,8 @@ use crate::{
         inventory::{ResourceKind, ResourceRequirement, SlotStatus},
     },
     services::{
-        numbering, outbox,
+        numbering,
+        outbox::{self, Event},
         pricing::{self, GuestCount, PricingError, PricingRequest, ServiceTime},
     },
 };
@@ -93,7 +92,7 @@ pub async fn book_activity(
     }
     let guests = guest_summary(&mut tx, &req.guests).await?;
 
-    let local_date = slot.starts_at.with_timezone(&Casablanca).date_naive();
+    let local_date = crate::camp_time::today(slot.starts_at);
     let currency = foundation::default_currency(&mut *tx).await?;
     let ctx = pricing::load_context(
         &mut tx,
@@ -280,17 +279,7 @@ pub async fn book_activity(
         .await?;
     }
     record_status(&mut tx, booking_id, None, status, req.meta.created_by, None).await?;
-    outbox::enqueue(
-        &mut tx,
-        "booking",
-        &booking_id.to_string(),
-        "booking.created",
-        json!({
-            "booking_id": booking_id, "reference": reference, "status": status,
-            "total_minor": quote.total_minor, "currency": currency.code, "starts_at": slot.starts_at,
-        }),
-    )
-    .await?;
+    outbox::enqueue(&mut tx, &Event::BookingCreated { booking_id }).await?;
     tx.commit().await?;
 
     Ok(BookingCreated {

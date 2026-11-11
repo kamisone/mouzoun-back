@@ -32,6 +32,7 @@ text_enum!(SubscriberStatus {
 });
 text_enum!(EmailStatus {
     Queued = "queued",
+    Sending = "sending",
     Sent = "sent",
     Delivered = "delivered",
     Bounced = "bounced",
@@ -105,10 +106,16 @@ pub struct EmailLog {
     pub template_code: Option<String>,
     pub to_email: String,
     pub booking_id: Option<Uuid>,
+    /// The event that caused this email; `UNIQUE (outbox_event_id, to_email, template_code)`.
+    pub outbox_event_id: Option<i64>,
+    pub locale: Option<Locale>,
+    pub subject: Option<String>,
     pub provider_message_id: Option<String>,
     pub status: EmailStatus,
     pub error: Option<String>,
+    pub attempts: i32,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub sent_at: Option<DateTime<Utc>>,
 }
 
@@ -124,6 +131,9 @@ pub struct OutboxEvent {
     pub attempts: i32,
     pub last_error: Option<String>,
     pub processed_at: Option<DateTime<Utc>>,
+    /// Dead: given up on, until replayed.
+    pub failed_at: Option<DateTime<Utc>>,
+    pub dedupe_key: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 

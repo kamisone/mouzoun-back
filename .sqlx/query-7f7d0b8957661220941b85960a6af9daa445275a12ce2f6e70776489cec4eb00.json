@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE outbox_events\n         SET failed_at = $2, attempts = attempts + 1, last_error = $3, payload = payload - $4::text\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f7d0b8957661220941b85960a6af9daa445275a12ce2f6e70776489cec4eb00"
+}

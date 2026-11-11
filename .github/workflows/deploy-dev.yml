@@ -102,6 +102,15 @@ jobs:
           # optional
           GCS_PRIVATE_BUCKET_NAME: ${{ secrets.GCS_PRIVATE_BUCKET_NAME }}
           GCS_PUBLIC_BASE_URL: ${{ secrets.GCS_PUBLIC_BASE_URL }}
+          # Transactional emails (optional: without SMTP_HOST emails are only logged)
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_FROM_NAME: ${{ secrets.EMAIL_FROM_NAME }}
+          EMAIL_REPLY_TO: ${{ secrets.EMAIL_REPLY_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_TLS: ${{ secrets.SMTP_TLS }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           missing=""
           for name in APP_URL POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET \
@@ -123,6 +132,15 @@ jobs:
             sed "s/__DOMAIN__/$domain/g" "deploy/nginx/$f" > "release/nginx/$f"
           done
 
+          # Emails: SMTP when configured, otherwise logged only (never silently: a warning is shown).
+          if [ -n "$SMTP_HOST" ]; then
+            [ -n "$EMAIL_FROM" ] || { echo "::error::SMTP_HOST is set but EMAIL_FROM is missing"; exit 1; }
+            email_provider=smtp
+          else
+            echo "::warning::SMTP_HOST is not set: emails are only written to the API logs, not sent"
+            email_provider=log
+          fi
+
           # The key may be pasted as a real multi-line PEM or with \n escapes: store it on one line.
           gcs_key="${GCS_PRIVATE_KEY//$'\r'/}"
           gcs_key="${gcs_key//$'\n'/\\n}"
@@ -142,6 +160,11 @@ jobs:
               "GCS_PUBLIC_BASE_URL=$GCS_PUBLIC_BASE_URL" "GCS_PROJECT_ID=$GCS_PROJECT_ID" \
               "GCS_CLIENT_EMAIL=$GCS_CLIENT_EMAIL" "GCS_PRIVATE_KEY_ID=$GCS_PRIVATE_KEY_ID" \
               "GCS_PRIVATE_KEY=$gcs_key"
+            # Transactional emails (links point to the website)
+            printf '%s\n' "EMAIL_PROVIDER=$email_provider" "PUBLIC_SITE_URL=$app_url" \
+              "EMAIL_FROM=${EMAIL_FROM:-no-reply@$domain}" "EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-Mouzoun}" \
+              "EMAIL_REPLY_TO=$EMAIL_REPLY_TO" "SMTP_HOST=$SMTP_HOST" "SMTP_PORT=$SMTP_PORT" \
+              "SMTP_TLS=$SMTP_TLS" "SMTP_USER=$SMTP_USER" "SMTP_PASSWORD=$SMTP_PASSWORD"
           )"
           env_b64="$(printf '%s\n' "$env_content" | base64 -w0)"
           echo "::add-mask::$env_b64"

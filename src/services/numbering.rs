@@ -8,7 +8,6 @@
 //!   invoice gives its number back and concurrent invoices get consecutive numbers.
 
 use chrono::{DateTime, Datelike, Utc};
-use chrono_tz::Africa::Casablanca;
 use sqlx::{PgConnection, PgExecutor};
 
 /// Pass the pool, not a transaction: inside a transaction the counter row would stay locked
@@ -17,7 +16,7 @@ pub async fn next_booking_reference(
     db: impl PgExecutor<'_>,
     now: DateTime<Utc>,
 ) -> sqlx::Result<String> {
-    let year = now.with_timezone(&Casablanca).year();
+    let year = crate::camp_time::local(now).year();
     let year_key = i16::try_from(year).map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
     let number = sqlx::query_scalar!(
         "INSERT INTO booking_reference_counters (year, last_number) VALUES ($1, 1)

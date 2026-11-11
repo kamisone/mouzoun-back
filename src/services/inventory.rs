@@ -6,10 +6,9 @@
 //!   never allocated individually. Existing rows are never touched (`ON CONFLICT DO NOTHING`),
 //!   so manual overrides (capacity, stop-sell, restrictions) and reservations are preserved.
 //! - `generate_activity_slots`: builds `activity_slots` from active `activity_schedules`, in
-//!   Africa/Casablanca local time. Idempotent through `UNIQUE (product_id, starts_at)`.
+//!   the camp's local time (`crate::camp_time`). Idempotent through `UNIQUE (product_id, starts_at)`.
 
-use chrono::{DateTime, Duration, LocalResult, NaiveDate, NaiveDateTime, TimeZone, Utc};
-use chrono_tz::{Africa::Casablanca, Tz};
+use chrono::{Duration, NaiveDate};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -72,10 +71,7 @@ pub async fn generate_activity_slots(
             if !weekdays.contains(date) || !schedule.valid_period.contains(date) {
                 continue;
             }
-            let Some(starts_at) = local_to_utc(&Casablanca, date.and_time(schedule.start_time))
-            else {
-                continue;
-            };
+            let starts_at = crate::camp_time::to_utc(date.and_time(schedule.start_time));
             ids.push(Uuid::now_v7());
             products.push(schedule.product_id);
             schedule_ids.push(schedule.id);
@@ -101,42 +97,4 @@ pub async fn generate_activity_slots(
     .execute(pool)
     .await?;
     Ok(result.rows_affected())
-}
-
-/// Local wall-clock time → instant. On a clock change, an ambiguous time takes the earlier
-/// instant and a skipped time (gap) is moved forward by one hour.
-pub fn local_to_utc(tz: &Tz, local: NaiveDateTime) -> Option<DateTime<Utc>> {
-    match tz.from_local_datetime(&local) {
-        LocalResult::Single(t) => Some(t.with_timezone(&Utc)),
-        LocalResult::Ambiguous(earliest, _) => Some(earliest.with_timezone(&Utc)),
-        LocalResult::None => tz
-            .from_local_datetime(&(local + Duration::hours(1)))
-            .earliest()
-            .map(|t| t.with_timezone(&Utc)),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use chrono::NaiveTime;
-
-    use super::*;
-
-    #[test]
-    fn casablanca_local_times_follow_the_ramadan_clock_change() {
-        // Morocco is UTC+1 most of the year and UTC+0 during Ramadan (2027: ~7 Feb – 14 Mar).
-        let nine = NaiveTime::from_hms_opt(9, 0, 0).unwrap();
-        let summer = local_to_utc(
-            &Casablanca,
-            NaiveDate::from_ymd_opt(2027, 6, 1).unwrap().and_time(nine),
-        )
-        .unwrap();
-        assert_eq!(summer.format("%H:%M").to_string(), "08:00");
-        let ramadan = local_to_utc(
-            &Casablanca,
-            NaiveDate::from_ymd_opt(2027, 2, 20).unwrap().and_time(nine),
-        )
-        .unwrap();
-        assert_eq!(ramadan.format("%H:%M").to_string(), "09:00");
-    }
 }

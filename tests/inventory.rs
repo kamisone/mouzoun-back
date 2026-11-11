@@ -144,13 +144,14 @@ async fn slots_follow_the_schedule_in_casablanca_time_and_are_idempotent(db: PgP
     );
 
     let at = |y, m, day, h| Utc.with_ymd_and_hms(y, m, day, h, 0, 0).unwrap();
+    // Morocco is UTC+0 all year since 20 September 2026 (no Ramadan switch any more).
     assert!(
-        slots.iter().any(|s| s.0 == at(2027, 1, 4, 8)),
-        "09:00 Casablanca = 08:00 UTC (UTC+1)"
+        slots.iter().any(|s| s.0 == at(2027, 1, 4, 9)),
+        "09:00 Casablanca = 09:00 UTC"
     );
     assert!(
         slots.iter().any(|s| s.0 == at(2027, 2, 22, 9)),
-        "during Ramadan, Morocco is UTC+0"
+        "Ramadan 2027: still 09:00 UTC"
     );
 }
 

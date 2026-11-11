@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.code::text AS \"code!\", t.is_active, t.variables, tr.locale, tr.subject, tr.body_html,\n                  tr.body_text, l.is_rtl\n           FROM email_templates t\n           JOIN email_template_translations tr ON tr.email_template_id = t.id\n           JOIN locales l ON l.code = tr.locale\n           WHERE t.code = $1::text::citext\n             AND (tr.locale = $2 OR l.is_default)\n           ORDER BY (tr.locale = $2) DESC\n           LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "variables",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "body_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "body_text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_rtl",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e110e2c52ecf5efc2f0cc13df481a0d9e693f15f8ee49b6a33bffc70a66eb9f8"
+}

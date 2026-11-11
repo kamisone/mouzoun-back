@@ -3,7 +3,6 @@
 //! resource assignments, with a status-history row and an outbox event.
 
 use chrono::{DateTime, Utc};
-use serde_json::json;
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
@@ -14,7 +13,7 @@ use crate::{
         catalog::ProductKind,
         types::DateRange,
     },
-    services::outbox,
+    services::outbox::{self, Event},
 };
 
 #[derive(Debug, Clone)]
@@ -55,14 +54,7 @@ pub async fn confirm_booking(
         None,
     )
     .await?;
-    outbox::enqueue(
-        &mut tx,
-        "booking",
-        &booking_id.to_string(),
-        "booking.confirmed",
-        json!({ "booking_id": booking_id }),
-    )
-    .await?;
+    outbox::enqueue(&mut tx, &Event::BookingConfirmed { booking_id }).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -268,17 +260,10 @@ async fn release(
     )
     .await?;
     let event = if to == BookingStatus::Expired {
-        "booking.expired"
+        Event::BookingExpired { booking_id }
     } else {
-        "booking.cancelled"
+        Event::BookingCancelled { booking_id }
     };
-    outbox::enqueue(
-        tx,
-        "booking",
-        &booking_id.to_string(),
-        event,
-        json!({ "booking_id": booking_id, "by": cancellation.by }),
-    )
-    .await?;
+    outbox::enqueue(tx, &event).await?;
     Ok(())
 }

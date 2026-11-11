@@ -3,7 +3,6 @@
 //! unit mode and writes the booking, its item, the status history and an outbox event.
 
 use chrono::{DateTime, NaiveDate, Utc};
-use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -23,7 +22,8 @@ use crate::{
         types::DateRange,
     },
     services::{
-        numbering, outbox,
+        numbering,
+        outbox::{self, Event},
         pricing::{self, GuestCount, PricingError, PricingRequest, ServiceTime},
     },
 };
@@ -309,18 +309,7 @@ pub async fn book_accommodation(
         .await?;
     }
     record_status(&mut tx, booking_id, None, status, req.meta.created_by, None).await?;
-    outbox::enqueue(
-        &mut tx,
-        "booking",
-        &booking_id.to_string(),
-        "booking.created",
-        json!({
-            "booking_id": booking_id, "reference": reference, "status": status,
-            "total_minor": quote.total_minor, "currency": currency.code,
-            "arrival_date": req.arrival, "departure_date": req.departure,
-        }),
-    )
-    .await?;
+    outbox::enqueue(&mut tx, &Event::BookingCreated { booking_id }).await?;
     tx.commit().await?;
 
     Ok(BookingCreated {

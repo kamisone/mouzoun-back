@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE outbox_events SET processed_at = $2, last_error = NULL, payload = payload - $3::text WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8bec3b17ebb81b5e4144f00182562852815bad2f656069ad5caced4cfcc7a498"
+}

@@ -25,6 +25,76 @@ pub struct Config {
     pub admin_password: Option<String>,
     pub storage: StorageConfig,
     pub media: MediaConfig,
+    pub email: EmailConfig,
+    pub worker: WorkerConfig,
+}
+
+/// Transactional emails.
+#[derive(Clone)]
+pub struct EmailConfig {
+    /// `EMAIL_PROVIDER=smtp|log` (default `log`: emails are printed, not sent).
+    pub provider: EmailProvider,
+    /// `EMAIL_FROM` / `EMAIL_FROM_NAME` / `EMAIL_REPLY_TO`.
+    pub from_email: String,
+    pub from_name: String,
+    pub reply_to: Option<String>,
+    /// Set when `SMTP_HOST` is.
+    pub smtp: Option<SmtpConfig>,
+    /// Public website, for links in emails (`PUBLIC_SITE_URL`, e.g. https://mouzoun.com).
+    pub public_site_url: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EmailProvider {
+    Log,
+    Smtp,
+}
+
+#[derive(Clone)]
+pub struct SmtpConfig {
+    pub host: String,
+    pub port: u16,
+    pub user: Option<String>,
+    pub password: Option<String>,
+    pub tls: SmtpTls,
+}
+
+/// `SMTP_TLS=starttls` (port 587, default), `tls` (implicit TLS, port 465) or `none`
+/// (local Mailpit on port 1025 only).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SmtpTls {
+    StartTls,
+    Implicit,
+    None,
+}
+
+impl fmt::Debug for EmailConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EmailConfig")
+            .field("provider", &self.provider)
+            .field("from_email", &self.from_email)
+            .field("smtp_host", &self.smtp.as_ref().map(|s| &s.host))
+            .field("smtp_port", &self.smtp.as_ref().map(|s| s.port))
+            .field("smtp_tls", &self.smtp.as_ref().map(|s| s.tls))
+            .field("public_site_url", &self.public_site_url)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Outbox dispatcher.
+#[derive(Clone, Debug)]
+pub struct WorkerConfig {
+    /// Run the dispatcher inside the API process (`OUTBOX_WORKER_ENABLED`, default true). Set
+    /// false when running `cargo run --bin worker` separately.
+    pub in_api: bool,
+    /// Attempts before an event is marked dead (`OUTBOX_MAX_ATTEMPTS`, default 8).
+    pub max_attempts: i32,
+    /// Events claimed per transaction (`OUTBOX_BATCH_SIZE`, default 20).
+    pub batch_size: i64,
+    /// Fallback polling when no NOTIFY arrives (`OUTBOX_POLL_SECS`, default 5).
+    pub poll_interval: Duration,
+    /// How often scheduled emails (pre-arrival, review request) are planned (default 300 s).
+    pub scheduler_interval: Duration,
 }
 
 /// Google Cloud Storage settings.
@@ -109,6 +179,8 @@ impl Config {
             admin_password: optional("ADMIN_PASSWORD"),
             storage: StorageConfig::from_env()?,
             media: MediaConfig::from_env()?,
+            email: EmailConfig::from_env()?,
+            worker: WorkerConfig::from_env()?,
         })
     }
 }
@@ -152,6 +224,77 @@ impl MediaConfig {
             )?),
             pending_ttl: Duration::from_secs(parse_or("MEDIA_PENDING_TTL_SECS", 24 * 3600)?),
             cleanup_interval: Duration::from_secs(parse_or("MEDIA_CLEANUP_INTERVAL_SECS", 3600)?),
+        })
+    }
+}
+
+impl EmailConfig {
+    pub fn from_env() -> Result<Self> {
+        let provider = match optional("EMAIL_PROVIDER").as_deref() {
+            None | Some("log") => EmailProvider::Log,
+            Some("smtp") => EmailProvider::Smtp,
+            Some(other) => bail!("EMAIL_PROVIDER must be smtp or log, got {other:?}"),
+        };
+        let smtp = match optional("SMTP_HOST") {
+            Some(host) => {
+                let tls = match optional("SMTP_TLS").as_deref() {
+                    None | Some("starttls") => SmtpTls::StartTls,
+                    Some("tls") => SmtpTls::Implicit,
+                    Some("none") => SmtpTls::None,
+                    Some(other) => bail!("SMTP_TLS must be starttls, tls or none, got {other:?}"),
+                };
+                let default_port = match tls {
+                    SmtpTls::StartTls => 587,
+                    SmtpTls::Implicit => 465,
+                    SmtpTls::None => 1025,
+                };
+                Some(SmtpConfig {
+                    host,
+                    port: parse_or("SMTP_PORT", default_port)?,
+                    user: optional("SMTP_USER"),
+                    password: optional("SMTP_PASSWORD"),
+                    tls,
+                })
+            }
+            None => None,
+        };
+        if provider == EmailProvider::Smtp && smtp.is_none() {
+            bail!("EMAIL_PROVIDER=smtp requires SMTP_HOST");
+        }
+        let from_email = match (provider, optional("EMAIL_FROM")) {
+            (_, Some(from)) => from,
+            (EmailProvider::Log, None) => "no-reply@localhost".into(),
+            (EmailProvider::Smtp, None) => bail!("EMAIL_PROVIDER=smtp requires EMAIL_FROM"),
+        };
+        if !from_email.contains('@') {
+            bail!("EMAIL_FROM must be an email address");
+        }
+        Ok(Self {
+            provider,
+            from_email,
+            from_name: optional("EMAIL_FROM_NAME").unwrap_or_else(|| "Mouzoun".into()),
+            reply_to: optional("EMAIL_REPLY_TO"),
+            smtp,
+            public_site_url: optional("PUBLIC_SITE_URL")
+                .unwrap_or_else(|| "http://localhost:3001".into())
+                .trim_end_matches('/')
+                .to_string(),
+        })
+    }
+}
+
+impl WorkerConfig {
+    pub fn from_env() -> Result<Self> {
+        let max_attempts: i32 = parse_or("OUTBOX_MAX_ATTEMPTS", 8)?;
+        if max_attempts < 1 {
+            bail!("OUTBOX_MAX_ATTEMPTS must be at least 1");
+        }
+        Ok(Self {
+            in_api: parse_or("OUTBOX_WORKER_ENABLED", true)?,
+            max_attempts,
+            batch_size: parse_or("OUTBOX_BATCH_SIZE", 20)?,
+            poll_interval: Duration::from_secs(parse_or("OUTBOX_POLL_SECS", 5)?),
+            scheduler_interval: Duration::from_secs(parse_or("OUTBOX_SCHEDULER_SECS", 300)?),
         })
     }
 }

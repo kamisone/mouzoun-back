@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_log (template_code, to_email, booking_id, outbox_event_id, locale, status)\n             VALUES ($1, $2, $3, $4, $5, 'queued')\n             ON CONFLICT (outbox_event_id, to_email, template_code) DO NOTHING\n             RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Uuid",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1cb308239d6a90a6c9042109f143263b023fe3c4469a27b7f227b57e343f8996"
+}

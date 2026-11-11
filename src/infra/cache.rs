@@ -78,6 +78,36 @@ impl Cache {
         }
     }
 
+    /// Deletes every key of this namespace starting with `prefix` (SCAN + UNLINK: never blocks
+    /// Redis). Unlike reads, failures are returned: invalidation must be retried.
+    pub async fn delete_prefix(&self, prefix: &str) -> redis::RedisResult<usize> {
+        let mut conn = self.conn.clone();
+        let pattern = format!("{}*", self.key(prefix).replace(['*', '?', '[', ']'], ""));
+        let mut cursor: u64 = 0;
+        let mut deleted = 0;
+        loop {
+            let (next, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+                .arg(cursor)
+                .arg("MATCH")
+                .arg(&pattern)
+                .arg("COUNT")
+                .arg(500)
+                .query_async(&mut conn)
+                .await?;
+            if !keys.is_empty() {
+                deleted += keys.len();
+                redis::cmd("UNLINK")
+                    .arg(&keys)
+                    .query_async::<()>(&mut conn)
+                    .await?;
+            }
+            if next == 0 {
+                return Ok(deleted);
+            }
+            cursor = next;
+        }
+    }
+
     pub async fn ping(&self) -> bool {
         let mut conn = self.conn.clone();
         redis::cmd("PING")

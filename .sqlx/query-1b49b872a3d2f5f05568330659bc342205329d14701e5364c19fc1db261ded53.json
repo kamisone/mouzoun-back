@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE outbox_events\n         SET failed_at = NULL, attempts = 0, last_error = NULL, available_at = now()\n         WHERE id = $1 AND failed_at IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b49b872a3d2f5f05568330659bc342205329d14701e5364c19fc1db261ded53"
+}

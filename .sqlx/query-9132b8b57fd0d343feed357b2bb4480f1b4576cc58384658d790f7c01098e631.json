@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_log SET error = 'interrupted while sending: delivery unknown, not resent' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9132b8b57fd0d343feed357b2bb4480f1b4576cc58384658d790f7c01098e631"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_template_translations (email_template_id, locale, subject, body_html, body_text)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (email_template_id, locale)\n         DO UPDATE SET subject = EXCLUDED.subject, body_html = EXCLUDED.body_html, body_text = EXCLUDED.body_text",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a557a8572a48ec8a616b08d8a8484416ac2605f2054bdc9fd856d59394df51cf"
+}

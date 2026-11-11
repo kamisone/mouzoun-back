@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, kind, name, email::text AS \"email!\", phone, subject, message, locale,\n                  lower(preferred_dates) AS preferred_from, upper(preferred_dates) AS preferred_to,\n                  group_size, created_at\n           FROM inquiries WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "preferred_from",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "preferred_to",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 10,
+        "name": "group_size",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      false,
+      true,
+      null,
+      null,
+      true,
+      false
+    ]
+  },
+  "hash": "9a928c7ee2429426ade11ae9210c69951b04b00ba897f18a56fa39af18b5830f"
+}

@@ -4,13 +4,22 @@
 //! migrations; this binary adds demo content on top. It runs in one transaction and refuses to
 //! run twice. The super admin comes from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD (falling back to
 //! ADMIN_EMAIL / ADMIN_PASSWORD).
+//!
+//! It also books one pending demo stay and sends staff notifications to the admin address, so
+//! the email pipeline can be tried without the HTTP API:
+//! `cargo run --bin seed_dev -- confirm MZ-26-000001` confirms it (→ confirmation email).
 
 use anyhow::{Context, bail};
 use chrono::{NaiveDate, Utc};
-use chrono_tz::Africa::Casablanca;
 use mouzoun_api::{
-    app, infra,
-    services::{identity, inventory},
+    app, camp_time,
+    db::{bookings::BookingSource, types::Locale},
+    infra,
+    services::{
+        booking::{self, AccommodationRequest, BookingRequestMeta, CustomerInput, CustomerRef},
+        identity, inventory,
+        pricing::GuestCount,
+    },
 };
 use serde_json::json;
 use sqlx::PgConnection;
@@ -37,6 +46,19 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = infra::db::connect(&database_url, 5).await?;
     infra::db::migrate(&pool).await?;
+
+    if let [command, reference] = std::env::args().skip(1).collect::<Vec<_>>().as_slice() {
+        if command != "confirm" {
+            bail!("usage: seed_dev [confirm <booking reference>]");
+        }
+        let id = sqlx::query_scalar!("SELECT id FROM bookings WHERE reference = $1", reference)
+            .fetch_optional(&pool)
+            .await?
+            .with_context(|| format!("no booking {reference}"))?;
+        booking::confirm_booking(&pool, id, None, Utc::now()).await?;
+        println!("{reference} confirmed: the worker sends the confirmation email");
+        return Ok(());
+    }
     if identity::ensure_super_admin(&pool, &email, &password, "Administrator").await? {
         println!("super admin created: {email}");
     }
@@ -53,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
     seed(&mut tx).await?;
     tx.commit().await?;
 
-    let today = Utc::now().with_timezone(&Casablanca).date_naive();
+    let today = mouzoun_api::camp_time::today(Utc::now());
     let nights = inventory::generate_inventory_calendar(
         &pool,
         None,
@@ -63,7 +85,65 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     let slots = inventory::generate_activity_slots(&pool, today, 365).await?;
     println!("demo content seeded: {nights} calendar nights, {slots} activity slots");
+
+    sqlx::query!(
+        "UPDATE settings SET value = to_jsonb($1::text) WHERE key = 'notifications.staff_email'",
+        email
+    )
+    .execute(&pool)
+    .await?;
+    let reference = demo_booking(&pool, today).await?;
+    println!(
+        "demo booking {reference} (pending): confirm it with `cargo run --bin seed_dev -- confirm {reference}`"
+    );
     Ok(())
+}
+
+/// Two nights in a nomad tent in two weeks, for Amina (French).
+async fn demo_booking(pool: &sqlx::PgPool, today: NaiveDate) -> anyhow::Result<String> {
+    let nomad = sqlx::query_scalar!("SELECT id FROM products WHERE sku = 'NOMAD-TENT'")
+        .fetch_one(pool)
+        .await?;
+    let adult = sqlx::query_scalar!("SELECT id FROM guest_categories WHERE code = 'adult'")
+        .fetch_one(pool)
+        .await?;
+    let arrival = today + chrono::Days::new(14);
+    let created = booking::book_accommodation(
+        pool,
+        &AccommodationRequest {
+            product_id: nomad,
+            arrival,
+            departure: arrival + chrono::Days::new(2),
+            quantity: 1,
+            guests: vec![GuestCount {
+                guest_category_id: adult,
+                count: 2,
+            }],
+            meta: BookingRequestMeta {
+                customer: CustomerRef::New(CustomerInput {
+                    email: Some("amina.benali@example.com".into()),
+                    first_name: "Amina".into(),
+                    last_name: Some("Benali".into()),
+                    phone: Some("+33612345678".into()),
+                    country_code: Some("FR".into()),
+                    preferred_locale: None,
+                }),
+                locale: Locale::new("fr"),
+                source: BookingSource::Website,
+                rate_plan_id: None,
+                promo_code: None,
+                special_requests: Some("Nous arriverons vers 18 h.".into()),
+                created_by: None,
+                ip_address: None,
+                user_agent: None,
+                hold: chrono::Duration::days(2),
+            },
+        },
+        Utc::now(),
+        camp_time::today(Utc::now()),
+    )
+    .await?;
+    Ok(created.reference)
 }
 
 async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_log SET status = 'sending', attempts = attempts + 1, subject = $2, error = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "81126f97b2673d83641d88348caef5500a51eefe3898d63626cbac24cd144cc5"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT code, is_default, is_rtl FROM locales WHERE is_active ORDER BY sort_order, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_rtl",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "52ac56d6dfded665aa76ff339a03d1d0c7e196a0daee71f9081361b3dafd1264"
+}

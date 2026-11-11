@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE outbox_events SET processed_at = $2 WHERE id = $1",
+  "query": "UPDATE outbox_events SET available_at = $2 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "37f5901024c8c5da95ef48cb4a1b942c9806e2d637934a8bbe24f35007ccbe08"
+  "hash": "cb85340ac8c370086ff9740eed0372da5739b83dea69575d6ed5e137d8151bf0"
 }

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload, available_at, dedupe_key)\n           SELECT 'booking', t.id::text, $3, jsonb_build_object('booking_id', t.id), t.due, $3 || ':' || t.id\n           FROM UNNEST($1::uuid[], $2::timestamptz[]) AS t (id, due)\n           ON CONFLICT (dedupe_key) DO UPDATE SET available_at = EXCLUDED.available_at\n           WHERE outbox_events.processed_at IS NULL AND outbox_events.failed_at IS NULL\n             AND outbox_events.attempts = 0 AND outbox_events.available_at <> EXCLUDED.available_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "TimestamptzArray",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "831a2922e6127c0e5167a98cadc14f551617b0d71c292f7454993ade28e1eef4"
+}

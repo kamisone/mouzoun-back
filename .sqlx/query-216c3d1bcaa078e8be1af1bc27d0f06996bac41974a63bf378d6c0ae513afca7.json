@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, aggregate_type, aggregate_id, event_type, payload, available_at, attempts,\n                last_error, processed_at, created_at\n         FROM outbox_events\n         WHERE processed_at IS NULL AND available_at <= $1\n         ORDER BY id\n         LIMIT $2\n         FOR UPDATE SKIP LOCKED",
+  "query": "SELECT id, aggregate_type, aggregate_id, event_type, payload, available_at, attempts,\n                last_error, processed_at, failed_at, dedupe_key, created_at\n         FROM outbox_events\n         WHERE processed_at IS NULL AND failed_at IS NULL AND available_at <= $1\n         ORDER BY id\n         LIMIT $2\n         FOR NO KEY UPDATE SKIP LOCKED",
   "describe": {
     "columns": [
       {
@@ -50,6 +50,16 @@
       },
       {
         "ordinal": 9,
+        "name": "failed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "dedupe_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -70,8 +80,10 @@
       false,
       true,
       true,
+      true,
+      true,
       false
     ]
   },
-  "hash": "7c7ac1e628c7b5588dedc03869fd0ab7c6345482d54df42b26047a9784909cc0"
+  "hash": "216c3d1bcaa078e8be1af1bc27d0f06996bac41974a63bf378d6c0ae513afca7"
 }
