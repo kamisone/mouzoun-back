@@ -149,6 +149,13 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "payments"."status" => PaymentStatus,
         "refunds"."status" => RefundStatus,
         "invoices"."kind" => InvoiceKind,
+        "bookings"."payment_option" => PaymentOption,
+        "bookings"."balance_collection" => BalanceCollection,
+        "booking_change_requests"."kind" => ChangeRequestKind,
+        "booking_change_requests"."status" => ChangeRequestStatus,
+        "booking_change_requests"."requested_by" => RequestedBy,
+        "staff_tasks"."kind" => StaffTaskKind,
+        "staff_tasks"."status" => StaffTaskStatus,
         "reviews"."source" => ReviewSource,
         "reviews"."status" => ReviewStatus,
         "pages"."page_type" => PageType,
@@ -161,7 +168,7 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "email_log"."status" => EmailStatus,
         "audit_logs"."actor_type" => ActorType,
     );
-    assert_eq!(checked, 51);
+    assert_eq!(checked, 58);
 }
 
 #[sqlx::test(migrations = "./migrations")]

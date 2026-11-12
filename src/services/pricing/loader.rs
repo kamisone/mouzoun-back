@@ -134,56 +134,69 @@ async fn load_promotion(
     conn: &mut PgConnection,
     code: &str,
 ) -> sqlx::Result<Option<PromotionRule>> {
-    let Some(p) = sqlx::query!(
+    Ok(load_promotions(conn, Some(code)).await?.into_iter().next())
+}
+
+/// Active automatic offers (promotions without a code: early bird, long stay...).
+pub async fn load_automatic_promotions(
+    conn: &mut PgConnection,
+) -> sqlx::Result<Vec<PromotionRule>> {
+    load_promotions(conn, None).await
+}
+
+/// The active promotion with `code`, or every active automatic one when `code` is `None`.
+pub async fn load_promotions(
+    conn: &mut PgConnection,
+    code: Option<&str>,
+) -> sqlx::Result<Vec<PromotionRule>> {
+    let rows = sqlx::query!(
         r#"SELECT id, code::text AS "code", discount_type AS "discount_type: DiscountType",
                   discount_percent, discount_amount_minor, discount_free_nights,
                   currency AS "currency: CurrencyCode", min_subtotal_minor, min_nights,
                   min_days_before_arrival, booking_window AS "booking_window: TsRange",
-                  stay_window AS "stay_window: DateRange", applies_to_all
+                  stay_window AS "stay_window: DateRange", applies_to_all,
+                  COALESCE((SELECT array_agg(pp.product_id) FROM promotion_products pp
+                            WHERE pp.promotion_id = promotions.id), '{}') AS "product_ids!"
            FROM promotions
-           WHERE code = $1::text::citext AND is_active"#,
+           WHERE is_active AND (($1::text IS NULL AND code IS NULL) OR code = $1::text::citext)
+           ORDER BY id"#,
         code
-    )
-    .fetch_optional(&mut *conn)
-    .await?
-    else {
-        return Ok(None);
-    };
-    let product_ids = sqlx::query_scalar!(
-        "SELECT product_id FROM promotion_products WHERE promotion_id = $1",
-        p.id
     )
     .fetch_all(&mut *conn)
     .await?;
-    let discount = Discount::from_columns(
-        p.discount_type,
-        p.discount_percent,
-        p.discount_amount_minor,
-        p.currency.clone(),
-        p.discount_free_nights,
-    )
-    .ok_or_else(|| {
-        sqlx::Error::Decode(format!("promotion {}: inconsistent discount", p.id).into())
-    })?;
-    let min_subtotal = match (p.min_subtotal_minor, p.currency) {
-        (Some(amount), Some(currency)) => Some(Money::new(amount, currency)),
-        (None, _) => None,
-        (Some(_), None) => {
-            return Err(sqlx::Error::Decode(
-                format!("promotion {}: min_subtotal_minor without currency", p.id).into(),
-            ));
-        }
-    };
-    Ok(Some(PromotionRule {
-        id: p.id,
-        code: p.code,
-        discount,
-        min_subtotal,
-        min_nights: p.min_nights,
-        min_days_before_arrival: p.min_days_before_arrival,
-        booking_window: p.booking_window,
-        stay_window: p.stay_window,
-        applies_to_all: p.applies_to_all,
-        product_ids,
-    }))
+    let mut rules = Vec::with_capacity(rows.len());
+    for p in rows {
+        let discount = Discount::from_columns(
+            p.discount_type,
+            p.discount_percent,
+            p.discount_amount_minor,
+            p.currency.clone(),
+            p.discount_free_nights,
+        )
+        .ok_or_else(|| {
+            sqlx::Error::Decode(format!("promotion {}: inconsistent discount", p.id).into())
+        })?;
+        let min_subtotal = match (p.min_subtotal_minor, p.currency) {
+            (Some(amount), Some(currency)) => Some(Money::new(amount, currency)),
+            (None, _) => None,
+            (Some(_), None) => {
+                return Err(sqlx::Error::Decode(
+                    format!("promotion {}: min_subtotal_minor without currency", p.id).into(),
+                ));
+            }
+        };
+        rules.push(PromotionRule {
+            id: p.id,
+            code: p.code,
+            discount,
+            min_subtotal,
+            min_nights: p.min_nights,
+            min_days_before_arrival: p.min_days_before_arrival,
+            booking_window: p.booking_window,
+            stay_window: p.stay_window,
+            applies_to_all: p.applies_to_all,
+            product_ids: p.product_ids,
+        });
+    }
+    Ok(rules)
 }

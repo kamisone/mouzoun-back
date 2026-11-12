@@ -129,7 +129,7 @@ impl ServiceTime {
         }
     }
 
-    fn dates(&self) -> Vec<NaiveDate> {
+    pub fn dates(&self) -> Vec<NaiveDate> {
         match *self {
             Self::Stay { arrival, departure } => {
                 arrival.iter_days().take_while(|d| *d < departure).collect()
@@ -238,6 +238,28 @@ pub enum PricingError {
 // ---- Engine -----------------------------------------------------------------------------------
 
 pub fn quote(req: &PricingRequest<'_>, ctx: &PricingContext) -> Result<Quote, PricingError> {
+    let (lines, subtotal_minor) = price_lines(req, ctx)?;
+    let discount = match &ctx.promotion {
+        Some(promotion) => Some(apply_promotion(
+            req,
+            &ctx.currency,
+            promotion,
+            &lines,
+            subtotal_minor,
+        )?),
+        None => None,
+    };
+    let discount_minor = discount.as_ref().map_or(0, |d| d.amount_minor);
+    let mut quote = finish(req, ctx, lines, subtotal_minor, discount_minor)?;
+    quote.discount = discount;
+    Ok(quote)
+}
+
+/// The priced lines of a request (no promotion, no tax) and their sum.
+pub fn price_lines(
+    req: &PricingRequest<'_>,
+    ctx: &PricingContext,
+) -> Result<(Vec<PriceLine>, i64), PricingError> {
     validate(req)?;
     let nights = req.service.nights();
     let mut lines = Vec::new();
@@ -285,19 +307,20 @@ pub fn quote(req: &PricingRequest<'_>, ctx: &PricingContext) -> Result<Quote, Pr
             lines.extend(unit_lines(req, ctx, date, season_id, best)?);
         }
     }
-
     let subtotal_minor = sum(lines.iter().map(|l| l.amount_minor))?;
-    let discount = match &ctx.promotion {
-        Some(promotion) => Some(apply_promotion(
-            req,
-            ctx,
-            promotion,
-            &lines,
-            subtotal_minor,
-        )?),
-        None => None,
-    };
-    let discount_minor = discount.as_ref().map_or(0, |d| d.amount_minor);
+    Ok((lines, subtotal_minor))
+}
+
+/// Applies an already computed discount, then the taxes on the discounted subtotal. The
+/// returned quote has `discount: None` (the caller knows which promotions made the amount).
+pub fn finish(
+    req: &PricingRequest<'_>,
+    ctx: &PricingContext,
+    lines: Vec<PriceLine>,
+    subtotal_minor: i64,
+    discount_minor: i64,
+) -> Result<Quote, PricingError> {
+    let discount_minor = discount_minor.clamp(0, subtotal_minor);
     let taxable_minor = subtotal_minor - discount_minor;
     let taxes = compute_taxes(req, ctx, taxable_minor)?;
     let tax_minor = sum(taxes
@@ -309,7 +332,7 @@ pub fn quote(req: &PricingRequest<'_>, ctx: &PricingContext) -> Result<Quote, Pr
         currency: ctx.currency.clone(),
         lines,
         subtotal_minor,
-        discount,
+        discount: None,
         discount_minor,
         taxes,
         tax_minor,
@@ -491,9 +514,10 @@ pub fn capacity_guests(req: &PricingRequest<'_>, ctx: &PricingContext) -> i64 {
         .sum()
 }
 
-fn apply_promotion(
+/// Discount of one promotion on one priced request, after checking its conditions.
+pub fn apply_promotion(
     req: &PricingRequest<'_>,
-    ctx: &PricingContext,
+    currency: &CurrencyCode,
     promo: &PromotionRule,
     lines: &[PriceLine],
     subtotal_minor: i64,
@@ -520,7 +544,7 @@ fn apply_promotion(
         return Err(not("booked too late"));
     }
     if let Some(min) = &promo.min_subtotal {
-        if min.currency != ctx.currency {
+        if &min.currency != currency {
             return Err(not("currency differs from the booking currency"));
         }
         if subtotal_minor < min.amount_minor {
@@ -534,7 +558,7 @@ fn apply_promotion(
     let amount = match &promo.discount {
         Discount::Percent { percent } => percent_of(subtotal_minor, *percent)?,
         Discount::FixedAmount { amount } => {
-            if amount.currency != ctx.currency {
+            if &amount.currency != currency {
                 return Err(not("currency differs from the booking currency"));
             }
             amount.amount_minor

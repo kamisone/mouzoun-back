@@ -8,4 +8,4 @@ mod tests;
 pub use engine::{
     GuestCount, PricingContext, PricingError, PricingRequest, Quote, ServiceTime, quote,
 };
-pub use loader::load_context;
+pub use loader::{load_automatic_promotions, load_context, load_promotions};

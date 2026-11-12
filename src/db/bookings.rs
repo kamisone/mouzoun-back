@@ -64,6 +64,31 @@ text_enum!(PaymentStatus {
 });
 text_enum!(RefundStatus { Pending = "pending", Succeeded = "succeeded", Failed = "failed" });
 text_enum!(InvoiceKind { Invoice = "invoice", CreditNote = "credit_note", Receipt = "receipt" });
+text_enum!(PaymentOption { Full = "full", Deposit = "deposit", OnSite = "on_site" });
+text_enum!(BalanceCollection {
+    SavedCard = "saved_card",
+    PaymentLink = "payment_link",
+    OnSite = "on_site",
+});
+text_enum!(ChangeRequestKind { Dates = "dates", Guests = "guests", Items = "items", Other = "other" });
+text_enum!(ChangeRequestStatus {
+    Pending = "pending",
+    Approved = "approved",
+    Declined = "declined",
+    Cancelled = "cancelled",
+    Applied = "applied",
+});
+text_enum!(RequestedBy { Customer = "customer", Staff = "staff" });
+text_enum!(StaffTaskKind {
+    RefundOffline = "refund_offline",
+    BalanceFailed = "balance_failed",
+    NoShowReview = "no_show_review",
+    ChangeRequest = "change_request",
+    PaymentAfterExpiry = "payment_after_expiry",
+    WebhookError = "webhook_error",
+    Other = "other",
+});
+text_enum!(StaffTaskStatus { Open = "open", Done = "done", Dismissed = "dismissed" });
 
 impl BookingStatus {
     /// Statuses in which the booking still holds inventory and can be cancelled.

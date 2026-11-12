@@ -6,6 +6,9 @@ mod activity;
 mod common;
 mod error;
 mod lifecycle;
+pub mod settings;
+pub mod state;
+pub mod trip;
 
 pub use accommodation::{AccommodationRequest, book_accommodation};
 pub use activity::{ActivityRequest, book_activity};
