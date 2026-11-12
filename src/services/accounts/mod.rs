@@ -2,6 +2,7 @@
 //! sessions, profile, trips, wishlists, saved travellers, preferences, privacy. See
 //! docs/accounts/README.md.
 
+pub mod oidc;
 pub mod passwords;
 pub mod sessions;
 pub mod signin;

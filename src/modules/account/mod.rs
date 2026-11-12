@@ -4,6 +4,7 @@
 
 pub mod auth;
 pub mod extras;
+pub mod oauth;
 pub mod profile;
 
 use axum::{
@@ -66,6 +67,13 @@ pub fn routes() -> Router<AppState> {
             put(extras::update_traveller).delete(extras::delete_traveller),
         )
         .route("/travellers/{id}/document", post(extras::reveal_document))
+        .route("/oauth/providers", get(oauth::providers))
+        .route("/oauth/{provider}/start", get(oauth::start))
+        .route(
+            "/oauth/{provider}/callback",
+            get(oauth::callback_get).post(oauth::callback_post),
+        )
+        .route("/identities/{provider}", delete(oauth::unlink))
         .route("/trips/claim", post(extras::claim))
         .route("/trips/claim/confirm", post(extras::confirm_claim))
 }
