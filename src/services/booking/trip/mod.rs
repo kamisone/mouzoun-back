@@ -50,6 +50,8 @@ pub struct TripContext {
     pub public: bool,
     pub now: DateTime<Utc>,
     pub settings: BookingSettings,
+    /// A payment provider is configured: online payment options can be offered.
+    pub online_payments: bool,
 }
 
 impl TripContext {
@@ -1236,6 +1238,7 @@ async fn price(
         starts_on,
         ctx.today(),
         ctx.settings.balance_due_days,
+        ctx.online_payments,
     );
     let quote = TripQuote {
         currency: currency.clone(),

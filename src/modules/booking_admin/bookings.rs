@@ -396,6 +396,7 @@ async fn staff_context(state: &AppState, locale: Option<&str>) -> AppResult<Trip
         public: false,
         now: Utc::now(),
         settings,
+        online_payments: state.payments.is_enabled(),
     })
 }
 

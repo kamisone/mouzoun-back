@@ -252,6 +252,7 @@ pub async fn search(
         public: true,
         now: Utc::now(),
         settings: settings.clone(),
+        online_payments: state.payments.is_enabled(),
     };
     let cards = catalog::cards(
         &state,

@@ -91,12 +91,17 @@ pub(crate) async fn booking_settings(state: &AppState) -> AppResult<BookingSetti
     Ok(loaded)
 }
 
-pub(crate) fn trip_context(locale: Locale, settings: BookingSettings) -> TripContext {
+pub(crate) fn trip_context(
+    state: &AppState,
+    locale: Locale,
+    settings: BookingSettings,
+) -> TripContext {
     TripContext {
         locale,
         public: true,
         now: Utc::now(),
         settings,
+        online_payments: state.payments.is_enabled(),
     }
 }
 

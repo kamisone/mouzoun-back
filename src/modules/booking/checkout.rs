@@ -75,7 +75,7 @@ pub async fn quote(
         .await?;
     }
     let settings = booking_settings(&state).await?;
-    let ctx = trip_context(locale, settings);
+    let ctx = trip_context(&state, locale, settings);
     let request = TripRequest {
         items: body.items,
         rate_plan_id: body.rate_plan_id,
@@ -259,7 +259,7 @@ pub async fn checkout(
             "the trip is empty",
         ));
     }
-    let ctx = trip_context(locale.clone(), settings.clone());
+    let ctx = trip_context(&state, locale.clone(), settings.clone());
     let Some(expected) = quote_token::verify(
         &state.config.jwt_secret,
         &body.quote_token,

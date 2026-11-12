@@ -447,6 +447,7 @@ pub fn payment_options(
     starts_on: Option<NaiveDate>,
     today: NaiveDate,
     balance_due_days: i64,
+    online_payments: bool,
 ) -> Vec<PaymentChoice> {
     let on_site = PaymentChoice {
         option: PaymentOption::OnSite,
@@ -476,13 +477,17 @@ pub fn payment_options(
             due_later_minor: total_minor - d,
             due_later_on: balance_due_on,
         });
-    match plan.payment_mode {
-        PaymentMode::PayOnSite => vec![on_site],
-        PaymentMode::OptionalOnline => [Some(full), deposit, Some(on_site)]
+    match (plan.payment_mode, online_payments) {
+        (PaymentMode::PayOnSite, _) | (PaymentMode::OptionalOnline, false) => vec![on_site],
+        (PaymentMode::OptionalOnline, true) => [Some(full), deposit, Some(on_site)]
             .into_iter()
             .flatten()
             .collect(),
-        PaymentMode::OnlineRequired => [Some(full), deposit].into_iter().flatten().collect(),
+        (PaymentMode::OnlineRequired, true) => {
+            [Some(full), deposit].into_iter().flatten().collect()
+        }
+        // Prepayment required but no provider: nothing can be offered (the quote says why).
+        (PaymentMode::OnlineRequired, false) => vec![],
     }
 }
 
@@ -554,6 +559,76 @@ mod tests {
     use super::*;
     use chrono::TimeZone;
     use serde_json::json;
+
+    fn plan(mode: PaymentMode) -> RatePlan {
+        RatePlan {
+            id: uuid::Uuid::nil(),
+            code: "flex".into(),
+            name: None,
+            meal_plan: crate::db::pricing::MealPlan::None,
+            payment_mode: mode,
+            deposit: Deposit::Percent {
+                percent: rust_decimal::Decimal::from(30),
+            },
+            is_public: true,
+            cancellation_rules: None,
+        }
+    }
+
+    #[test]
+    fn online_options_need_a_configured_provider() {
+        let eur = CurrencyCode::eur();
+        let today = chrono::NaiveDate::from_ymd_opt(2027, 1, 1).unwrap();
+        let start = chrono::NaiveDate::from_ymd_opt(2027, 3, 1);
+        let options = |mode, online| {
+            payment_options(Some(&plan(mode)), 10_000, &eur, start, today, 14, online)
+                .into_iter()
+                .map(|c| c.option)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            options(PaymentMode::OptionalOnline, true),
+            vec![
+                PaymentOption::Full,
+                PaymentOption::Deposit,
+                PaymentOption::OnSite
+            ]
+        );
+        assert_eq!(
+            options(PaymentMode::OptionalOnline, false),
+            vec![PaymentOption::OnSite]
+        );
+        assert_eq!(
+            options(PaymentMode::OnlineRequired, true),
+            vec![PaymentOption::Full, PaymentOption::Deposit]
+        );
+        assert!(options(PaymentMode::OnlineRequired, false).is_empty());
+        assert_eq!(
+            options(PaymentMode::PayOnSite, true),
+            vec![PaymentOption::OnSite]
+        );
+        // The deposit is 30 % and the balance falls due 14 days before arrival.
+        let deposit = payment_options(
+            Some(&plan(PaymentMode::OptionalOnline)),
+            10_000,
+            &eur,
+            start,
+            today,
+            14,
+            true,
+        )
+        .into_iter()
+        .find(|c| c.option == PaymentOption::Deposit)
+        .unwrap();
+        assert_eq!(
+            (deposit.due_now_minor, deposit.due_later_minor),
+            (3_000, 7_000)
+        );
+        assert_eq!(
+            deposit.due_later_on,
+            chrono::NaiveDate::from_ymd_opt(2027, 2, 15)
+        );
+    }
 
     #[test]
     fn allocation_is_proportional_and_exact() {

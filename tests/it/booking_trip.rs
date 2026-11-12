@@ -33,6 +33,7 @@ fn ctx() -> TripContext {
             enabled: true,
             ..BookingSettings::default()
         },
+        online_payments: true,
     }
 }
 

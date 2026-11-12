@@ -5,6 +5,7 @@ mod accommodation;
 mod activity;
 mod common;
 mod error;
+pub mod go_live;
 mod lifecycle;
 pub mod manage;
 pub mod quote_token;

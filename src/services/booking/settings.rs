@@ -29,8 +29,6 @@ pub struct BookingSettings {
     pub pitch_selection: bool,
     pub id_retention_days: i64,
     pub terms_version: String,
-    pub online_payments: bool,
-    pub providers: Vec<String>,
 }
 
 impl Default for BookingSettings {
@@ -57,8 +55,6 @@ impl Default for BookingSettings {
             pitch_selection: true,
             id_retention_days: 365,
             terms_version: "2026-11".into(),
-            online_payments: false,
-            providers: vec![],
         }
     }
 }
@@ -73,7 +69,7 @@ impl BookingSettings {
 pub async fn load(db: impl PgExecutor<'_>) -> sqlx::Result<BookingSettings> {
     let rows: HashMap<String, Value> = sqlx::query!(
         "SELECT key, value FROM settings
-         WHERE key LIKE 'booking.%' OR key LIKE 'legal.%' OR key LIKE 'payments.%' OR key = 'site.status'"
+         WHERE key LIKE 'booking.%' OR key LIKE 'legal.%' OR key = 'site.status'"
     )
     .fetch_all(db)
     .await?
@@ -116,15 +112,5 @@ pub async fn load(db: impl PgExecutor<'_>) -> sqlx::Result<BookingSettings> {
             .and_then(Value::as_str)
             .unwrap_or(&d.terms_version)
             .to_string(),
-        online_payments: flag("payments.online_enabled", d.online_payments),
-        providers: rows
-            .get("payments.providers")
-            .and_then(Value::as_array)
-            .map(|a| {
-                a.iter()
-                    .filter_map(|v| v.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default(),
     })
 }

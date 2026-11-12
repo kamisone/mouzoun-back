@@ -286,7 +286,7 @@ async fn view(
         );
     }
     let settings = booking_settings(state).await?;
-    let ctx = trip_context(locale.clone(), settings);
+    let ctx = trip_context(state, locale.clone(), settings);
     let (request, ids) = cart.to_request();
     let mut conn = state.db.acquire().await?;
     let quote: TripQuote = trip::quote(&mut conn, &request, &ctx).await?;

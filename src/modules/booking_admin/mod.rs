@@ -3,6 +3,7 @@
 //! | endpoint | permission |
 //! |---|---|
 //! | GET dashboard/today | dashboard.read |
+//! | GET booking/go-live (checklist), PUT booking/enabled (refused while a required check fails) | dashboard.read / settings.write |
 //! | GET bookings, GET bookings/{id}, GET bookings/export.csv | bookings.read |
 //! | POST quote, POST bookings (manual), PATCH bookings/{id}, POST …/accept, …/decline, …/check-in, …/check-out, …/no-show, …/notes, …/resend, POST …/payment-link | bookings.write |
 //! | POST …/cancel, POST …/items/cancel | bookings.cancel |
@@ -17,10 +18,11 @@
 mod bookings;
 mod customers;
 mod dashboard;
+mod go_live;
 
 use axum::{
     Router,
-    routing::{get, patch, post},
+    routing::{get, patch, post, put},
 };
 
 use crate::state::AppState;
@@ -28,6 +30,8 @@ use crate::state::AppState;
 pub fn admin_routes() -> Router<AppState> {
     Router::new()
         .route("/dashboard/today", get(dashboard::today))
+        .route("/booking/go-live", get(go_live::checklist))
+        .route("/booking/enabled", put(go_live::switch))
         .route("/quote", post(bookings::quote))
         .route("/customers", get(bookings::customers))
         .route("/bookings", get(bookings::list).post(bookings::create))
