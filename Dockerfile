@@ -19,6 +19,9 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 # sqlx macros check queries against the committed .sqlx metadata: no database at build time.
 ENV SQLX_OFFLINE=true
+# Commit shown by /health/live and /health/ready (`build.commit`).
+ARG GIT_SHA=""
+ENV GIT_SHA=$GIT_SHA
 RUN cargo build --release --locked --bin mouzoun-api --bin worker --bin email --bin migrations
 
 # ---- Runtime: tiny, no shell, non-root ----

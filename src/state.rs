@@ -22,6 +22,8 @@ pub struct AppState {
     pub payments: Payments,
     /// Outgoing HTTP (payment providers, Turnstile).
     pub http: reqwest::Client,
+    /// Last object-storage probe of the readiness endpoint (at most one call every 5 minutes).
+    pub storage_probe: Arc<tokio::sync::Mutex<Option<(std::time::Instant, bool)>>>,
 }
 
 impl AppState {
@@ -42,6 +44,7 @@ impl AppState {
             media,
             payments,
             http,
+            storage_probe: Arc::default(),
         }
     }
 }

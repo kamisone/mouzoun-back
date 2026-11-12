@@ -47,6 +47,11 @@ impl MediaService {
 
     /// Step 1: validate the request, reserve a storage key, hand out a signed upload URL and
     /// remember the upload (Redis) until it is completed or abandoned.
+    /// Reaches the public bucket (readiness probe; network call to the storage provider).
+    pub async fn check_storage(&self) -> bool {
+        self.buckets.public.check().await.is_ok()
+    }
+
     pub async fn create_upload(
         &self,
         req: CreateUploadRequest,

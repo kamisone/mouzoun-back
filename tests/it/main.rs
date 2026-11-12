@@ -14,6 +14,7 @@ mod booking_trip;
 mod catalog;
 mod crm;
 mod email;
+mod health;
 mod inventory;
 mod media;
 mod migrations;

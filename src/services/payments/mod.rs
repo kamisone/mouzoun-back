@@ -10,6 +10,7 @@
 pub mod fake;
 pub mod gateway;
 mod service;
+pub mod status;
 pub mod stripe;
 
 use std::{collections::HashMap, sync::Arc};
