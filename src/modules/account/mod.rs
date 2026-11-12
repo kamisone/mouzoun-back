@@ -3,6 +3,7 @@
 //! (`/v1/bookings/{reference}`), authorised by ownership for signed-in guests.
 
 pub mod auth;
+pub mod cards;
 pub mod extras;
 pub mod oauth;
 pub mod profile;
@@ -74,6 +75,9 @@ pub fn routes() -> Router<AppState> {
             get(oauth::callback_get).post(oauth::callback_post),
         )
         .route("/identities/{provider}", delete(oauth::unlink))
+        .route("/payment-methods", get(cards::list))
+        .route("/payment-methods/setup", post(cards::setup))
+        .route("/payment-methods/{id}", delete(cards::remove))
         .route("/trips/claim", post(extras::claim))
         .route("/trips/claim/confirm", post(extras::confirm_claim))
 }

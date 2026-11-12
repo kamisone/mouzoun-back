@@ -8,8 +8,8 @@ use serde_json::{Value, json};
 
 use super::{
     gateway::{
-        CreatePayment, GatewayError, OffSessionCharge, PaymentGateway, ProviderPayment,
-        ProviderRefund, RefundRequest, WebhookEvent,
+        CardSetup, CreatePayment, GatewayError, OffSessionCharge, PaymentGateway, ProviderPayment,
+        ProviderRefund, RefundRequest, SavedCard, WebhookEvent,
     },
     stripe,
 };
@@ -66,6 +66,44 @@ impl PaymentGateway for FakeGateway {
             provider_customer_id: Some(req.provider_customer_id.to_string()),
             payload: json!({ "status": "succeeded", "fake": true }),
         })
+    }
+
+    async fn setup_card(
+        &self,
+        provider_customer_id: Option<&str>,
+        _email: &str,
+        _name: &str,
+        idempotency_key: &str,
+    ) -> Result<CardSetup, GatewayError> {
+        Ok(CardSetup {
+            provider_customer_id: provider_customer_id
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("fake_cus_{idempotency_key}")),
+            client_secret: format!("fake_seti_{idempotency_key}_secret"),
+        })
+    }
+
+    /// Every fake customer has one test card; `remove_card` succeeds without effect.
+    async fn list_cards(&self, provider_customer_id: &str) -> Result<Vec<SavedCard>, GatewayError> {
+        Ok(vec![SavedCard {
+            id: format!("fake_pm_{provider_customer_id}"),
+            brand: "visa".into(),
+            last4: "4242".into(),
+            exp_month: 12,
+            exp_year: 2030,
+        }])
+    }
+
+    async fn remove_card(
+        &self,
+        provider_customer_id: &str,
+        card_id: &str,
+    ) -> Result<(), GatewayError> {
+        if card_id == format!("fake_pm_{provider_customer_id}") {
+            Ok(())
+        } else {
+            Err(GatewayError::Declined("unknown card".into()))
+        }
     }
 
     async fn verify_webhook(

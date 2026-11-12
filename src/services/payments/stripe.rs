@@ -8,8 +8,8 @@ use serde_json::{Value, json};
 use sha2::Sha256;
 
 use super::gateway::{
-    CreatePayment, GatewayError, OffSessionCharge, PaymentGateway, ProviderPayment, ProviderRefund,
-    RefundRequest, WebhookEvent, WebhookOutcome,
+    CardSetup, CreatePayment, GatewayError, OffSessionCharge, PaymentGateway, ProviderPayment,
+    ProviderRefund, RefundRequest, SavedCard, WebhookEvent, WebhookOutcome,
 };
 use crate::{config::StripeConfig, db::bookings::PaymentProvider};
 
@@ -57,6 +57,31 @@ impl StripeGateway {
             Err(GatewayError::Unavailable(message))
         } else {
             Err(GatewayError::Declined(message))
+        }
+    }
+
+    async fn get(&self, path: &str) -> Result<Value, GatewayError> {
+        let response = self
+            .http
+            .get(format!("{}/v1/{path}", self.config.api_base))
+            .basic_auth(&self.config.secret_key, Some(""))
+            .send()
+            .await
+            .map_err(|e| GatewayError::Unavailable(e.to_string()))?;
+        let status = response.status();
+        let body: Value = response
+            .json()
+            .await
+            .map_err(|e| GatewayError::Unavailable(e.to_string()))?;
+        if status.is_success() {
+            Ok(body)
+        } else {
+            Err(GatewayError::Unavailable(
+                body["error"]["message"]
+                    .as_str()
+                    .unwrap_or("stripe error")
+                    .to_string(),
+            ))
         }
     }
 
@@ -139,6 +164,91 @@ impl PaymentGateway for StripeGateway {
             provider_customer_id: customer,
             payload: json!({ "status": intent["status"] }),
         })
+    }
+
+    async fn setup_card(
+        &self,
+        provider_customer_id: Option<&str>,
+        email: &str,
+        name: &str,
+        idempotency_key: &str,
+    ) -> Result<CardSetup, GatewayError> {
+        let customer = match provider_customer_id {
+            Some(id) => id.to_string(),
+            None => self
+                .post(
+                    "customers",
+                    &[
+                        ("email".into(), email.to_string()),
+                        ("name".into(), name.to_string()),
+                    ],
+                    &format!("{idempotency_key}-customer"),
+                )
+                .await?["id"]
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| GatewayError::Unavailable("customer without id".into()))?,
+        };
+        let intent = self
+            .post(
+                "setup_intents",
+                &[
+                    ("customer".into(), customer.clone()),
+                    ("usage".into(), "off_session".into()),
+                    ("automatic_payment_methods[enabled]".into(), "true".into()),
+                ],
+                idempotency_key,
+            )
+            .await?;
+        Ok(CardSetup {
+            provider_customer_id: customer,
+            client_secret: intent["client_secret"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+        })
+    }
+
+    async fn list_cards(&self, provider_customer_id: &str) -> Result<Vec<SavedCard>, GatewayError> {
+        let list = self
+            .get(&format!(
+                "customers/{provider_customer_id}/payment_methods?type=card&limit=20"
+            ))
+            .await?;
+        Ok(list["data"]
+            .as_array()
+            .map(|cards| {
+                cards
+                    .iter()
+                    .map(|pm| SavedCard {
+                        id: pm["id"].as_str().unwrap_or_default().to_string(),
+                        brand: pm["card"]["brand"].as_str().unwrap_or("card").to_string(),
+                        last4: pm["card"]["last4"].as_str().unwrap_or_default().to_string(),
+                        exp_month: pm["card"]["exp_month"].as_i64().unwrap_or(0) as i32,
+                        exp_year: pm["card"]["exp_year"].as_i64().unwrap_or(0) as i32,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
+    async fn remove_card(
+        &self,
+        provider_customer_id: &str,
+        card_id: &str,
+    ) -> Result<(), GatewayError> {
+        // Only a card of this customer can be detached.
+        let pm = self.get(&format!("payment_methods/{card_id}")).await?;
+        if pm["customer"].as_str() != Some(provider_customer_id) {
+            return Err(GatewayError::Declined("unknown card".into()));
+        }
+        self.post(
+            &format!("payment_methods/{card_id}/detach"),
+            &[],
+            &format!("detach-{card_id}"),
+        )
+        .await?;
+        Ok(())
     }
 
     async fn refund(&self, req: &RefundRequest<'_>) -> Result<ProviderRefund, GatewayError> {

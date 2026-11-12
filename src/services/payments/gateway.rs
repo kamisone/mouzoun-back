@@ -76,6 +76,23 @@ pub struct OffSessionCharge<'a> {
     pub payment_id: uuid::Uuid,
 }
 
+/// A card kept by the provider for a customer ("Payment methods" in the account).
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct SavedCard {
+    pub id: String,
+    pub brand: String,
+    pub last4: String,
+    pub exp_month: i32,
+    pub exp_year: i32,
+}
+
+/// What the browser needs to save a new card (Stripe SetupIntent).
+#[derive(Debug, Clone, Serialize)]
+pub struct CardSetup {
+    pub provider_customer_id: String,
+    pub client_secret: String,
+}
+
 /// A verified webhook, reduced to what the booking system acts on.
 #[derive(Debug, Clone)]
 pub struct WebhookEvent {
@@ -130,6 +147,33 @@ pub trait PaymentGateway: Send + Sync {
         &self,
         _req: &OffSessionCharge<'_>,
     ) -> Result<ProviderPayment, GatewayError> {
+        Err(GatewayError::Unsupported)
+    }
+
+    /// Starts saving a card (creates the provider customer when needed).
+    async fn setup_card(
+        &self,
+        _provider_customer_id: Option<&str>,
+        _email: &str,
+        _name: &str,
+        _idempotency_key: &str,
+    ) -> Result<CardSetup, GatewayError> {
+        Err(GatewayError::Unsupported)
+    }
+
+    async fn list_cards(
+        &self,
+        _provider_customer_id: &str,
+    ) -> Result<Vec<SavedCard>, GatewayError> {
+        Err(GatewayError::Unsupported)
+    }
+
+    /// Forgets a card (it can no longer be charged).
+    async fn remove_card(
+        &self,
+        _provider_customer_id: &str,
+        _card_id: &str,
+    ) -> Result<(), GatewayError> {
         Err(GatewayError::Unsupported)
     }
 

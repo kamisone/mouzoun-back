@@ -691,3 +691,57 @@ async fn wishlists_and_saved_travellers_belong_to_their_owner(db: PgPool) {
     assert_eq!(list["travellers"][0]["first_name"], "Sara");
     assert!(list["travellers"][0].get("id_document_number").is_none());
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn cards_are_saved_through_the_provider_and_removed_only_by_their_owner(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let (_, jar) = sign_in(&app, "amina@example.com", None).await;
+    let me = vec![("cookie", cookie_header(&jar))];
+    let (_, _, empty) = app
+        .send(Method::GET, "/v1/account/payment-methods", None, &me)
+        .await;
+    assert_eq!(empty["cards"], json!([]));
+    let (status, _, setup) = app
+        .send(Method::POST, "/v1/account/payment-methods/setup", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{setup}");
+    assert!(
+        setup["client_secret"]
+            .as_str()
+            .unwrap()
+            .starts_with("fake_seti_")
+    );
+    let (_, _, list) = app
+        .send(Method::GET, "/v1/account/payment-methods", None, &me)
+        .await;
+    let card = list["cards"][0]["id"].as_str().unwrap().to_string();
+    assert_eq!(list["cards"][0]["last4"], "4242");
+
+    let (_, jar) = sign_in(&app, "other@example.com", None).await;
+    let other = vec![("cookie", cookie_header(&jar))];
+    app.send(
+        Method::POST,
+        "/v1/account/payment-methods/setup",
+        None,
+        &other,
+    )
+    .await;
+    let (status, _, _) = app
+        .send(
+            Method::DELETE,
+            &format!("/v1/account/payment-methods/{card}"),
+            None,
+            &other,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _, _) = app
+        .send(
+            Method::DELETE,
+            &format!("/v1/account/payment-methods/{card}"),
+            None,
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+}
