@@ -53,6 +53,10 @@ cannot resend the link (the handler fails with a clear message); issue a new tok
 
 ## Which emails are sent
 
+The booking funnel events (requests, payment links, balance, pre-check-in, magic links,
+refunds, abandoned checkouts) are listed in `docs/booking/README.md`.
+
+
 | event | to the guest | to the team (`notifications.staff_email`) |
 |---|---|---|
 | booking.created (pending / awaiting payment) | `booking_received` | `staff_new_booking` |
