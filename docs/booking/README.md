@@ -231,12 +231,23 @@ cargo test                       # booking_trip, booking_api, booking_admin, ema
 # front: unit, mocked e2e
 npm test && npm run build && npm run test:e2e
 
-# front: full stack (real API with PAYMENTS_FAKE=true and booking.enabled = true)
-APP_PORT=18090 CORS_ORIGINS=http://127.0.0.1:3210 COOKIE_SECURE=false PAYMENTS_FAKE=true cargo run
+# front: full stack (real API with PAYMENTS_FAKE=true; the setup project opens booking itself)
+# Use a database and Redis of their own: an API already running on your dev database would
+# consume the outbox (sign-in codes, emails) before the suite reads them in Mailpit.
+createdb mouzoun_e2e   # once, then: DATABASE_URL=…/mouzoun_e2e cargo sqlx migrate run && cargo run --bin seed_dev
+DATABASE_URL=…/mouzoun_e2e cargo run --bin seed_dev -- staff e2e-staff@mouzoun.test 'A-long-password-1' super_admin
+DATABASE_URL=…/mouzoun_e2e REDIS_URL=…/1 APP_PORT=18090 PAYMENTS_FAKE=true COOKIE_SECURE=false \
+  EMAIL_PROVIDER=smtp SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_TLS=none \
+  CORS_ORIGINS=http://127.0.0.1:3210 PUBLIC_SITE_URL=http://127.0.0.1:3210 \
+  WEBAUTHN_ORIGIN=http://127.0.0.1:3210 WEBAUTHN_RP_ID=127.0.0.1 cargo run --bin mouzoun-api
 npm run build
-FULLSTACK_API=http://127.0.0.1:18090 E2E_STAFF_EMAIL=… E2E_STAFF_PASSWORD=… \
-  npx playwright test -c playwright.fullstack.config.ts
+E2E_STAFF_EMAIL=e2e-staff@mouzoun.test E2E_STAFF_PASSWORD='A-long-password-1' \
+  npx playwright test -c playwright.fullstack.config.ts      # + STRIPE_E2E=1 with Stripe test keys
 ```
+
+The suite covers French desktop and Arabic mobile (stay + extra + activity with deposit, pay at
+the camp then cancel with refund, account claim), the back office (request accepted, phone
+booking in cash) and accessibility checks (axe) on every screen it passes through.
 
 ### Stripe test cards and the Stripe CLI
 
