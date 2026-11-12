@@ -178,3 +178,13 @@ deletion, tickets, OIDC token checks with a local key, passkeys with a software 
 CRM permissions). Front: `npm run test:e2e` (`tests/e2e/accounts.spec.ts`: code sign-in with a
 wrong then pasted code, RTL, account pages, staff 2FA, axe on desktop and phone);
 `tests/fullstack/staff.ts` signs staff in with TOTP against a real API.
+
+## Decisions (November 2026)
+
+- Staff sign in with password + authenticator app only; no staff passkeys for now.
+- Paying with a saved card at checkout: later, once real bookings come in. Saved cards serve
+  the deposit balance and the account's "Payment methods" page.
+- No Facebook sign-in (`account.facebook_enabled` stays false). Phone checks by WhatsApp / SMS
+  can wait: email codes only.
+- `customers.merge`, `customers.impersonate` and `customers.privacy` stay with super admin and
+  manager only; reception keeps `customers.read` / `customers.write`.
