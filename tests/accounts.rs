@@ -481,3 +481,213 @@ async fn guests_never_reach_the_back_office_and_staff_need_a_second_factor(db: P
         .await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn a_booking_made_with_another_address_joins_only_through_its_email(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let guests = guest_ids(&db).await;
+    let tent = accommodation(&db, "pool", 3).await;
+    let mut req_meta = meta("work@example.com");
+    req_meta.rate_plan_id = None;
+    let booking = mouzoun_api::services::booking::book_accommodation(
+        &db,
+        &mouzoun_api::services::booking::AccommodationRequest {
+            product_id: tent,
+            arrival: d(2027, 2, 10),
+            departure: d(2027, 2, 12),
+            quantity: 1,
+            guests: adults(&guests, 2),
+            meta: req_meta,
+        },
+        now(),
+        today(),
+    )
+    .await
+    .unwrap();
+    let reference: String = sqlx::query_scalar("SELECT reference FROM bookings WHERE id = $1")
+        .bind(booking.booking_id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let (_, jar) = sign_in(&app, "home@example.com", None).await;
+    let cookie = vec![("cookie", cookie_header(&jar))];
+
+    // Wrong email: same answer, nothing sent.
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/account/trips/claim",
+            Some(json!({ "reference": reference, "email": "nope@example.com" })),
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    let pending: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM outbox_events WHERE event_type = 'booking.claim_requested'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(pending, 0);
+
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/account/trips/claim",
+            Some(json!({ "reference": reference.to_lowercase(), "email": "Work@example.com" })),
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    let token: String = sqlx::query_scalar(
+        "SELECT payload->'secret'->>'token' FROM outbox_events WHERE event_type = 'booking.claim_requested'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    // Nothing attached before the link is used.
+    let (status, _, _) = app
+        .send(
+            Method::GET,
+            &format!("/v1/bookings/{reference}"),
+            None,
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, _, body) = app
+        .send(
+            Method::POST,
+            "/v1/account/trips/claim/confirm",
+            Some(json!({ "token": token })),
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["reference"], reference);
+    let (status, _, _) = app
+        .send(
+            Method::GET,
+            &format!("/v1/bookings/{reference}"),
+            None,
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/account/trips/claim/confirm",
+            Some(json!({ "token": token })),
+            &cookie,
+        )
+        .await;
+    assert_eq!(status, StatusCode::GONE, "single use");
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn wishlists_and_saved_travellers_belong_to_their_owner(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let tent = accommodation(&db, "pool", 3).await;
+    let (_, jar) = sign_in(&app, "amina@example.com", None).await;
+    let me = vec![("cookie", cookie_header(&jar))];
+    let (_, jar) = sign_in(&app, "other@example.com", None).await;
+    let other = vec![("cookie", cookie_header(&jar))];
+
+    // Hearts saved before signing in merge into the default list (unknown ids ignored).
+    let (status, _, saved) = app
+        .send(
+            Method::POST,
+            "/v1/account/saved",
+            Some(json!({ "product_ids": [tent, uuid::Uuid::now_v7()] })),
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(saved["product_ids"], json!([tent]));
+    let (_, _, lists) = app
+        .send(Method::GET, "/v1/account/wishlists", None, &me)
+        .await;
+    let list = &lists["lists"][0];
+    assert_eq!(list["is_default"], true);
+    assert_eq!(list["items"][0]["product"]["id"], json!(tent));
+    let id = list["id"].as_str().unwrap().to_string();
+
+    // Someone else's list: 404.
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            &format!("/v1/account/wishlists/{id}/share"),
+            None,
+            &other,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _, _) = app
+        .send(
+            Method::DELETE,
+            &format!("/v1/account/wishlists/{id}"),
+            None,
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "the default list stays");
+
+    // A shared link shows the products, not the owner.
+    let (_, _, shared) = app
+        .send(
+            Method::POST,
+            &format!("/v1/account/wishlists/{id}/share"),
+            None,
+            &me,
+        )
+        .await;
+    let token = shared["share_token"].as_str().unwrap();
+    let (status, view) = app
+        .request(
+            Method::GET,
+            &format!("/v1/account/wishlists/shared/{token}"),
+            None,
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(view["items"][0]["product"]["id"], json!(tent));
+    assert!(view["id"].is_null());
+
+    // Saved travellers: an ID number needs consent, and never comes back in lists.
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/account/travellers",
+            Some(json!({ "first_name": "Sara", "last_name": "B", "id_document_number": "X123" })),
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    let (status, _, created) = app
+        .send(
+            Method::POST,
+            "/v1/account/travellers",
+            Some(json!({ "first_name": "Sara", "last_name": "B" })),
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let tid = created["id"].as_str().unwrap();
+    let (status, _, _) = app
+        .send(
+            Method::DELETE,
+            &format!("/v1/account/travellers/{tid}"),
+            None,
+            &other,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (_, _, list) = app
+        .send(Method::GET, "/v1/account/travellers", None, &me)
+        .await;
+    assert_eq!(list["travellers"][0]["first_name"], "Sara");
+    assert!(list["travellers"][0].get("id_document_number").is_none());
+}
