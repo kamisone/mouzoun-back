@@ -239,8 +239,7 @@ pub async fn verify_assertion(
     let auth = b64(&a.response.authenticator_data)?;
     let parsed = parse_auth_data(rp, &auth)?;
     let mut signed = auth.clone();
-    signed
-        .extend_from_slice(ring::digest::digest(&ring::digest::SHA256, &client_data).as_ref());
+    signed.extend_from_slice(ring::digest::digest(&ring::digest::SHA256, &client_data).as_ref());
     UnparsedPublicKey::new(&ECDSA_P256_SHA256_ASN1, p256_point(public_key)?)
         .verify(&signed, &b64(&a.response.signature)?)
         .map_err(|_| invalid())?;

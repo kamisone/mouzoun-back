@@ -136,6 +136,11 @@ pub struct CheckoutBody {
     pub marketing_consent: bool,
     #[serde(default)]
     pub captcha_token: Option<String>,
+    /// "Create an account to manage this trip": emails a sign-in code + link to the booking
+    /// address (the account exists only once that address is verified). The answer never says
+    /// whether an account already exists.
+    #[serde(default)]
+    pub create_account: bool,
 }
 
 fn field_error(field: &str, code: &str) -> AppError {
@@ -315,6 +320,8 @@ pub async fn checkout(
     }
     let key = idempotency_key(&headers);
     let state2 = state.clone();
+    let invite = (body.create_account && user.is_none())
+        .then(|| (body.customer.email.clone(), locale.clone()));
     let response = idempotent(&state.cache, "checkout", key, || async move {
         let state = state2;
         let c = &body.customer;
@@ -406,5 +413,18 @@ pub async fn checkout(
     } else {
         jar
     };
+    if let Some((email, locale)) = invite
+        && let Err(e) = crate::services::accounts::signin::send_code(
+            &state.db,
+            &state.cache,
+            &email,
+            &locale,
+            Some("/account/trips"),
+            chrono::Utc::now(),
+        )
+        .await
+    {
+        tracing::warn!(error = %e, "account invitation after checkout failed");
+    }
     Ok((jar, Json(response)))
 }
