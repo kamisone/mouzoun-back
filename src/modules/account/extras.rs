@@ -730,3 +730,51 @@ pub async fn confirm_claim(
     tx.commit().await?;
     Ok(Json(json!({ "reference": before.reference })))
 }
+
+// ---- QR ticket --------------------------------------------------------------------------------
+
+/// The ticket of a confirmed trip, to keep offline (no personal data in the QR code).
+pub async fn ticket(
+    State(state): State<AppState>,
+    guest: GuestUser,
+    Path(reference): Path<String>,
+) -> AppResult<Json<Value>> {
+    let b = sqlx::query!(
+        r#"SELECT b.id, b.reference, b.status, b.arrival_date, b.departure_date, b.adults, b.children, b.infants,
+                  c.first_name, c.last_name,
+                  COALESCE((SELECT jsonb_agg(jsonb_build_object('name', i.product_snapshot->>'name', 'kind', i.product_kind,
+                              'starts_at', i.starts_at, 'quantity', i.quantity) ORDER BY i.starts_at NULLS FIRST)
+                            FROM booking_items i WHERE i.booking_id = b.id AND i.status = 'active' AND i.parent_item_id IS NULL),
+                           '[]') AS "items!"
+           FROM bookings b JOIN customers c ON c.id = b.customer_id
+           WHERE b.reference = $1 AND c.user_id = $2"#,
+        reference.to_ascii_uppercase(),
+        guest.user_id
+    )
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or(AppError::NotFound)?;
+    if !["confirmed", "checked_in"].contains(&b.status.as_str()) {
+        return Err(AppError::domain(
+            StatusCode::CONFLICT,
+            "no_ticket",
+            "tickets are available once the booking is confirmed",
+        ));
+    }
+    let last_day = b
+        .departure_date
+        .or(b.arrival_date)
+        .unwrap_or_else(|| crate::camp_time::today(Utc::now()));
+    let expires = (last_day + Duration::days(1))
+        .and_hms_opt(23, 59, 0)
+        .map_or_else(Utc::now, |d| d.and_utc());
+    Ok(Json(json!({
+        "token": crate::services::accounts::tickets::issue(&state.config.jwt_secret, b.id, expires),
+        "expires_at": expires,
+        "reference": b.reference, "status": b.status,
+        "arrival_date": b.arrival_date, "departure_date": b.departure_date,
+        "guests": { "adults": b.adults, "children": b.children, "infants": b.infants },
+        "lead": format!("{} {}", b.first_name, b.last_name.unwrap_or_default()).trim(),
+        "items": b.items,
+    })))
+}

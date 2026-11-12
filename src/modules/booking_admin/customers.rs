@@ -516,3 +516,52 @@ pub async fn report(State(state): State<AppState>, staff: Staff) -> AppResult<Js
         "most_wished": wished.into_iter().map(|w| json!({ "product_id": w.product_id, "name": w.name, "count": w.n })).collect::<Vec<_>>(),
     })))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ScanBody {
+    pub token: String,
+}
+
+/// Scans a guest's QR ticket (`bookings.read`): the booking it proves, or 404.
+pub async fn scan_ticket(
+    State(state): State<AppState>,
+    staff: Staff,
+    Json(body): Json<ScanBody>,
+) -> AppResult<Json<Value>> {
+    staff.require("bookings.read")?;
+    let booking = crate::services::accounts::tickets::verify(
+        &state.config.jwt_secret,
+        &body.token,
+        Utc::now(),
+    )
+    .ok_or_else(|| {
+        AppError::domain(
+            StatusCode::NOT_FOUND,
+            "invalid_ticket",
+            "this ticket is not valid",
+        )
+    })?;
+    let b = sqlx::query!(
+        r#"SELECT b.id, b.reference, b.status, b.arrival_date, b.departure_date, b.adults, b.children, b.infants,
+                  b.total_minor - b.amount_paid_minor AS "balance_minor!", b.precheckin_completed_at,
+                  c.first_name, c.last_name
+           FROM bookings b JOIN customers c ON c.id = b.customer_id WHERE b.id = $1"#,
+        booking
+    )
+    .fetch_one(&state.db)
+    .await?;
+    record(
+        &state,
+        &staff,
+        "booking.ticket_scanned",
+        booking,
+        json!({ "reference": b.reference }),
+    )
+    .await?;
+    Ok(Json(json!({
+        "id": b.id, "reference": b.reference, "status": b.status, "arrival_date": b.arrival_date,
+        "departure_date": b.departure_date, "adults": b.adults, "children": b.children, "infants": b.infants,
+        "balance_minor": b.balance_minor, "precheckin_done": b.precheckin_completed_at.is_some(),
+        "lead": format!("{} {}", b.first_name, b.last_name.unwrap_or_default()).trim(),
+    })))
+}

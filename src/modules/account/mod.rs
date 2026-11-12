@@ -93,6 +93,7 @@ pub fn routes() -> Router<AppState> {
             "/privacy/deletion/cancel",
             post(privacy::cancel_deletion_by_link),
         )
+        .route("/trips/{reference}/ticket", get(extras::ticket))
         .route("/trips/claim", post(extras::claim))
         .route("/trips/claim/confirm", post(extras::confirm_claim))
 }

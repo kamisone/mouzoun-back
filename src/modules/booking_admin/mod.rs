@@ -73,6 +73,7 @@ pub fn admin_routes() -> Router<AppState> {
         )
         .route("/crm/bookings/{id}/attach", post(customers::attach_booking))
         .route("/crm/reports/accounts", get(customers::report))
+        .route("/tickets/scan", post(customers::scan_ticket))
         .route("/tasks", get(bookings::tasks))
         .route("/tasks/{id}", patch(bookings::update_task))
 }

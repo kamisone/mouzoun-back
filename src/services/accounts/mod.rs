@@ -7,5 +7,6 @@ pub mod passwords;
 pub mod privacy;
 pub mod sessions;
 pub mod signin;
+pub mod tickets;
 pub mod tokens;
 pub mod totp;

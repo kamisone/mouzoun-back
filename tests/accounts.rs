@@ -758,8 +758,8 @@ async fn data_export_and_account_deletion_with_grace_period(db: PgPool) {
         &db,
         &mouzoun_api::services::booking::AccommodationRequest {
             product_id: tent,
-            arrival: d(2027, 3, 10),
-            departure: d(2027, 3, 12),
+            arrival: d(2027, 1, 24),
+            departure: d(2027, 1, 26),
             quantity: 1,
             guests: adults(&guests, 2),
             meta: req_meta,
@@ -868,4 +868,62 @@ async fn data_export_and_account_deletion_with_grace_period(db: PgPool) {
     // The address can create a fresh account.
     let (body, _) = sign_in(&app, "amina@example.com", None).await;
     assert_eq!(body["created"], true);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn confirmed_trips_have_a_signed_ticket_staff_can_scan(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let guests = guest_ids(&db).await;
+    let tent = accommodation(&db, "pool", 3).await;
+    let mut req_meta = meta("amina@example.com");
+    req_meta.rate_plan_id = None;
+    let booking = mouzoun_api::services::booking::book_accommodation(
+        &db,
+        &mouzoun_api::services::booking::AccommodationRequest {
+            product_id: tent,
+            arrival: d(2027, 1, 20),
+            departure: d(2027, 1, 22),
+            quantity: 1,
+            guests: adults(&guests, 2),
+            meta: req_meta,
+        },
+        now(),
+        today(),
+    )
+    .await
+    .unwrap();
+    let (_, jar) = sign_in(&app, "amina@example.com", None).await;
+    let me = vec![("cookie", cookie_header(&jar))];
+    let url = format!("/v1/account/trips/{}/ticket", booking.reference);
+    sqlx::query("UPDATE bookings SET status = 'confirmed' WHERE id = $1")
+        .bind(booking.booking_id)
+        .execute(&db)
+        .await
+        .unwrap();
+    let (status, _, ticket) = app.send(Method::GET, &url, None, &me).await;
+    assert_eq!(status, StatusCode::OK, "{ticket}");
+    let token = ticket["token"].as_str().unwrap();
+    assert!(!token.contains("amina"), "no personal data in the QR code");
+
+    let staff = create_user(&db, "desk@mouzoun.test", "x", true, Some("reception")).await;
+    let staff = mouzoun_api::auth::jwt::issue(common::JWT_SECRET, staff, true, 60).unwrap();
+    let (status, scanned) = app
+        .request(
+            Method::POST,
+            "/v1/admin/tickets/scan",
+            Some(json!({ "token": token })),
+            Some(&staff),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{scanned}");
+    assert_eq!(scanned["reference"], booking.reference);
+    let (status, _) = app
+        .request(
+            Method::POST,
+            "/v1/admin/tickets/scan",
+            Some(json!({ "token": format!("{token}x") })),
+            Some(&staff),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
 }
