@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.source, b.internal_notes, b.customer_id, b.terms_version, b.terms_accepted_at, b.checked_in_at,\n                  b.checked_out_at, b.skip_guest_emails, b.ip_address::text AS \"ip?\", c.marketing_consent,\n                  c.whatsapp_preferred, c.internal_notes AS customer_notes,\n                  (SELECT count(*) FROM bookings o WHERE o.customer_id = b.customer_id) AS \"customer_bookings!\"\n           FROM bookings b JOIN customers c ON c.id = b.customer_id WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "internal_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "customer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "terms_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "terms_accepted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "checked_in_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "checked_out_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "skip_guest_emails",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "ip?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "marketing_consent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "whatsapp_preferred",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "customer_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "customer_bookings!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "07bafa774a9e56fb132ac99fe2a8d02fcb8188e3e0323d9afd5bcf9d03c5e1c1"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.action, a.actor_type, a.changes, a.created_at, u.full_name AS \"by?\"\n           FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_user_id\n           WHERE a.entity_type = 'booking' AND a.entity_id = $1 AND a.action <> 'booking.status_changed'\n           ORDER BY a.created_at DESC LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "action",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "actor_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "changes",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "by?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cb4b8fab370468b783ab185e10d8aa4e62a0388c5f30e036107b8bb5e46d47bc"
+}

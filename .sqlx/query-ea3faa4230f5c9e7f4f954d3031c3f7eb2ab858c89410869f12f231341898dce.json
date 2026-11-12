@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET deposit_due_minor = LEAST(deposit_due_minor, total_minor) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ea3faa4230f5c9e7f4f954d3031c3f7eb2ab858c89410869f12f231341898dce"
+}

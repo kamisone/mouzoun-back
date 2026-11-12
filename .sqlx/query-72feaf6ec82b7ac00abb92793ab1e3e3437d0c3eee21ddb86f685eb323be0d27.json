@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE refunds SET provider_refund_id = $2, status = $3, processed_at = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "72feaf6ec82b7ac00abb92793ab1e3e3437d0c3eee21ddb86f685eb323be0d27"
+}

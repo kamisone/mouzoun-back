@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT day, capacity, reserved, stop_sell, min_nights_override, closed_to_arrival, closed_to_departure\n             FROM inventory_calendar\n             WHERE product_id = $1 AND day >= $2 AND day <= $3\n             ORDER BY day",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "stop_sell",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_nights_override",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "closed_to_arrival",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "closed_to_departure",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "5107b30fce2873797906cb6cdd0002687d7514345b5298999b307f0b771e993e"
+}

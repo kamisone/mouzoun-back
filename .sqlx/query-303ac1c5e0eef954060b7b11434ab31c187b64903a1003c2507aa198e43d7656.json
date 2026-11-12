@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments SET status = 'failed', failure_reason = $2\n           WHERE provider_payment_id = $1 AND status IN ('pending', 'requires_action')\n           RETURNING id, booking_id, purpose AS \"purpose: PaymentPurpose\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "purpose: PaymentPurpose",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "303ac1c5e0eef954060b7b11434ab31c187b64903a1003c2507aa198e43d7656"
+}

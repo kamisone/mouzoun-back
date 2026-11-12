@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT payment_option AS \"payment_option: PaymentOption\", deposit_due_minor, amount_paid_minor\n           FROM bookings WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payment_option: PaymentOption",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "deposit_due_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "12f7f6796a78acd9a5324b6f88521791f5123e4dfd8cdcdd8a841cffa5f56786"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM rate_plans WHERE is_active AND is_public ORDER BY sort_order, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26446e2e97c37798dcf8d04753ba495d5b942d1d749dcd73d965dd6c03373bf8"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM bookings\n             WHERE status = 'confirmed' AND balance_collection = 'saved_card' AND saved_payment_method_id IS NOT NULL\n               AND balance_due_on <= $1 AND total_minor > amount_paid_minor\n             ORDER BY balance_due_on LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ad9d91881594d5e12004e66d67b1c2b1cec6b79174d70e6c37cf34869e2405fa"
+}

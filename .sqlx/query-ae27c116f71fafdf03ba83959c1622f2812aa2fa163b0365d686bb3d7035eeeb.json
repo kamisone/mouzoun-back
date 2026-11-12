@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT count(*) FROM booking_guests WHERE booking_id = $1) >= (b.adults + b.children)\n              AND NOT EXISTS (SELECT 1 FROM booking_guests g WHERE g.booking_id = $1\n                              AND (g.nationality IS NULL OR g.date_of_birth IS NULL\n                                   OR (g.date_of_birth <= (CURRENT_DATE - interval '18 years')\n                                       AND (g.id_document_type IS NULL OR g.id_document_number_enc IS NULL))))\n              AS \"complete!\"\n           FROM bookings b WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "complete!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ae27c116f71fafdf03ba83959c1622f2812aa2fa163b0365d686bb3d7035eeeb"
+}

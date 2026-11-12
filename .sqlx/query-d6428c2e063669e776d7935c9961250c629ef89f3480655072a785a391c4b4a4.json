@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers\n         SET phone = COALESCE(NULLIF(phone, ''), $2),\n             country_code = COALESCE(country_code, $3),\n             whatsapp_preferred = whatsapp_preferred OR $4,\n             marketing_consent = marketing_consent OR $5,\n             marketing_consent_at = CASE WHEN $5 AND NOT marketing_consent THEN $6 ELSE marketing_consent_at END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bpchar",
+        "Bool",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d6428c2e063669e776d7935c9961250c629ef89f3480655072a785a391c4b4a4"
+}

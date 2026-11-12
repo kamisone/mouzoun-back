@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payment_webhook_events SET error = $3 WHERE provider = $1 AND event_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "140f43e2b760cb2f3989fa478a90862d83e0d9d9648186d11176a6aa702ed80a"
+}

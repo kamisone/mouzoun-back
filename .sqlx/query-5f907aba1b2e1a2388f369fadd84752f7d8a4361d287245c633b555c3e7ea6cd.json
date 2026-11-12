@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.author_name, r.author_country, r.rating, r.title, r.body, r.experience_date, r.locale,\n                  r.booking_id IS NOT NULL AS \"verified!\", r.reply_body, r.created_at\n           FROM reviews r WHERE r.product_id = $1 AND r.status = 'approved'\n           ORDER BY r.is_featured DESC, r.created_at DESC LIMIT 12",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "author_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "author_country",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "rating",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "experience_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "reply_body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      null,
+      true,
+      false
+    ]
+  },
+  "hash": "5f907aba1b2e1a2388f369fadd84752f7d8a4361d287245c633b555c3e7ea6cd"
+}

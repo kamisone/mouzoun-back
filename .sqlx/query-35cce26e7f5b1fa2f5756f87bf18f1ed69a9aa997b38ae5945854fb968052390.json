@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT location_type, scheduling_mode AS \"scheduling_mode: SchedulingMode\", duration_minutes, difficulty,\n                  min_participants, max_participants, min_age, is_guided, guide_languages, meeting_place_id,\n                  booking_cutoff_hours, pickup_available, standalone_bookable\n           FROM activities WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "location_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "scheduling_mode: SchedulingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "difficulty",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "max_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_guided",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "guide_languages",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "meeting_place_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "booking_cutoff_hours",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "pickup_available",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "standalone_bookable",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "35cce26e7f5b1fa2f5756f87bf18f1ed69a9aa997b38ae5945854fb968052390"
+}

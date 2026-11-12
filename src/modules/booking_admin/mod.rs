@@ -1,0 +1,52 @@
+//! Back-office booking API (`/v1/admin/...`, staff only, then one permission per endpoint):
+//!
+//! | endpoint | permission |
+//! |---|---|
+//! | GET dashboard/today | dashboard.read |
+//! | GET bookings, GET bookings/{id}, GET bookings/export.csv | bookings.read |
+//! | POST quote, POST bookings (manual), PATCH bookings/{id}, POST …/accept, …/decline, …/check-in, …/check-out, …/no-show, …/notes, …/resend, POST …/payment-link | bookings.write |
+//! | POST …/cancel, POST …/items/cancel | bookings.cancel |
+//! | price override / manual discount on a manual booking | bookings.override_price |
+//! | POST …/payments (cash, transfer, card terminal) | payments.record_offline |
+//! | POST …/refunds | payments.refund |
+//! | GET …/guests (numbers revealed with guests.read_identity), PUT …/guests | bookings.read / bookings.write |
+//! | GET customers | customers.read |
+//! | GET/PATCH tasks | bookings.read / bookings.write |
+
+mod bookings;
+mod dashboard;
+
+use axum::{
+    Router,
+    routing::{get, patch, post},
+};
+
+use crate::state::AppState;
+
+pub fn admin_routes() -> Router<AppState> {
+    Router::new()
+        .route("/dashboard/today", get(dashboard::today))
+        .route("/quote", post(bookings::quote))
+        .route("/customers", get(bookings::customers))
+        .route("/bookings", get(bookings::list).post(bookings::create))
+        .route("/bookings/export.csv", get(bookings::export))
+        .route(
+            "/bookings/{id}",
+            get(bookings::detail).patch(bookings::update),
+        )
+        .route("/bookings/{id}/accept", post(bookings::accept))
+        .route("/bookings/{id}/decline", post(bookings::decline))
+        .route("/bookings/{id}/status", post(bookings::set_status))
+        .route("/bookings/{id}/cancel", post(bookings::cancel))
+        .route("/bookings/{id}/items/cancel", post(bookings::cancel_items))
+        .route("/bookings/{id}/notes", post(bookings::add_note))
+        .route("/bookings/{id}/payments", post(bookings::record_payment))
+        .route("/bookings/{id}/refunds", post(bookings::refund))
+        .route("/bookings/{id}/resend", post(bookings::resend))
+        .route(
+            "/bookings/{id}/guests",
+            get(bookings::guests).put(bookings::save_guests),
+        )
+        .route("/tasks", get(bookings::tasks))
+        .route("/tasks/{id}", patch(bookings::update_task))
+}

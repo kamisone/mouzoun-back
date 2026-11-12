@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET amount_paid_minor =\n               (SELECT COALESCE(sum(amount_minor), 0) FROM payments\n                WHERE booking_id = $1 AND status IN ('succeeded', 'refunded', 'partially_refunded'))\n             - (SELECT COALESCE(sum(r.amount_minor), 0) FROM refunds r JOIN payments p ON p.id = r.payment_id\n                WHERE p.booking_id = $1 AND r.status = 'succeeded')\n           WHERE id = $1\n           RETURNING amount_paid_minor",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "993ae266c3f84ec28ea6a442ee0ebae1cecaa25cde3cb33de11648c6b7fa0274"
+}

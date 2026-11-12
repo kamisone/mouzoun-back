@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.day_number, s.duration_minutes, COALESCE(t.title, d.title) AS \"title?\",\n                  COALESCE(t.description, d.description) AS \"description?\"\n           FROM itinerary_steps s\n           LEFT JOIN itinerary_step_translations t ON t.itinerary_step_id = s.id AND t.locale = $2\n           LEFT JOIN itinerary_step_translations d ON d.itinerary_step_id = s.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE s.product_id = $1 ORDER BY s.day_number, s.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "0b02b8284a94e9ca64d2eb1f8f0b5d7aceafb9ea4cd0870dd4c163487574d695"
+}

@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payment_webhook_events (provider, event_id, event_type, payload)\n         VALUES ($1, $2, $3, $4)\n         ON CONFLICT (provider, event_id) DO NOTHING\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9d0431971ae23dd0b713a5da29fd49b7cd6467caa7a8063f527934d908bbc805"
+}

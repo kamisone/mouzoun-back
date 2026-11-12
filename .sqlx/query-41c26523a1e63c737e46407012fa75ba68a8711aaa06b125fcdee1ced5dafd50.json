@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings b SET\n             subtotal_minor = t.subtotal, discount_minor = t.discount, tax_minor = t.tax, total_minor = t.total\n         FROM (SELECT COALESCE(sum(subtotal_minor), 0)::bigint AS subtotal,\n                      COALESCE(sum(discount_minor), 0)::bigint AS discount,\n                      COALESCE(sum(tax_minor), 0)::bigint AS tax,\n                      COALESCE(sum(total_minor), 0)::bigint AS total\n               FROM booking_items WHERE booking_id = $1 AND status = 'active') t\n         WHERE b.id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41c26523a1e63c737e46407012fa75ba68a8711aaa06b125fcdee1ced5dafd50"
+}

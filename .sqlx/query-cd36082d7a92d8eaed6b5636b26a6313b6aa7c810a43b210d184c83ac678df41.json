@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.status, b.arrival_date, b.locale, c.email::text AS email, c.first_name, c.last_name,\n                  c.preferred_locale AS customer_locale, u.preferred_locale AS \"user_locale?\",\n                  b.skip_guest_emails, b.source, c.marketing_consent, c.anonymized_at IS NOT NULL AS \"anonymized!\"\n           FROM bookings b\n           JOIN customers c ON c.id = b.customer_id\n           LEFT JOIN users u ON u.id = c.user_id\n           WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 2,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "customer_locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_locale?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "skip_guest_emails",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "marketing_consent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "anonymized!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "cd36082d7a92d8eaed6b5636b26a6313b6aa7c810a43b210d184c83ac678df41"
+}

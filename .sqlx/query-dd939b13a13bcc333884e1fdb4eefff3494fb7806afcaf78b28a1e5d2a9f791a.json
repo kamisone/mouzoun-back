@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, code::text AS \"code!\", min_age, max_age, counts_toward_capacity\n           FROM guest_categories WHERE is_active ORDER BY sort_order, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "counts_toward_capacity",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "dd939b13a13bcc333884e1fdb4eefff3494fb7806afcaf78b28a1e5d2a9f791a"
+}

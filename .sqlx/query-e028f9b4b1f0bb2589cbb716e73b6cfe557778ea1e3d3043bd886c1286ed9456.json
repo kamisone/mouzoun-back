@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, g.code::text AS \"code!\", g.min_age, g.max_age, g.counts_toward_capacity,\n                  COALESCE(t.name, d.name, g.code::text) AS \"name!\", COALESCE(t.description, d.description) AS \"description?\"\n           FROM guest_categories g\n           LEFT JOIN guest_category_translations t ON t.guest_category_id = g.id AND t.locale = $1\n           LEFT JOIN guest_category_translations d ON d.guest_category_id = g.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE g.is_active ORDER BY g.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "counts_toward_capacity",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "e028f9b4b1f0bb2589cbb716e73b6cfe557778ea1e3d3043bd886c1286ed9456"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, code::text AS \"code!\", name, map_x AS \"map_x: Decimal\", map_y AS \"map_y: Decimal\"\n           FROM accommodation_units WHERE product_id = $1 AND status = 'active' ORDER BY sort_order, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "map_x: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "map_y: Decimal",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "97d6f91cc7fcc4a6b85f45f18dd9dd9ab0bcb7882702dcdade841898c0b100ce"
+}

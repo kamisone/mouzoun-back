@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.starts_at, s.capacity, s.reserved, s.status, s.guide_language,\n                  COALESCE(t.name, s.product_id::text) AS \"name!\", u.full_name AS \"guide?\"\n           FROM activity_slots s\n           LEFT JOIN product_translations t ON t.product_id = s.product_id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN users u ON u.id = s.guide_user_id\n           WHERE s.starts_at >= $1 AND s.starts_at < $2 AND s.status <> 'cancelled'\n           ORDER BY s.starts_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "guide_language",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "guide?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      false
+    ]
+  },
+  "hash": "06fed63bf25ba1b8964ed0107f1fbfa6ec975b0ea3ce14343ffb132561b63b18"
+}

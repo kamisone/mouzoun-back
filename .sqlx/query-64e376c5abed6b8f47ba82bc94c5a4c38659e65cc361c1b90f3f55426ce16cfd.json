@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payments (id, booking_id, provider, purpose, status, amount_minor, currency, idempotency_key,\n                               provider_payload)\n         VALUES ($1, $2, $3, 'balance', 'pending', $4, $5, $6, '{\"off_session\": true}')\n         ON CONFLICT (idempotency_key) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Bpchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "64e376c5abed6b8f47ba82bc94c5a4c38659e65cc361c1b90f3f55426ce16cfd"
+}

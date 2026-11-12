@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO booking_access_tokens (booking_id, token_hash, expires_at, created_ip)\n         VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz",
+        "Inet"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c6fa8c6fea8954a11c21159487370a79a8a7548b915db9224bb4b734861e2d98"
+}

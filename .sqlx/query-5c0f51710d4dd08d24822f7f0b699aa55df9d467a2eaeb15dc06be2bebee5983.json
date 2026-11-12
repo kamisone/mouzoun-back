@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT period AS \"period: crate::db::types::DateRange\" FROM closures\n           WHERE period && daterange($2, $3) AND (scope = 'site' OR (scope = 'product' AND product_id = $1))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "period: crate::db::types::DateRange",
+        "type_info": "DateRange"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c0f51710d4dd08d24822f7f0b699aa55df9d467a2eaeb15dc06be2bebee5983"
+}

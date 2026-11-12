@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.product_id, pe.is_mandatory, e.applies_to, e.max_quantity, e.requires_date,\n                  COALESCE(t.name, d.name) AS \"name?\", COALESCE(t.short_description, d.short_description) AS \"description?\",\n                  (SELECT pr.amount_minor FROM prices pr WHERE pr.product_id = e.product_id AND pr.is_active\n                   ORDER BY pr.amount_minor LIMIT 1) AS \"price_minor?\",\n                  (SELECT pr.pricing_unit FROM prices pr WHERE pr.product_id = e.product_id AND pr.is_active\n                   ORDER BY pr.amount_minor LIMIT 1) AS \"price_unit?\"\n           FROM product_extras pe\n           JOIN extras e ON e.product_id = pe.extra_product_id\n           JOIN products p ON p.id = e.product_id AND p.status = 'published' AND p.deleted_at IS NULL\n           LEFT JOIN product_translations t ON t.product_id = e.product_id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = e.product_id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE pe.product_id = $1 ORDER BY pe.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_mandatory",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "applies_to",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "requires_date",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "price_minor?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "price_unit?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "64f7f9f33de21224483bb4e05f6d250bfdd5bd23b29299db6beec4d539eca055"
+}

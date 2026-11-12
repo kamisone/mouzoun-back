@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO resource_assignments (id, resource_id, booking_item_id, activity_slot_id, period)\n                     VALUES ($1, $2, $3, $4, tstzrange($5, $6))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bdc95fbfc6ba637e36c7d53968abfe38c1f204d18f999310cdf4b56c9302febe"
+}

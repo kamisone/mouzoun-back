@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT accommodation_kind, inventory_mode, max_guests, max_adults, max_children, standard_occupancy,\n                  bed_configuration, surface_m2 AS \"surface_m2: Decimal\", min_nights, max_nights,\n                  check_in_from, check_in_until, check_out_until, pitch_selection_extra_id\n           FROM accommodation_types WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "accommodation_kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "inventory_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_guests",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_adults",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_children",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "standard_occupancy",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "bed_configuration",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "surface_m2: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "max_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "check_in_from",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 11,
+        "name": "check_in_until",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 12,
+        "name": "check_out_until",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 13,
+        "name": "pitch_selection_extra_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0caa6ecf6d374430e08559906c94d3233f90d9266b365ba72fff75a33120f8b9"
+}

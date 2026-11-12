@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(sum(i.quantity), 0)::int AS \"used!\"\n           FROM booking_items i JOIN bookings b ON b.id = i.booking_id\n           WHERE i.product_id = $1 AND i.status = 'active'\n             AND b.status IN ('pending', 'awaiting_payment', 'confirmed', 'checked_in')\n             AND ($2::date IS NULL OR i.service_period @> $2::date)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e169d24a3f7ea7431b4aa30339f0abb08dc65b65c3dcf53d68fea057fff01373"
+}

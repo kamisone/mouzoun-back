@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET precheckin_completed_at = CASE WHEN $2 THEN COALESCE(precheckin_completed_at, $3) END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48fbd751a35c6fc64a3ceaa400310981f783f49692584313c98d414814377e73"
+}

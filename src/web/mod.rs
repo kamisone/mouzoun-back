@@ -5,6 +5,7 @@ pub mod csrf;
 pub mod extract;
 pub mod health;
 pub mod limits;
+pub mod money;
 pub mod pagination;
 
 use std::time::Duration;
@@ -33,6 +34,7 @@ pub fn router(state: AppState) -> Router {
     // a route added here cannot be exposed by forgetting a check in its handler).
     let admin = Router::new()
         .nest("/media", modules::media::admin_routes())
+        .merge(modules::booking_admin::admin_routes())
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_staff,

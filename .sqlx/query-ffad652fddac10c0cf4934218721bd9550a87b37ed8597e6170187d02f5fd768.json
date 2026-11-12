@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.booking_id, p.provider, p.provider_payment_id, p.amount_minor,\n                  p.currency AS \"currency: CurrencyCode\", p.status AS \"status: PaymentStatus\",\n                  (p.amount_minor - COALESCE((SELECT sum(r.amount_minor) FROM refunds r\n                                              WHERE r.payment_id = p.id AND r.status <> 'failed'), 0))::bigint AS \"refundable!\"\n           FROM payments p WHERE p.id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: PaymentStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "refundable!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ffad652fddac10c0cf4934218721bd9550a87b37ed8597e6170187d02f5fd768"
+}

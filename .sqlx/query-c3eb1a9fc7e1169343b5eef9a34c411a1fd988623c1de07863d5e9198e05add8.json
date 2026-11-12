@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key, value FROM settings\n         WHERE key LIKE 'booking.%' OR key LIKE 'legal.%' OR key LIKE 'payments.%' OR key = 'site.status'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c3eb1a9fc7e1169343b5eef9a34c411a1fd988623c1de07863d5e9198e05add8"
+}

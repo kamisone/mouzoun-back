@@ -460,9 +460,16 @@ async fn pre_arrival_emails_are_planned_once_and_sent_on_time(db: PgPool) {
     .execute(&db)
     .await
     .unwrap();
+    // Only the pre-arrival email here (the pre-check-in reminder has its own test).
+    sqlx::query("UPDATE bookings SET precheckin_completed_at = now() WHERE id = $1")
+        .bind(b)
+        .execute(&db)
+        .await
+        .unwrap();
 
     let planned = scheduler::plan(&db, now()).await.unwrap();
     assert_eq!(planned.pre_arrival, 1);
+    assert_eq!(planned.precheckin_reminder, 0);
     assert_eq!(
         scheduler::plan(&db, now()).await.unwrap().pre_arrival,
         0,
@@ -605,4 +612,47 @@ async fn inquiries_get_an_auto_reply_and_notify_the_team(db: PgPool) {
         .find(|e| e.to_email == "ops@mouzoun.test")
         .unwrap();
     assert!(staff.subject.starts_with("Nouvelle demande"));
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn precheckin_reminders_are_planned_until_the_register_is_complete(db: PgPool) {
+    let b = booked(&db, "en", "register@example.com", None).await;
+    booking::confirm_booking(&db, b, None, now()).await.unwrap();
+    sqlx::query("UPDATE outbox_events SET processed_at = now()")
+        .execute(&db)
+        .await
+        .unwrap();
+    let planned = scheduler::plan(&db, now()).await.unwrap();
+    assert_eq!(planned.precheckin_reminder, 1);
+    let available_at: chrono::DateTime<Utc> = sqlx::query_scalar(
+        "SELECT available_at FROM outbox_events WHERE event_type = 'booking.precheckin_due'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    // Arrival 10 January, 5 days before at 10:00 camp time.
+    assert_eq!(
+        available_at,
+        "2027-01-05T10:00:00Z"
+            .parse::<chrono::DateTime<Utc>>()
+            .unwrap()
+    );
+
+    // Completed meanwhile: the reminder is skipped when it becomes due.
+    sqlx::query("UPDATE bookings SET precheckin_completed_at = now() WHERE id = $1")
+        .bind(b)
+        .execute(&db)
+        .await
+        .unwrap();
+    let sender = Arc::new(RecordingSender::default());
+    let registry = registry(&db, &mailer(&db, &sender));
+    process_batch(&db, &registry, 10, 8, available_at)
+        .await
+        .unwrap();
+    assert!(
+        sender
+            .sent()
+            .iter()
+            .all(|e| !e.subject.contains("register"))
+    );
 }

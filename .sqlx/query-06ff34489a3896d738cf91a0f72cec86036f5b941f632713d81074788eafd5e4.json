@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.from_status, h.to_status, h.note, h.created_at, u.full_name AS \"by?\"\n           FROM booking_status_history h LEFT JOIN users u ON u.id = h.changed_by\n           WHERE h.booking_id = $1 ORDER BY h.created_at, h.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "from_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "by?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "06ff34489a3896d738cf91a0f72cec86036f5b941f632713d81074788eafd5e4"
+}

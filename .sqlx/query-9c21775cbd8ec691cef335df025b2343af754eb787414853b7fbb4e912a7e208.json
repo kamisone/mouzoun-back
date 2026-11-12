@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ic.day, (ic.capacity - ic.reserved >= $4 AND NOT ic.stop_sell\n                         AND NOT EXISTS (SELECT 1 FROM closures c WHERE c.period @> ic.day\n                             AND (c.scope = 'site' OR (c.scope = 'product' AND c.product_id = ic.product_id)))) AS free,\n                ic.closed_to_arrival, ic.closed_to_departure, COALESCE(ic.min_nights_override, 0) AS min_override\n         FROM inventory_calendar ic WHERE ic.product_id = $1 AND ic.day >= $2 AND ic.day < $3 ORDER BY ic.day",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "free",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "closed_to_arrival",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "closed_to_departure",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_override",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "9c21775cbd8ec691cef335df025b2343af754eb787414853b7fbb4e912a7e208"
+}

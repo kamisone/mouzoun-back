@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pl.id, pl.kind, pl.latitude AS \"latitude: Decimal\", pl.longitude AS \"longitude: Decimal\",\n                  pl.distance_km AS \"distance_km: Decimal\", COALESCE(t.name, d.name) AS \"name?\",\n                  COALESCE(t.directions, d.directions) AS \"directions?\"\n           FROM places pl\n           LEFT JOIN place_translations t ON t.place_id = pl.id AND t.locale = $2\n           LEFT JOIN place_translations d ON d.place_id = pl.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE pl.id = COALESCE($3, (SELECT place_id FROM products WHERE id = $1))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "latitude: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "longitude: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "distance_km: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "directions?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "ea5e13f49201161a31cf63e455bd24c04441973d59062ebe95dcc7aa121327c6"
+}

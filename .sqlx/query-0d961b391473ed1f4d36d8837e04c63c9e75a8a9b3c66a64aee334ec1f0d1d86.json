@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status AS \"status: BookingStatus\", total_minor, amount_paid_minor,\n                  cancellation_policy_snapshot\n           FROM bookings WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: BookingStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "cancellation_policy_snapshot",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0d961b391473ed1f4d36d8837e04c63c9e75a8a9b3c66a64aee334ec1f0d1d86"
+}

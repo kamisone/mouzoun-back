@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.scheduling_mode, a.booking_cutoff_hours, a.min_participants, a.max_participants, a.min_age,\n                  a.guide_languages, a.duration_minutes\n           FROM activities a JOIN products p ON p.id = a.product_id\n           WHERE a.product_id = $1 AND p.status = 'published' AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scheduling_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "booking_cutoff_hours",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "min_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "guide_languages",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "878a74782af6c8dfe1ecc11e14c0bbdbe9a1730c5eea17c3ef8b5be30645a8c0"
+}

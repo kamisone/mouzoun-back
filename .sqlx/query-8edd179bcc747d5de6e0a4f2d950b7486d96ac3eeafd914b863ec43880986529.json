@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT provider_payment_id, amount_minor,\n                (SELECT balance_collection FROM bookings WHERE id = booking_id) AS balance_collection\n         FROM payments WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "balance_collection",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "8edd179bcc747d5de6e0a4f2d950b7486d96ac3eeafd914b863ec43880986529"
+}

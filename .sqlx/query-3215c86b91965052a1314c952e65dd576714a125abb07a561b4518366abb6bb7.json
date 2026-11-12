@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.status AS \"status: BookingStatus\", b.amount_paid_minor, b.total_minor, b.hold_expires_at,\n                  (SELECT p.status FROM payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS \"payment_status?\",\n                  (SELECT p.failure_reason FROM payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS \"failure_reason?\"\n           FROM bookings b WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: BookingStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "hold_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "payment_status?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "failure_reason?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "3215c86b91965052a1314c952e65dd576714a125abb07a561b4518366abb6bb7"
+}

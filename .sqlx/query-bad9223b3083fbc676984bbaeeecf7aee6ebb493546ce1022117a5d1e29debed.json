@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH p AS (UPDATE payments SET status = 'requires_action'\n                            WHERE provider_payment_id = $1 AND status = 'pending' RETURNING booking_id)\n                 UPDATE bookings SET hold_expires_at = GREATEST(hold_expires_at, $2)\n                 WHERE id IN (SELECT booking_id FROM p) AND status = 'awaiting_payment'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bad9223b3083fbc676984bbaeeecf7aee6ebb493546ce1022117a5d1e29debed"
+}

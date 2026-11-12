@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.parent_item_id, i.product_id, i.product_kind, i.status, i.quantity,\n                  lower(i.service_period) AS \"first_day?\", upper(i.service_period) AS \"last_day?\",\n                  i.starts_at, i.subtotal_minor, i.discount_minor, i.tax_minor, i.total_minor,\n                  i.product_snapshot, i.guide_language, i.requested_time, i.price_breakdown,\n                  s.ends_at AS \"ends_at?\",\n                  (SELECT COALESCE(array_agg(u.code::text ORDER BY u.code), '{}') FROM unit_allocations ua\n                   JOIN accommodation_units u ON u.id = ua.unit_id\n                   WHERE ua.booking_item_id = i.id AND ua.released_at IS NULL) AS \"units!\",\n                  (SELECT COALESCE(jsonb_object_agg(g.guest_category_id::text, g.guest_count), '{}')\n                   FROM booking_item_guests g WHERE g.booking_item_id = i.id) AS \"guests!\"\n           FROM booking_items i LEFT JOIN activity_slots s ON s.id = i.activity_slot_id\n           WHERE i.booking_id = $1 ORDER BY i.created_at, i.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_item_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "product_kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "first_day?",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_day?",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "product_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "guide_language",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "requested_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 16,
+        "name": "price_breakdown",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "ends_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "units!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 19,
+        "name": "guests!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "eb2ff2215ede7fff25669f0221cee123bd8ea063fef21c1f238e7ec6f35d5822"
+}

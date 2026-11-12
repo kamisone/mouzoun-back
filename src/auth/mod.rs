@@ -3,6 +3,7 @@ mod handlers;
 pub mod jwt;
 pub mod password;
 pub mod session;
+mod staff;
 
 use axum::{
     Router,
@@ -12,6 +13,7 @@ use axum::{
 use crate::state::AppState;
 
 pub use extractor::{AuthUser, require_staff};
+pub use staff::Staff;
 
 pub fn routes() -> Router<AppState> {
     Router::new()

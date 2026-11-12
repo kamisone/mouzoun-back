@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.is_stackable, COALESCE(t.name, d.name) AS \"name?\",\n                  (p.max_redemptions IS NOT NULL AND p.max_redemptions <= (\n                      SELECT count(*) FROM promotion_redemptions r JOIN bookings b ON b.id = r.booking_id\n                      WHERE r.promotion_id = p.id AND b.status NOT IN ('cancelled', 'expired'))) AS \"exhausted!\"\n           FROM promotions p\n           LEFT JOIN promotion_translations t ON t.promotion_id = p.id AND t.locale = $2\n           LEFT JOIN promotion_translations d ON d.promotion_id = p.id\n                 AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE p.id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_stackable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "exhausted!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "c0b319b8cbe5ae06b682ff2eec4560cb721b1bf290f87db21b2f45bd74936f0e"
+}

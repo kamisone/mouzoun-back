@@ -1,0 +1,232 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.status AS \"status: BookingStatus\", b.locale, b.currency::text AS \"currency!\",\n                  b.arrival_date, b.departure_date, b.adults, b.children, b.infants,\n                  b.subtotal_minor, b.discount_minor, b.tax_minor, b.total_minor, b.amount_paid_minor,\n                  b.deposit_due_minor, b.balance_due_on, b.payment_option, b.balance_collection,\n                  b.hold_expires_at, b.estimated_arrival_time, b.special_requests, b.created_at, b.confirmed_at,\n                  b.cancelled_at, b.cancellation_reason, b.cancellation_policy_snapshot, b.precheckin_completed_at,\n                  b.saved_payment_method_id IS NOT NULL AS \"card_saved!\",\n                  c.first_name, c.last_name, c.email::text AS \"email?\", c.phone, c.country_code,\n                  rp.code::text AS \"rate_plan_code?\", rp.meal_plan AS \"meal_plan?\"\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           LEFT JOIN rate_plans rp ON rp.id = b.rate_plan_id\n           WHERE b.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: BookingStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "adults",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "children",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "infants",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "deposit_due_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "balance_due_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 17,
+        "name": "payment_option",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "balance_collection",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "hold_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "estimated_arrival_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 21,
+        "name": "special_requests",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 24,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "cancellation_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "cancellation_policy_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 27,
+        "name": "precheckin_completed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 28,
+        "name": "card_saved!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 29,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 30,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 31,
+        "name": "email?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 32,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 33,
+        "name": "country_code",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 34,
+        "name": "rate_plan_code?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 35,
+        "name": "meal_plan?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      false,
+      true,
+      null,
+      true,
+      true,
+      null,
+      false
+    ]
+  },
+  "hash": "2c84cbd780658e3e767e9c61e60ad90340a4f29a714bf041176592fa34ac7839"
+}

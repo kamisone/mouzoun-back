@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments p SET status = CASE\n             WHEN (SELECT COALESCE(sum(amount_minor), 0) FROM refunds WHERE payment_id = p.id AND status = 'succeeded')\n                  >= p.amount_minor THEN 'refunded' ELSE 'partially_refunded' END\n         WHERE p.id = $1 RETURNING p.booking_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0db44b2f1a274031cdb5b9ea0d21ff6b08f182b57293401323338661cebbe2e6"
+}

@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT template_code, to_email::text AS to_email, status, subject, created_at, sent_at, error\n         FROM email_log WHERE booking_id = $1 ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "template_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "error",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "4a7c0626d42ebd096e6ef5daa2fd6ee84648a39ba80f425ba209b64f7c6323b4"
+}

@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, provider_payload->>'client_secret' AS \"client_secret?\"\n           FROM payments\n           WHERE booking_id = $1 AND purpose = $2 AND provider = $3 AND amount_minor = $4\n             AND status IN ('pending', 'requires_action') AND provider_payment_id IS NOT NULL\n           ORDER BY created_at DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "client_secret?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "ddc099a4b0c0375d3f5e6e31b8909ead16285b87e564513b4324cdfe6224f17d"
+}

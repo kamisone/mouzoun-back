@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, first_name, last_name, nationality, date_of_birth,\n                  id_document_type AS \"id_document_type: IdDocumentType\", id_document_number_enc,\n                  guest_category_id, is_lead\n           FROM booking_guests WHERE booking_id = $1 ORDER BY is_lead DESC, created_at, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "nationality",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "id_document_type: IdDocumentType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "id_document_number_enc",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 7,
+        "name": "guest_category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_lead",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b86c0d5a544a0342d2bfb67be062a32cfbf2e724c9cabbe3313ee00de49940a9"
+}

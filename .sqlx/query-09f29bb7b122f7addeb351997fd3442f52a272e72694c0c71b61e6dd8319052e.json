@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.status = 'succeeded' AS \"ok!\", p.purpose, b.source\n                       FROM payments p JOIN bookings b ON b.id = p.booking_id WHERE p.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ok!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "purpose",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "source",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "09f29bb7b122f7addeb351997fd3442f52a272e72694c0c71b61e6dd8319052e"
+}

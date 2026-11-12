@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id FROM resources r\n                 WHERE r.kind = $1 AND r.status = 'active'\n                   AND NOT EXISTS (SELECT 1 FROM resource_assignments a\n                                   WHERE a.resource_id = r.id AND a.released_at IS NULL\n                                     AND a.period && tstzrange($2, $3))\n                   AND NOT EXISTS (SELECT 1 FROM closures c\n                                   WHERE c.scope = 'resource' AND c.resource_id = r.id AND c.period @> $4::date)\n                 ORDER BY r.code\n                 FOR UPDATE OF r SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e55cd0b1e1304e7cbbdb7024dac2c10eaca06a4940f76514acb8c76ac8ad897c"
+}

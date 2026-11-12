@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO booking_guests (booking_id, guest_category_id, is_lead, first_name, last_name, nationality,\n                                         date_of_birth, id_document_type, id_document_number_enc)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Text",
+        "Bpchar",
+        "Date",
+        "Text",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4f0682330b8f53bef67a79080f43e63acf6e947e9f6d39f5b2d4f088a9cbf66"
+}

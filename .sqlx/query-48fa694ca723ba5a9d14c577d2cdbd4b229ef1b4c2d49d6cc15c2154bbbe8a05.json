@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pi.item_product_id, pi.quantity, pi.day_number, pi.is_optional,\n                          pr.kind AS \"kind!\", COALESCE(t.name, d.name) AS \"name?\", COALESCE(t.slug, d.slug) AS \"slug?\"\n                   FROM package_items pi JOIN products pr ON pr.id = pi.item_product_id\n                   LEFT JOIN product_translations t ON t.product_id = pr.id AND t.locale = $2\n                   LEFT JOIN product_translations d ON d.product_id = pr.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n                   WHERE pi.package_product_id = $1 ORDER BY pi.day_number NULLS FIRST, pi.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "item_product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "day_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_optional",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "kind!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "slug?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "48fa694ca723ba5a9d14c577d2cdbd4b229ef1b4c2d49d6cc15c2154bbbe8a05"
+}

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, booking_id, status AS \"status: PaymentStatus\", purpose AS \"purpose: PaymentPurpose\",\n                  amount_minor, provider\n           FROM payments WHERE provider_payment_id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: PaymentStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "purpose: PaymentPurpose",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "provider",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ec79feb4ea9a747c2e276266448fb7d82d8f88522f6e54eba811251b089c1ee5"
+}

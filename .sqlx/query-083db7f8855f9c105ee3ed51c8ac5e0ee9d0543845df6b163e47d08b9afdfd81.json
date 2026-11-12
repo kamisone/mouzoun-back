@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT package_product_id, item_product_id, quantity, day_number, is_optional\n             FROM package_items WHERE package_product_id = ANY($1)\n             ORDER BY package_product_id, day_number NULLS FIRST, sort_order, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "package_product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "item_product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "day_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_optional",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "083db7f8855f9c105ee3ed51c8ac5e0ee9d0543845df6b163e47d08b9afdfd81"
+}

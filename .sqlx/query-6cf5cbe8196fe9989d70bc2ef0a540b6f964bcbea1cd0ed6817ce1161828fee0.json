@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, arrival_date AS \"arrival_date!\" FROM bookings\n           WHERE status = 'confirmed' AND precheckin_completed_at IS NULL AND arrival_date >= $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "arrival_date!",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "6cf5cbe8196fe9989d70bc2ef0a540b6f964bcbea1cd0ed6817ce1161828fee0"
+}

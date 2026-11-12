@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, balance_due_on AS \"balance_due_on!\" FROM bookings\n           WHERE status = 'confirmed' AND balance_collection = 'payment_link' AND balance_due_on IS NOT NULL\n             AND total_minor > amount_paid_minor AND balance_due_on >= $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "balance_due_on!",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "96a286016b4335ee82c28d653f0e09315e88c50d7c49a18a6dce6aee74ae5f86"
+}

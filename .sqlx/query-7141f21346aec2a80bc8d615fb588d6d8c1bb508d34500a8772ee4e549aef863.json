@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status AS \"status: BookingStatus\", total_minor, amount_paid_minor, deposit_due_minor, payment_option\n               FROM bookings WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: BookingStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "deposit_due_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "payment_option",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7141f21346aec2a80bc8d615fb588d6d8c1bb508d34500a8772ee4e549aef863"
+}

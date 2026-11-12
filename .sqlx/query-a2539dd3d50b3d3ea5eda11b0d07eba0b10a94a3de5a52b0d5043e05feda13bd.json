@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(t.description, d.description) AS \"description?\",\n                  COALESCE(NULLIF(t.highlights, '{}'), d.highlights, '{}') AS \"highlights!\",\n                  COALESCE(NULLIF(t.included, '{}'), d.included, '{}') AS \"included!\",\n                  COALESCE(NULLIF(t.not_included, '{}'), d.not_included, '{}') AS \"not_included!\",\n                  COALESCE(NULLIF(t.what_to_bring, '{}'), d.what_to_bring, '{}') AS \"what_to_bring!\",\n                  COALESCE(t.requirements, d.requirements) AS \"requirements?\",\n                  COALESCE(t.important_info, d.important_info) AS \"important_info?\",\n                  COALESCE(t.seo_title, d.seo_title) AS \"seo_title?\",\n                  COALESCE(t.seo_description, d.seo_description) AS \"seo_description?\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE p.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "description?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "highlights!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "included!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "not_included!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "what_to_bring!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "requirements?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "important_info?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "seo_title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "seo_description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a2539dd3d50b3d3ea5eda11b0d07eba0b10a94a3de5a52b0d5043e05feda13bd"
+}

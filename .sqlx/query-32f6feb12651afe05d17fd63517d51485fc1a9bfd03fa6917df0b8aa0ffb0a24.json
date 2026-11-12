@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(t.question, d.question) AS \"question!\", COALESCE(t.answer, d.answer) AS \"answer!\"\n           FROM faqs f\n           LEFT JOIN faq_translations t ON t.faq_id = f.id AND t.locale = $2\n           LEFT JOIN faq_translations d ON d.faq_id = f.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE f.product_id = $1 AND f.is_published AND COALESCE(t.question, d.question) IS NOT NULL\n           ORDER BY f.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "question!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "answer!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "32f6feb12651afe05d17fd63517d51485fc1a9bfd03fa6917df0b8aa0ffb0a24"
+}

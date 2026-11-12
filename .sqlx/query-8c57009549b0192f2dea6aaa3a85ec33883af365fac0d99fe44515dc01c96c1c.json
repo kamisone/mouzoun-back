@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM price_observations WHERE observed_on < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8c57009549b0192f2dea6aaa3a85ec33883af365fac0d99fe44515dc01c96c1c"
+}

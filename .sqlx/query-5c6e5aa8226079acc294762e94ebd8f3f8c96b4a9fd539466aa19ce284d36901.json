@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT value <> 'false'::jsonb AS \"on!\" FROM settings WHERE key = 'email.balance_reminder_enabled'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "on!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5c6e5aa8226079acc294762e94ebd8f3f8c96b4a9fd539466aa19ce284d36901"
+}

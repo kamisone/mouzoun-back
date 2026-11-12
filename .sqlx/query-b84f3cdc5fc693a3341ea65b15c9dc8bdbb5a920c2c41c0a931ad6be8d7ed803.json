@@ -1,0 +1,223 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind AS \"kind: ProductKind\", p.booking_mode, p.is_featured,\n                  COALESCE(NULLIF(t.name, ''), d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\",\n                  COALESCE(t.subtitle, d.subtitle) AS \"subtitle?\",\n                  COALESCE(t.short_description, d.short_description) AS \"short_description?\",\n                  m.id AS \"media_id?\", m.object_key AS \"media_key?\", m.width AS \"media_width?\", m.height AS \"media_height?\",\n                  m.blurhash AS \"blurhash?\",\n                  (SELECT COALESCE(mt.alt_text, md.alt_text) FROM media_assets x\n                   LEFT JOIN media_asset_translations mt ON mt.media_asset_id = x.id AND mt.locale = $1\n                   LEFT JOIN media_asset_translations md ON md.media_asset_id = x.id\n                        AND md.locale = (SELECT code FROM locales WHERE is_default)\n                   WHERE x.id = p.cover_media_id) AS \"alt?\",\n                  (SELECT pr.amount_minor FROM prices pr WHERE pr.product_id = p.id AND pr.is_active\n                     AND pr.currency = (SELECT code FROM currencies WHERE is_default) AND pr.amount_minor > 0\n                   ORDER BY pr.amount_minor LIMIT 1) AS \"from_price?\",\n                  (SELECT pr.pricing_unit FROM prices pr WHERE pr.product_id = p.id AND pr.is_active\n                     AND pr.currency = (SELECT code FROM currencies WHERE is_default) AND pr.amount_minor > 0\n                   ORDER BY pr.amount_minor LIMIT 1) AS \"from_unit?\",\n                  (SELECT avg(r.rating)::float8 FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') AS \"rating_avg?\",\n                  (SELECT count(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') AS \"rating_count!\",\n                  a.accommodation_kind AS \"accommodation_kind?\", a.max_guests AS \"max_guests?\",\n                  a.surface_m2 AS \"surface_m2?: Decimal\", a.bed_configuration AS \"bed_configuration?\",\n                  a.min_nights AS \"min_nights?\", a.inventory_mode AS \"inventory_mode?\",\n                  act.duration_minutes AS \"duration_minutes?\", act.difficulty AS \"difficulty?\", act.min_age AS \"min_age?\",\n                  act.scheduling_mode AS \"scheduling_mode?\", act.is_guided AS \"is_guided?\",\n                  act.guide_languages AS \"guide_languages?\", act.standalone_bookable AS \"standalone?\",\n                  pk.duration_days AS \"duration_days?\", pk.duration_nights AS \"duration_nights?\",\n                  (SELECT COALESCE(array_agg(am.code::text ORDER BY am.sort_order), '{}')\n                   FROM product_amenities pa JOIN amenities am ON am.id = pa.amenity_id\n                   WHERE pa.product_id = p.id) AS \"amenities!\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $1\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL\n           LEFT JOIN accommodation_types a ON a.product_id = p.id\n           LEFT JOIN activities act ON act.product_id = p.id\n           LEFT JOIN packages pk ON pk.product_id = p.id\n           WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.kind <> 'extra'\n             AND ($2::text IS NULL OR p.kind = $2)\n             AND (NOT $3 OR p.is_featured)\n             AND ($4::uuid[] IS NULL OR p.id = ANY($4))\n             AND COALESCE(t.slug, d.slug) IS NOT NULL\n           ORDER BY p.sort_order, 5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind: ProductKind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "booking_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_featured",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "subtitle?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "short_description?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "media_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "media_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "media_width?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "media_height?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "blurhash?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "alt?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "from_price?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "from_unit?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "rating_avg?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 17,
+        "name": "rating_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 18,
+        "name": "accommodation_kind?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "max_guests?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "surface_m2?: Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 21,
+        "name": "bed_configuration?",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 22,
+        "name": "min_nights?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 23,
+        "name": "inventory_mode?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "duration_minutes?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 25,
+        "name": "difficulty?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "min_age?",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 27,
+        "name": "scheduling_mode?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 28,
+        "name": "is_guided?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 29,
+        "name": "guide_languages?",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 30,
+        "name": "standalone?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 31,
+        "name": "duration_days?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 32,
+        "name": "duration_nights?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 33,
+        "name": "amenities!",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "b84f3cdc5fc693a3341ea65b15c9dc8bdbb5a920c2c41c0a931ad6be8d7ed803"
+}

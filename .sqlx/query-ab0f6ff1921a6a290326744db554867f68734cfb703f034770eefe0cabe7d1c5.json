@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pt.locale, pt.slug FROM product_translations pt JOIN locales l ON l.code = pt.locale\n         WHERE pt.product_id = $1 AND l.is_active ORDER BY l.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "ab0f6ff1921a6a290326744db554867f68734cfb703f034770eefe0cabe7d1c5"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT duration_days, duration_nights, pricing_mode, discount_percent FROM packages WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "duration_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "duration_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "pricing_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "discount_percent",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "19398761b661c9a11c8ebc13949129c75eba9cee39466149bc19dcde163f7975"
+}

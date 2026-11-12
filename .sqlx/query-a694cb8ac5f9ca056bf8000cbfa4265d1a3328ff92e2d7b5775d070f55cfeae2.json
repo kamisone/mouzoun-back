@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, total_minor, product_snapshot, starts_at, lower(service_period) AS \"first_day?\"\n           FROM booking_items\n           WHERE booking_id = $1 AND status = 'active' AND ($2::uuid[] IS NULL OR id = ANY($2) OR parent_item_id = ANY($2))\n           ORDER BY created_at, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "first_day?",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "a694cb8ac5f9ca056bf8000cbfa4265d1a3328ff92e2d7b5775d070f55cfeae2"
+}

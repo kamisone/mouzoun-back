@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO price_observations (product_id, service_date, observed_on, amount_minor, currency)\n         SELECT p, d, $4, a, $5 FROM UNNEST($1::uuid[], $2::date[], $3::int8[]) AS t (p, d, a)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "DateArray",
+        "Int8Array",
+        "Date",
+        "Bpchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dceeda6d4cbf4b12d7aadefa1b3ca9e4765a54650a0776088d5df86b6b983e92"
+}

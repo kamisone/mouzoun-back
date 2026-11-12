@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE refunds SET status = 'succeeded', processed_at = $2\n                 WHERE provider_refund_id = $1 AND status <> 'succeeded'\n                 RETURNING id, payment_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "payment_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "dc9704e99d0e1fdef914bdf337518aaa045a0a9bde02a657a6270876399a0d92"
+}

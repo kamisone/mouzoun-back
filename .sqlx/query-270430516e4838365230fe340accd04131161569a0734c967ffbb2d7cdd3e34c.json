@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, code::text AS \"code\", discount_type AS \"discount_type: DiscountType\",\n                  discount_percent, discount_amount_minor, discount_free_nights,\n                  currency AS \"currency: CurrencyCode\", min_subtotal_minor, min_nights,\n                  min_days_before_arrival, booking_window AS \"booking_window: TsRange\",\n                  stay_window AS \"stay_window: DateRange\", applies_to_all,\n                  COALESCE((SELECT array_agg(pp.product_id) FROM promotion_products pp\n                            WHERE pp.promotion_id = promotions.id), '{}') AS \"product_ids!\"\n           FROM promotions\n           WHERE is_active AND (($1::text IS NULL AND code IS NULL) OR code = $1::text::citext)\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "discount_type: DiscountType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "discount_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "discount_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "discount_free_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "min_subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "min_days_before_arrival",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "booking_window: TsRange",
+        "type_info": "TstzRange"
+      },
+      {
+        "ordinal": 11,
+        "name": "stay_window: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 12,
+        "name": "applies_to_all",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "product_ids!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "270430516e4838365230fe340accd04131161569a0734c967ffbb2d7cdd3e34c"
+}

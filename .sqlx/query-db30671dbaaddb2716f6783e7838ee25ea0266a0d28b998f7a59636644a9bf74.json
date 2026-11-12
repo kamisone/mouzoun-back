@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM activity_slots\n         WHERE product_id = $1 AND starts_at >= $2 AND starts_at < $3 AND status = 'open'\n           AND capacity - reserved >= $4\n         ORDER BY starts_at LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "db30671dbaaddb2716f6783e7838ee25ea0266a0d28b998f7a59636644a9bf74"
+}

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.reference, b.total_minor, b.amount_paid_minor, b.saved_payment_method_id,\n                  b.currency AS \"currency: CurrencyCode\", c.stripe_customer_id\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.id = $1 AND b.status = 'confirmed' AND b.balance_collection = 'saved_card'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "saved_payment_method_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "stripe_customer_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "5a9b9805c383eab9d35486b1908f1c17d8d5fed76cc31a97244778b55b959a1b"
+}

@@ -1,0 +1,209 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind AS \"kind: ProductKind\", p.status AS \"status: ProductStatus\",\n                  p.booking_mode AS \"booking_mode: BookingMode\",\n                  COALESCE(NULLIF(t.name, ''), d.name, p.sku::text, p.id::text) AS \"name!\",\n                  COALESCE(t.slug, d.slug) AS \"slug?\",\n                  a.inventory_mode AS \"inventory_mode?: InventoryMode\", a.max_guests AS \"max_guests?\",\n                  a.max_adults, a.max_children, a.standard_occupancy AS \"standard_occupancy?\",\n                  a.min_nights AS \"min_nights?\", a.max_nights, a.check_in_from, a.check_out_until,\n                  a.pitch_selection_extra_id,\n                  act.scheduling_mode AS \"scheduling_mode?: SchedulingMode\", act.duration_minutes,\n                  act.min_participants AS \"min_participants?\", act.max_participants, act.min_age,\n                  act.booking_cutoff_hours AS \"booking_cutoff_hours?\", act.guide_languages AS \"guide_languages?\",\n                  act.standalone_bookable AS \"standalone_bookable?\",\n                  e.applies_to AS \"applies_to?: ExtraAppliesTo\", e.max_quantity, e.requires_date AS \"requires_date?\",\n                  e.stock_quantity,\n                  pk.duration_nights, pk.pricing_mode AS \"pricing_mode?: PackagePricingMode\",\n                  pk.discount_percent AS \"discount_percent?\",\n                  COALESCE((SELECT array_agg(pe.extra_product_id ORDER BY pe.sort_order, pe.extra_product_id)\n                            FROM product_extras pe WHERE pe.product_id = p.id AND pe.is_mandatory), '{}') AS \"mandatory_extras!\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = p.id\n                 AND d.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN accommodation_types a ON a.product_id = p.id\n           LEFT JOIN activities act ON act.product_id = p.id\n           LEFT JOIN extras e ON e.product_id = p.id\n           LEFT JOIN packages pk ON pk.product_id = p.id\n           WHERE p.id = ANY($1) AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind: ProductKind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: ProductStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "booking_mode: BookingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "slug?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "inventory_mode?: InventoryMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "max_guests?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_adults",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "max_children",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "standard_occupancy?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "min_nights?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "max_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "check_in_from",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 14,
+        "name": "check_out_until",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 15,
+        "name": "pitch_selection_extra_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 16,
+        "name": "scheduling_mode?: SchedulingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "min_participants?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 19,
+        "name": "max_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 21,
+        "name": "booking_cutoff_hours?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 22,
+        "name": "guide_languages?",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 23,
+        "name": "standalone_bookable?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 24,
+        "name": "applies_to?: ExtraAppliesTo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 25,
+        "name": "max_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 26,
+        "name": "requires_date?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 27,
+        "name": "stock_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 28,
+        "name": "duration_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 29,
+        "name": "pricing_mode?: PackagePricingMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 30,
+        "name": "discount_percent?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 31,
+        "name": "mandatory_extras!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "8e61197b4143834d28aad694eca54924519367f76a8a32153793b430c0687848"
+}

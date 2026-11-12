@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO refunds (id, payment_id, amount_minor, status, reason, created_by, idempotency_key)\n         VALUES ($1, $2, $3, 'pending', $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "05ab29efe58bfa65d59be4cf0ee676b9e2095a5bf2668322db0f30b17e769e9a"
+}

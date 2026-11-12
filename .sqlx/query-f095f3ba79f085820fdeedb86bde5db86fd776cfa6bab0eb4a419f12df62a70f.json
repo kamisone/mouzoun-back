@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT rp.id, rp.code::text AS \"code!\", rp.meal_plan AS \"meal_plan: MealPlan\",\n                  rp.payment_mode AS \"payment_mode: PaymentMode\", rp.deposit_type AS \"deposit_type: DepositType\",\n                  rp.deposit_percent, rp.deposit_amount_minor, rp.deposit_currency AS \"deposit_currency: CurrencyCode\",\n                  rp.is_public, cp.rules AS \"rules?\",\n                  COALESCE(t.name, d.name) AS \"name?\"\n           FROM rate_plans rp\n           LEFT JOIN cancellation_policies cp ON cp.id = rp.cancellation_policy_id\n           LEFT JOIN rate_plan_translations t ON t.rate_plan_id = rp.id AND t.locale = $2\n           LEFT JOIN rate_plan_translations d ON d.rate_plan_id = rp.id\n                 AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE rp.is_active AND ($1::uuid IS NULL AND rp.is_public OR rp.id = $1)\n           ORDER BY rp.sort_order, rp.code\n           LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "meal_plan: MealPlan",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "payment_mode: PaymentMode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "deposit_type: DepositType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "deposit_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "deposit_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "deposit_currency: CurrencyCode",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "rules?",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "name?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f095f3ba79f085820fdeedb86bde5db86fd776cfa6bab0eb4a419f12df62a70f"
+}

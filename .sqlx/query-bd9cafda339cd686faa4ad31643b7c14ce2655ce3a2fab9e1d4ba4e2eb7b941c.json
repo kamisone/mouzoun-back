@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id FROM bookings b JOIN customers c ON c.id = b.customer_id\n         WHERE b.reference = $1 AND c.email = $2::text::citext AND c.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bd9cafda339cd686faa4ad31643b7c14ce2655ce3a2fab9e1d4ba4e2eb7b941c"
+}

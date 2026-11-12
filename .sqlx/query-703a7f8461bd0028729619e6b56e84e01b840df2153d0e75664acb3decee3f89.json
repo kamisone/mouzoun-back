@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE staff_tasks SET status = $2,\n                resolved_by = CASE WHEN $2 = 'open' THEN NULL ELSE $3::uuid END,\n                resolved_at = CASE WHEN $2 = 'open' THEN NULL ELSE now() END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "703a7f8461bd0028729619e6b56e84e01b840df2153d0e75664acb3decee3f89"
+}

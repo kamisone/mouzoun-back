@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.first_name, c.last_name, c.email::text AS \"email?\", c.phone, c.country_code,\n                  (SELECT count(*) FROM bookings b WHERE b.customer_id = c.id) AS \"bookings!\"\n           FROM customers c\n           WHERE c.deleted_at IS NULL AND c.anonymized_at IS NULL\n             AND (c.email::text ILIKE $1 OR c.phone ILIKE $1 OR (c.first_name || ' ' || COALESCE(c.last_name, '')) ILIKE $1)\n           ORDER BY c.updated_at DESC LIMIT 20",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "country_code",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "bookings!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "2dbe998d8843cc33b5945f6b790c493921b2a2f44f90ff54c49ff4ad75372ac4"
+}

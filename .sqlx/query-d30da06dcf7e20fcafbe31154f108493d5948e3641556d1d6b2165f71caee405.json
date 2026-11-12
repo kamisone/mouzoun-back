@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.amount_minor, p.currency::text AS \"currency!\" FROM refunds r\n                       JOIN payments p ON p.id = r.payment_id WHERE r.id = $1 AND r.status = 'succeeded'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "currency!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "d30da06dcf7e20fcafbe31154f108493d5948e3641556d1d6b2165f71caee405"
+}

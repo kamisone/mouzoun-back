@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, m.object_key, m.width, m.height, m.blurhash,\n                  (SELECT COALESCE(mt.alt_text, md.alt_text) FROM media_assets x\n                   LEFT JOIN media_asset_translations mt ON mt.media_asset_id = x.id AND mt.locale = $2\n                   LEFT JOIN media_asset_translations md ON md.media_asset_id = x.id\n                        AND md.locale = (SELECT code FROM locales WHERE is_default)\n                   WHERE x.id = m.id) AS \"alt?\"\n           FROM products p\n           JOIN gallery_items gi ON gi.gallery_id = p.gallery_id\n           JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.kind = 'image'\n           WHERE p.id = $1 ORDER BY gi.sort_order, m.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "object_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "blurhash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "alt?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "2e7f2741d90f04059fb812ef8f7801454a7016e0978689f26c4984a407737aae"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE booking_items SET status = 'cancelled', cancelled_at = $2 WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4be4b6c7ecab65909969956b728fa40742e49a5f757e2d4428e5dba71bc9f5d1"
+}

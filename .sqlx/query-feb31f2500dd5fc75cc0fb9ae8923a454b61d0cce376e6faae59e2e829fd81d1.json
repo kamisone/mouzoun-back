@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.hold_expires_at, b.arrival_date, b.total_minor, c.first_name, c.last_name\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.status = 'pending' ORDER BY b.hold_expires_at NULLS LAST",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hold_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "feb31f2500dd5fc75cc0fb9ae8923a454b61d0cce376e6faae59e2e829fd81d1"
+}

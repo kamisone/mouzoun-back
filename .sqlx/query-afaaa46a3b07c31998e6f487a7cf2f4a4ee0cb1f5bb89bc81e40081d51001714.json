@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.starts_at, s.ends_at, s.capacity, s.reserved, s.status AS \"status: SlotStatus\", s.guide_language\n           FROM activity_slots s\n           WHERE s.product_id = $1 AND s.starts_at >= $2 AND s.starts_at < $3 AND s.status <> 'cancelled'\n           ORDER BY s.starts_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "ends_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: SlotStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "guide_language",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "afaaa46a3b07c31998e6f487a7cf2f4a4ee0cb1f5bb89bc81e40081d51001714"
+}

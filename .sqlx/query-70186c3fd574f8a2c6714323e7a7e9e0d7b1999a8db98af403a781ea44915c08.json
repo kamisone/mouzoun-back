@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.arrival_date, c.first_name, c.last_name\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.status = 'confirmed' AND b.precheckin_completed_at IS NULL\n             AND b.arrival_date BETWEEN $1 AND $2\n           ORDER BY b.arrival_date",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "70186c3fd574f8a2c6714323e7a7e9e0d7b1999a8db98af403a781ea44915c08"
+}

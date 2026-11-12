@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings SET saved_payment_method_id = $2\n             WHERE id = $1 AND balance_collection = 'saved_card'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d44a5540eda04718f46b66f682662588f9c21817fef3b422c70c524655e4275c"
+}

@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.balance_due_on, b.total_minor - b.amount_paid_minor AS \"due!\",\n                  b.balance_collection, c.first_name, c.last_name\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.status IN ('confirmed', 'checked_in') AND b.total_minor > b.amount_paid_minor\n             AND (b.balance_due_on <= $1 OR b.arrival_date <= $1)\n           ORDER BY b.balance_due_on NULLS LAST LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "balance_due_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "due!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "balance_collection",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "84d530ad180c0f47cf03005db358451070c60f46e18196940078c20a3c3f6e53"
+}

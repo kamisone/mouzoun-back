@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE booking_guests g SET id_document_number_enc = NULL\n         FROM bookings b\n         WHERE b.id = g.booking_id AND g.id_document_number_enc IS NOT NULL\n           AND COALESCE(b.departure_date, b.arrival_date) < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d3ad669a647e74718b73943b98c7a1d2869d3096683918d884f4aa03085e7afe"
+}

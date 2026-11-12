@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings\n         SET status = $2,\n             confirmed_at   = CASE WHEN $2 = 'confirmed'  THEN $3 ELSE confirmed_at END,\n             checked_in_at  = CASE WHEN $2 = 'checked_in' THEN $3 ELSE checked_in_at END,\n             checked_out_at = CASE WHEN $2 = 'completed'  THEN $3 ELSE checked_out_at END,\n             hold_expires_at = CASE WHEN $2 IN ('confirmed', 'checked_in', 'completed', 'cancelled',\n                                                'expired', 'no_show') THEN NULL ELSE hold_expires_at END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38c0174e3f2087accf39ed8ae1b9a817bac5b44b3f300f795069e5977ae07dfc"
+}
