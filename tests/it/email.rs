@@ -106,15 +106,12 @@ async fn confirming_a_booking_emails_the_guest_in_their_language_within_two_seco
         config,
         shutdown.clone(),
     );
-    tokio::time::sleep(StdDuration::from_millis(300)).await; // LISTEN is up
-
+    // No wait for LISTEN: the dispatcher listens first, then drains what is already due.
     let started = std::time::Instant::now();
     booking::confirm_booking(&db, booking_id, None, now())
         .await
         .unwrap();
-    while sender.sent().is_empty() && started.elapsed() < StdDuration::from_secs(2) {
-        tokio::time::sleep(StdDuration::from_millis(20)).await;
-    }
+    sender.wait_for(1, StdDuration::from_secs(2)).await;
     let elapsed = started.elapsed();
     shutdown.cancel();
     for t in tasks {

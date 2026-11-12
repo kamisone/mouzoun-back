@@ -157,10 +157,15 @@ pub use recording::RecordingSender;
 
 #[cfg(any(test, feature = "test-utils"))]
 mod recording {
-    use std::sync::{
-        Mutex,
-        atomic::{AtomicUsize, Ordering},
+    use std::{
+        sync::{
+            Mutex,
+            atomic::{AtomicUsize, Ordering},
+        },
+        time::Duration,
     };
+
+    use tokio::sync::Notify;
 
     use super::*;
 
@@ -170,6 +175,7 @@ mod recording {
         pub sent: Mutex<Vec<OutgoingEmail>>,
         fail_first: AtomicUsize,
         attempts: AtomicUsize,
+        delivered: Notify,
     }
 
     impl RecordingSender {
@@ -185,6 +191,20 @@ mod recording {
         pub fn attempts(&self) -> usize {
             self.attempts.load(Ordering::SeqCst)
         }
+        /// Resolves as soon as `count` emails are sent, or `false` after `limit`.
+        pub async fn wait_for(&self, count: usize, limit: Duration) -> bool {
+            tokio::time::timeout(limit, async {
+                loop {
+                    let notified = self.delivered.notified();
+                    if self.sent.lock().unwrap().len() >= count {
+                        return;
+                    }
+                    notified.await;
+                }
+            })
+            .await
+            .is_ok()
+        }
     }
 
     #[async_trait]
@@ -196,9 +216,13 @@ mod recording {
                 self.fail_first.store(remaining - 1, Ordering::SeqCst);
                 return Err(SendError::Transient("simulated outage".into()));
             }
-            let mut sent = self.sent.lock().unwrap();
-            sent.push(msg);
-            Ok(ProviderMessageId(format!("test-{}", sent.len())))
+            let id = {
+                let mut sent = self.sent.lock().unwrap();
+                sent.push(msg);
+                format!("test-{}", sent.len())
+            };
+            self.delivered.notify_waiters();
+            Ok(ProviderMessageId(id))
         }
     }
 }

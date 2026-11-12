@@ -109,13 +109,32 @@ async fn run_dispatcher(
                 None => std::future::pending::<()>().await,
             }
         };
+        let wait = next_wait(&pool, config.poll_interval).await;
         tokio::select! {
             _ = shutdown.cancelled() => break,
             _ = woke => {}
-            _ = tokio::time::sleep(config.poll_interval) => {}
+            _ = tokio::time::sleep(wait) => {}
         }
     }
     tracing::info!("outbox dispatcher stopped");
+}
+
+/// How long to wait before the next batch: until the earliest event not yet due, at most the
+/// poll interval. Events become due by the database clock (`available_at DEFAULT now()`) but are
+/// claimed by this process's clock: when the database runs a little ahead, a notification can
+/// arrive while its event is still "in the future" here. Waking at its due time (instead of a
+/// whole poll interval later) also sends scheduled emails on time.
+async fn next_wait(pool: &PgPool, poll: Duration) -> Duration {
+    let next: Option<chrono::DateTime<Utc>> = sqlx::query_scalar(
+        "SELECT min(available_at) FROM outbox_events
+         WHERE processed_at IS NULL AND failed_at IS NULL AND available_at > $1",
+    )
+    .bind(Utc::now())
+    .fetch_one(pool)
+    .await
+    .unwrap_or(None);
+    next.and_then(|at| (at - Utc::now()).to_std().ok())
+        .map_or(poll, |until| until.min(poll))
 }
 
 async fn listen(pool: &PgPool) -> sqlx::Result<PgListener> {
