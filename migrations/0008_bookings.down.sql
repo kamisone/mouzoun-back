@@ -10,7 +10,7 @@ DROP TABLE unit_allocations;
 DROP TABLE booking_item_guests;
 DROP TABLE booking_items;
 DROP TABLE invoice_counters;
-DROP TABLE booking_reference_counters;
 DROP TABLE bookings;
 DROP SEQUENCE invoice_number_seq;
+DROP SEQUENCE booking_reference_seq;
 DROP TABLE customers;

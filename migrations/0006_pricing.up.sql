@@ -52,19 +52,16 @@ CREATE TABLE rate_plans (
     cancellation_policy_id uuid REFERENCES cancellation_policies (id) ON DELETE SET NULL,
     meal_plan              text NOT NULL DEFAULT 'none' CHECK (meal_plan IN ('none', 'breakfast', 'half_board', 'full_board')),
     deposit_type           text NOT NULL DEFAULT 'none' CHECK (deposit_type IN ('none', 'percent', 'fixed', 'full')),
-    -- One column per unit: never a percentage and an amount in the same column.
-    deposit_percent        numeric(5, 2) CHECK (deposit_percent > 0 AND deposit_percent <= 100),
-    deposit_amount_minor   bigint CHECK (deposit_amount_minor > 0),
-    deposit_currency       char(3) REFERENCES currencies (code) ON UPDATE CASCADE,
+    -- percent: 0..100; fixed: amount in the booking currency, major units (e.g. 50.00)
+    deposit_value          numeric(12, 2) CHECK (deposit_value >= 0),
     payment_mode           text NOT NULL DEFAULT 'pay_on_site' CHECK (payment_mode IN ('pay_on_site', 'optional_online', 'online_required')),
     is_public              boolean NOT NULL DEFAULT true,
     is_active              boolean NOT NULL DEFAULT true,
     sort_order             integer NOT NULL DEFAULT 0,
     created_at             timestamptz NOT NULL DEFAULT now(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
-    CHECK ((deposit_type = 'percent') = (deposit_percent IS NOT NULL)),
-    CHECK ((deposit_type = 'fixed') = (deposit_amount_minor IS NOT NULL)),
-    CHECK ((deposit_amount_minor IS NULL) = (deposit_currency IS NULL))
+    CHECK (deposit_type IN ('none', 'full') OR deposit_value IS NOT NULL),
+    CHECK (deposit_type <> 'percent' OR deposit_value <= 100)
 );
 
 CREATE TABLE rate_plan_translations (
@@ -169,11 +166,7 @@ CREATE TABLE promotions (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code                    citext UNIQUE,           -- NULL = automatic offer
     discount_type           text NOT NULL CHECK (discount_type IN ('percent', 'fixed_amount', 'free_nights')),
-    -- One column per unit, exactly the one matching discount_type is set.
-    discount_percent        numeric(5, 2) CHECK (discount_percent > 0 AND discount_percent <= 100),
-    discount_amount_minor   bigint CHECK (discount_amount_minor > 0),
-    discount_free_nights    integer CHECK (discount_free_nights > 0),
-    -- Currency of discount_amount_minor and min_subtotal_minor.
+    discount_value          numeric(12, 2) NOT NULL CHECK (discount_value > 0),   -- percent | major units | nights
     currency                char(3) REFERENCES currencies (code) ON UPDATE CASCADE,
     min_subtotal_minor      bigint CHECK (min_subtotal_minor >= 0),
     min_nights              integer CHECK (min_nights >= 1),
@@ -187,10 +180,8 @@ CREATE TABLE promotions (
     is_active               boolean NOT NULL DEFAULT true,
     created_at              timestamptz NOT NULL DEFAULT now(),
     updated_at              timestamptz NOT NULL DEFAULT now(),
-    CHECK ((discount_type = 'percent') = (discount_percent IS NOT NULL)),
-    CHECK ((discount_type = 'fixed_amount') = (discount_amount_minor IS NOT NULL)),
-    CHECK ((discount_type = 'free_nights') = (discount_free_nights IS NOT NULL)),
-    CHECK ((discount_amount_minor IS NULL AND min_subtotal_minor IS NULL) OR currency IS NOT NULL)
+    CHECK (discount_type <> 'percent' OR discount_value <= 100),
+    CHECK (discount_type <> 'fixed_amount' OR currency IS NOT NULL)
 );
 
 CREATE TABLE promotion_translations (

@@ -18,6 +18,7 @@ CREATE TABLE customers (
 );
 CREATE UNIQUE INDEX customers_email_unique ON customers (email) WHERE email IS NOT NULL AND deleted_at IS NULL;
 
+CREATE SEQUENCE booking_reference_seq;
 -- Kept as specified; NOT used for invoice numbers: sequences can leave gaps (rolled-back
 -- transactions), and invoice numbers must be gap-free per year (see invoice_counters).
 CREATE SEQUENCE invoice_number_seq;
@@ -69,15 +70,6 @@ CREATE INDEX bookings_hold_idx ON bookings (hold_expires_at) WHERE status IN ('p
 
 -- Gap-free invoice numbering: one counter row per year, locked FOR UPDATE by the numbering
 -- service inside the transaction that issues the invoice (see deviations in docs/database).
--- Booking reference MZ-<yy>-<number>: the number restarts at 1 every year. Incremented by one
--- atomic upsert outside the booking transaction (gaps are harmless, no long-held lock).
-CREATE TABLE booking_reference_counters (
-    year        smallint PRIMARY KEY CHECK (year BETWEEN 2000 AND 2999),
-    last_number integer NOT NULL DEFAULT 0 CHECK (last_number >= 0),
-    created_at  timestamptz NOT NULL DEFAULT now(),
-    updated_at  timestamptz NOT NULL DEFAULT now()
-);
-
 CREATE TABLE invoice_counters (
     year        smallint PRIMARY KEY CHECK (year BETWEEN 2000 AND 2999),
     last_number integer NOT NULL DEFAULT 0 CHECK (last_number >= 0),
