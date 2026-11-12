@@ -2,6 +2,7 @@
 //! run on several API instances at once (row locks with SKIP LOCKED, idempotent inserts).
 
 mod booking_holds;
+pub mod booking_ops;
 mod inventory;
 mod media_cleanup;
 
@@ -33,6 +34,15 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
             {
                 let db = state.db.clone();
                 move || booking_holds::run_once(db.clone())
+            },
+        ),
+        every(
+            "booking operations",
+            Duration::from_secs(3600),
+            shutdown.clone(),
+            {
+                let (db, payments) = (state.db.clone(), state.payments.clone());
+                move || booking_ops::run_once(db.clone(), payments.clone())
             },
         ),
         every("inventory", Duration::from_secs(24 * 3600), shutdown, {

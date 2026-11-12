@@ -15,6 +15,18 @@
 //! | auth.password_reset_requested       | password_reset       |                          |
 //! | auth.email_verification_requested   | email_verification   |                          |
 //! | auth.staff_invited                  | staff_invitation     |                          |
+//! | booking.declined                    | booking_declined     |                          |
+//! | booking.request_accepted            | booking_payment_link |                          |
+//! | booking.balance_due (scheduled)     | balance_reminder     |                          |
+//! | booking.balance_failed              | balance_failed       | staff_balance_failed     |
+//! | booking.precheckin_due (scheduled)  | precheckin_reminder  |                          |
+//! | booking.access_requested            | booking_magic_link   |                          |
+//! | refund.succeeded                    | refund_receipt       |                          |
+//! | cart.abandoned (consent only, once) | cart_abandoned       |                          |
+//!
+//! `booking.created` emails the guest for requests and staff-made bookings only: a website
+//! guest paying online is on the payment page, and staff hear about the booking when the
+//! payment succeeds (`payment.succeeded` of a deposit / full payment).
 //!
 //! Each handler re-reads the current state: an email that no longer makes sense (booking
 //! cancelled before its pre-arrival email, token already used...) is skipped, not sent.
@@ -30,8 +42,8 @@ use crate::{
     db::{identity::TokenPurpose, operations::OutboxEvent},
     services::{
         outbox::{
-            AuthTokenPayload, BookingPayload, InquiryPayload, NewsletterPayload, PaymentPayload,
-            types,
+            AuthTokenPayload, BookingAccessPayload, BookingPayload, InquiryPayload,
+            NewsletterPayload, PaymentPayload, RefundPayload, types,
         },
         settings,
     },
@@ -63,6 +75,14 @@ const EVENT_TYPES: &[&str] = &[
     types::PASSWORD_RESET_REQUESTED,
     types::EMAIL_VERIFICATION_REQUESTED,
     types::STAFF_INVITED,
+    types::BOOKING_DECLINED,
+    types::BOOKING_REQUEST_ACCEPTED,
+    types::BOOKING_BALANCE_DUE,
+    types::BOOKING_BALANCE_FAILED,
+    types::BOOKING_PRECHECKIN_DUE,
+    types::BOOKING_ACCESS_REQUESTED,
+    types::REFUND_SUCCEEDED,
+    types::CART_ABANDONED,
 ];
 
 #[async_trait]
@@ -102,29 +122,40 @@ impl EmailHandler {
         match event.event_type.as_str() {
             types::BOOKING_CREATED => {
                 let p: BookingPayload = payload(event)?;
+                let Some(r) = context::booking_recipient(&self.pool, p.booking_id)
+                    .await
+                    .map_err(retry)?
+                else {
+                    return Ok(vec![]);
+                };
+                // A website guest paying online is on the payment page right now.
+                let paying_online = r.status == "awaiting_payment" && r.source == "website";
                 let mut jobs = Vec::new();
-                if let Some(guest) = self
-                    .booking_job(
-                        p.booking_id,
-                        "booking_received",
-                        None,
-                        &["draft", "pending", "awaiting_payment"],
-                    )
-                    .await?
+                if !paying_online
+                    && let Some(guest) = self
+                        .booking_job(
+                            p.booking_id,
+                            "booking_received",
+                            None,
+                            &["draft", "pending", "awaiting_payment"],
+                        )
+                        .await?
                 {
                     jobs.push(guest);
                 }
-                jobs.extend(
-                    self.staff_job(
-                        "staff_new_booking",
-                        Some(p.booking_id),
-                        Source::Booking {
-                            booking_id: p.booking_id,
-                            payment_id: None,
-                        },
-                    )
-                    .await?,
-                );
+                if !paying_online {
+                    jobs.extend(
+                        self.staff_job(
+                            "staff_new_booking",
+                            Some(p.booking_id),
+                            Source::Booking {
+                                booking_id: p.booking_id,
+                                payment_id: None,
+                            },
+                        )
+                        .await?,
+                    );
+                }
                 Ok(jobs)
             }
             types::BOOKING_CONFIRMED => {
@@ -200,18 +231,18 @@ impl EmailHandler {
             }
             types::PAYMENT_SUCCEEDED => {
                 let p: PaymentPayload = payload(event)?;
-                let succeeded = sqlx::query_scalar!(
-                    "SELECT status = 'succeeded' AS \"ok!\" FROM payments WHERE id = $1",
+                let payment = sqlx::query!(
+                    r#"SELECT p.status = 'succeeded' AS "ok!", p.purpose, b.source
+                       FROM payments p JOIN bookings b ON b.id = p.booking_id WHERE p.id = $1"#,
                     p.payment_id
                 )
                 .fetch_optional(&self.pool)
                 .await
-                .map_err(retry)?
-                .unwrap_or(false);
-                if !succeeded {
+                .map_err(retry)?;
+                let Some(payment) = payment.filter(|p| p.ok) else {
                     return Ok(vec![]);
-                }
-                Ok(self
+                };
+                let mut jobs: Vec<EmailJob> = self
                     .booking_job(
                         p.booking_id,
                         "payment_receipt",
@@ -226,7 +257,194 @@ impl EmailHandler {
                     )
                     .await?
                     .into_iter()
+                    .collect();
+                // An online checkout is a new booking for the team once its payment arrived.
+                if payment.source == "website"
+                    && matches!(payment.purpose.as_str(), "deposit" | "full")
+                {
+                    jobs.extend(
+                        self.staff_job(
+                            "staff_new_booking",
+                            Some(p.booking_id),
+                            Source::Booking {
+                                booking_id: p.booking_id,
+                                payment_id: Some(p.payment_id),
+                            },
+                        )
+                        .await?,
+                    );
+                }
+                Ok(jobs)
+            }
+            types::BOOKING_DECLINED => {
+                self.guest_only(event, "booking_declined", &["cancelled"])
+                    .await
+            }
+            types::BOOKING_REQUEST_ACCEPTED => {
+                self.guest_only(event, "booking_payment_link", &["awaiting_payment"])
+                    .await
+            }
+            types::BOOKING_BALANCE_DUE => {
+                let p: BookingPayload = payload(event)?;
+                let due = sqlx::query_scalar!(
+                    "SELECT total_minor - amount_paid_minor FROM bookings WHERE id = $1",
+                    p.booking_id
+                )
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(retry)?
+                .flatten()
+                .unwrap_or(0);
+                if due <= 0 {
+                    return Ok(vec![]);
+                }
+                Ok(self
+                    .booking_job(p.booking_id, "balance_reminder", None, &["confirmed"])
+                    .await?
+                    .into_iter()
                     .collect())
+            }
+            types::BOOKING_BALANCE_FAILED => {
+                let p: BookingPayload = payload(event)?;
+                let mut jobs: Vec<EmailJob> = self
+                    .booking_job(p.booking_id, "balance_failed", None, &["confirmed"])
+                    .await?
+                    .into_iter()
+                    .collect();
+                jobs.extend(
+                    self.staff_job(
+                        "staff_balance_failed",
+                        Some(p.booking_id),
+                        Source::Booking {
+                            booking_id: p.booking_id,
+                            payment_id: None,
+                        },
+                    )
+                    .await?,
+                );
+                Ok(jobs)
+            }
+            types::BOOKING_PRECHECKIN_DUE => {
+                let p: BookingPayload = payload(event)?;
+                let done = sqlx::query_scalar!(
+                    "SELECT precheckin_completed_at IS NOT NULL AS \"done!\" FROM bookings WHERE id = $1",
+                    p.booking_id
+                )
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(retry)?
+                .unwrap_or(true);
+                if done {
+                    return Ok(vec![]);
+                }
+                Ok(self
+                    .booking_job(p.booking_id, "precheckin_reminder", None, &["confirmed"])
+                    .await?
+                    .into_iter()
+                    .collect())
+            }
+            types::BOOKING_ACCESS_REQUESTED => {
+                let p: BookingAccessPayload = payload(event)?;
+                let token = p.secret.map(|s| s.token).ok_or_else(|| {
+                    HandlerError::Permanent(anyhow::anyhow!(
+                        "magic link token already scrubbed: ask for a new link"
+                    ))
+                })?;
+                let Some(mut job) = self
+                    .booking_job(
+                        p.booking_id,
+                        "booking_magic_link",
+                        None,
+                        &[
+                            "pending",
+                            "awaiting_payment",
+                            "confirmed",
+                            "checked_in",
+                            "completed",
+                            "cancelled",
+                            "expired",
+                            "no_show",
+                        ],
+                    )
+                    .await?
+                else {
+                    return Ok(vec![]);
+                };
+                let reference = sqlx::query_scalar!(
+                    "SELECT reference FROM bookings WHERE id = $1",
+                    p.booking_id
+                )
+                .fetch_one(&self.pool)
+                .await
+                .map_err(retry)?;
+                let locale = job
+                    .locales
+                    .iter()
+                    .flatten()
+                    .next()
+                    .cloned()
+                    .unwrap_or_default();
+                let url = super::links::magic_url(
+                    &self.mailer.settings().public_site_url,
+                    &locale,
+                    &reference,
+                    &token,
+                );
+                job.source = Source::BookingWith {
+                    booking_id: p.booking_id,
+                    extra: serde_json::json!({ "access_url": url }),
+                };
+                Ok(vec![job])
+            }
+            types::REFUND_SUCCEEDED => {
+                let p: RefundPayload = payload(event)?;
+                let refund = sqlx::query!(
+                    r#"SELECT r.amount_minor, p.currency::text AS "currency!" FROM refunds r
+                       JOIN payments p ON p.id = r.payment_id WHERE r.id = $1 AND r.status = 'succeeded'"#,
+                    p.refund_id
+                )
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(retry)?;
+                let Some(refund) = refund else {
+                    return Ok(vec![]);
+                };
+                let Some(mut job) = self
+                    .booking_job(
+                        p.booking_id,
+                        "refund_receipt",
+                        None,
+                        &[
+                            "pending",
+                            "awaiting_payment",
+                            "confirmed",
+                            "checked_in",
+                            "completed",
+                            "cancelled",
+                            "expired",
+                            "no_show",
+                        ],
+                    )
+                    .await?
+                else {
+                    return Ok(vec![]);
+                };
+                job.source = Source::BookingWith {
+                    booking_id: p.booking_id,
+                    extra: serde_json::json!({ "refund": { "amount_minor": refund.amount_minor, "currency": refund.currency } }),
+                };
+                Ok(vec![job])
+            }
+            types::CART_ABANDONED => {
+                let p: BookingPayload = payload(event)?;
+                let consent = context::booking_recipient(&self.pool, p.booking_id)
+                    .await
+                    .map_err(retry)?
+                    .is_some_and(|r| r.marketing_consent);
+                if !consent {
+                    return Ok(vec![]);
+                }
+                self.guest_only(event, "cart_abandoned", &["expired"]).await
             }
             types::INQUIRY_CREATED => {
                 let p: InquiryPayload = payload(event)?;

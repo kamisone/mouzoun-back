@@ -21,10 +21,15 @@ pub const REVIEW_TIME: (u32, u32) = (10, 0);
 /// Stays completed longer ago than this never get a review request.
 const REVIEW_WINDOW_DAYS: i64 = 30;
 
+pub const BALANCE_TIME: (u32, u32) = (9, 0);
+pub const PRECHECKIN_TIME: (u32, u32) = (10, 0);
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Planned {
     pub pre_arrival: u64,
     pub review_request: u64,
+    pub balance_reminder: u64,
+    pub precheckin_reminder: u64,
 }
 
 pub async fn plan(pool: &PgPool, now: DateTime<Utc>) -> sqlx::Result<Planned> {
@@ -91,12 +96,92 @@ pub async fn plan(pool: &PgPool, now: DateTime<Utc>) -> sqlx::Result<Planned> {
     .await?
     .rows_affected();
 
-    if pre_arrival + review_request > 0 {
-        tracing::debug!(pre_arrival, review_request, "scheduled emails planned");
+    // Balance payment link, N days before the balance is due (payment-link collection only:
+    // saved cards are charged by the balance job on the due date).
+    let reminder_on = sqlx::query_scalar!(
+        "SELECT value <> 'false'::jsonb AS \"on!\" FROM settings WHERE key = 'email.balance_reminder_enabled'"
+    )
+    .fetch_optional(pool)
+    .await?
+    .unwrap_or(true);
+    let reminder_days = settings::number(pool, "booking.balance_reminder_days", 3).await?;
+    let balances = sqlx::query!(
+        r#"SELECT id, balance_due_on AS "balance_due_on!" FROM bookings
+           WHERE status = 'confirmed' AND balance_collection = 'payment_link' AND balance_due_on IS NOT NULL
+             AND total_minor > amount_paid_minor AND balance_due_on >= $1"#,
+        today
+    )
+    .fetch_all(pool)
+    .await?;
+    let (ids, due): (Vec<Uuid>, Vec<DateTime<Utc>>) = balances
+        .iter()
+        .filter(|_| reminder_on)
+        .map(|b| {
+            (
+                b.id,
+                local_at(
+                    b.balance_due_on - Days::new(reminder_days.max(0) as u64),
+                    BALANCE_TIME,
+                ),
+            )
+        })
+        .unzip();
+    let balance_reminder = sqlx::query!(
+        r#"INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload, available_at, dedupe_key)
+           SELECT 'booking', t.id::text, $3, jsonb_build_object('booking_id', t.id), t.due, $3 || ':' || t.id
+           FROM UNNEST($1::uuid[], $2::timestamptz[]) AS t (id, due)
+           ON CONFLICT (dedupe_key) DO NOTHING"#,
+        &ids,
+        &due,
+        types::BOOKING_BALANCE_DUE
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+
+    // Guest register reminder, N days before arrival, while it is not complete.
+    let precheckin_days = settings::number(pool, "booking.precheckin_reminder_days", 5).await?;
+    let arrivals = sqlx::query!(
+        r#"SELECT id, arrival_date AS "arrival_date!" FROM bookings
+           WHERE status = 'confirmed' AND precheckin_completed_at IS NULL AND arrival_date >= $1"#,
+        today
+    )
+    .fetch_all(pool)
+    .await?;
+    let (ids, due): (Vec<Uuid>, Vec<DateTime<Utc>>) = arrivals
+        .iter()
+        .map(|b| {
+            let day = (b.arrival_date - Days::new(precheckin_days.max(0) as u64)).max(today);
+            (b.id, local_at(day, PRECHECKIN_TIME).max(now))
+        })
+        .unzip();
+    let precheckin_reminder = sqlx::query!(
+        r#"INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload, available_at, dedupe_key)
+           SELECT 'booking', t.id::text, $3, jsonb_build_object('booking_id', t.id), t.due, $3 || ':' || t.id
+           FROM UNNEST($1::uuid[], $2::timestamptz[]) AS t (id, due)
+           ON CONFLICT (dedupe_key) DO NOTHING"#,
+        &ids,
+        &due,
+        types::BOOKING_PRECHECKIN_DUE
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+
+    if pre_arrival + review_request + balance_reminder + precheckin_reminder > 0 {
+        tracing::debug!(
+            pre_arrival,
+            review_request,
+            balance_reminder,
+            precheckin_reminder,
+            "scheduled emails planned"
+        );
     }
     Ok(Planned {
         pre_arrival,
         review_request,
+        balance_reminder,
+        precheckin_reminder,
     })
 }
 

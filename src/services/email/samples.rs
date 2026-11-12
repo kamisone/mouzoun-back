@@ -10,7 +10,7 @@ use super::views::{
 };
 
 /// Every template the application sends.
-pub const TEMPLATE_CODES: [&str; 15] = [
+pub const TEMPLATE_CODES: [&str; 24] = [
     "booking_received",
     "booking_confirmation",
     "booking_cancelled",
@@ -26,6 +26,15 @@ pub const TEMPLATE_CODES: [&str; 15] = [
     "staff_new_booking",
     "staff_booking_cancelled",
     "staff_new_inquiry",
+    "booking_declined",
+    "booking_payment_link",
+    "balance_reminder",
+    "balance_failed",
+    "staff_balance_failed",
+    "precheckin_reminder",
+    "booking_magic_link",
+    "refund_receipt",
+    "cart_abandoned",
 ];
 
 fn at(s: &str) -> DateTime<Utc> {
@@ -181,6 +190,28 @@ pub fn for_template(code: &str, locale: &str, site_url: &str) -> Option<Value> {
         }
         "booking_cancelled" | "staff_booking_cancelled" => booking_vars(&mut vars, "cancelled"),
         "review_request" => booking_vars(&mut vars, "completed"),
+        "booking_declined" => booking_vars(&mut vars, "cancelled"),
+        "booking_payment_link" => booking_vars(&mut vars, "awaiting_payment"),
+        "balance_reminder" | "balance_failed" | "staff_balance_failed" | "precheckin_reminder" => {
+            booking_vars(&mut vars, "confirmed")
+        }
+        "booking_magic_link" => {
+            booking_vars(&mut vars, "confirmed");
+            vars.insert(
+                "access_url".into(),
+                json!(format!(
+                    "{site_url}/{locale}/booking/MZ-27-000042?m=sample-token"
+                )),
+            );
+        }
+        "refund_receipt" => {
+            booking_vars(&mut vars, "cancelled");
+            vars.insert(
+                "refund".into(),
+                json!({ "amount_minor": 9_750, "currency": "EUR" }),
+            );
+        }
+        "cart_abandoned" => booking_vars(&mut vars, "expired"),
         "payment_receipt" => {
             booking_vars(&mut vars, "confirmed");
             vars.insert(

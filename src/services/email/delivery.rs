@@ -29,6 +29,11 @@ pub enum Source {
         booking_id: Uuid,
         payment_id: Option<Uuid>,
     },
+    /// A booking email with extra variables (`access_url`, `refund`...).
+    BookingWith {
+        booking_id: Uuid,
+        extra: Value,
+    },
     Inquiry {
         inquiry_id: Uuid,
     },

@@ -123,6 +123,9 @@ pub async fn staff_email(pool: &PgPool) -> sqlx::Result<Option<String>> {
 pub struct BookingRecipient {
     pub status: String,
     pub arrival: Option<chrono::NaiveDate>,
+    /// `website`, `phone`, `admin`...
+    pub source: String,
+    pub marketing_consent: bool,
     pub email: Option<String>,
     pub name: String,
     /// booking.locale > customer.preferred_locale > user.preferred_locale.
@@ -135,7 +138,8 @@ pub async fn booking_recipient(
 ) -> sqlx::Result<Option<BookingRecipient>> {
     Ok(sqlx::query!(
         r#"SELECT b.status, b.arrival_date, b.locale, c.email::text AS email, c.first_name, c.last_name,
-                  c.preferred_locale AS customer_locale, u.preferred_locale AS "user_locale?"
+                  c.preferred_locale AS customer_locale, u.preferred_locale AS "user_locale?",
+                  b.skip_guest_emails, b.source, c.marketing_consent, c.anonymized_at IS NOT NULL AS "anonymized!"
            FROM bookings b
            JOIN customers c ON c.id = b.customer_id
            LEFT JOIN users u ON u.id = c.user_id
@@ -147,7 +151,12 @@ pub async fn booking_recipient(
     .map(|r| BookingRecipient {
         status: r.status,
         arrival: r.arrival_date,
-        email: r.email.filter(|e| !e.is_empty()),
+        source: r.source,
+        marketing_consent: r.marketing_consent,
+        // Phone / agency bookings may opt out of guest emails; erased customers get none.
+        email: r
+            .email
+            .filter(|e| !e.is_empty() && !r.skip_guest_emails && !r.anonymized),
         name: match r.last_name {
             Some(last) if !last.is_empty() => format!("{} {last}", r.first_name),
             _ => r.first_name,
@@ -316,10 +325,15 @@ pub async fn build(
     };
     let mut vars = Map::new();
     match source {
-        Source::Booking {
-            booking_id,
-            payment_id,
-        } => {
+        Source::Booking { .. } | Source::BookingWith { .. } => {
+            let (booking_id, payment_id, extra) = match source {
+                Source::Booking {
+                    booking_id,
+                    payment_id,
+                } => (booking_id, payment_id, None),
+                Source::BookingWith { booking_id, extra } => (booking_id, &None, Some(extra)),
+                _ => unreachable!(),
+            };
             let (facts, guest, lines) =
                 booking_facts(pool, *booking_id, locale, default_locale).await?;
             let (booking, lines, policy) = views::booking(&facts, &lines, &env);
@@ -348,6 +362,9 @@ pub async fn build(
                     &format!("bookings/{booking_id}")
                 )),
             );
+            if let Some(map) = extra.and_then(Value::as_object) {
+                vars.extend(map.clone());
+            }
         }
         Source::Inquiry { inquiry_id } => {
             let (inquiry, _) = inquiry_facts(pool, *inquiry_id)

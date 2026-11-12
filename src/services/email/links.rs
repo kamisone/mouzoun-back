@@ -17,6 +17,11 @@ pub fn booking_url(base: &str, locale: &str, reference: &str, token: &str) -> St
     format!("{base}/{locale}/booking/{reference}?t={token}")
 }
 
+/// "Find my booking" link: the booking page exchanges `m` for its access token.
+pub fn magic_url(base: &str, locale: &str, reference: &str, token: &str) -> String {
+    format!("{base}/{locale}/booking/{reference}?m={}", encode(token))
+}
+
 pub fn review_url(base: &str, locale: &str, reference: &str, token: &str) -> String {
     format!("{base}/{locale}/review/{reference}?t={token}")
 }
