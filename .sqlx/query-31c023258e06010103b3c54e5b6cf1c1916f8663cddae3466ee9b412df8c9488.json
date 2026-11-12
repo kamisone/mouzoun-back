@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n             EXISTS (SELECT 1 FROM bookings b JOIN customers c ON c.id = b.customer_id\n                     WHERE c.user_id = $1 AND b.status IN ('pending', 'awaiting_payment', 'confirmed', 'checked_in')\n                       AND COALESCE(b.departure_date, b.arrival_date, $2) >= $2) AS \"upcoming!\",\n             EXISTS (SELECT 1 FROM bookings b JOIN customers c ON c.id = b.customer_id\n                     WHERE c.user_id = $1 AND b.status IN ('confirmed', 'checked_in', 'completed', 'no_show')\n                       AND b.total_minor > b.amount_paid_minor) AS \"unpaid!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "upcoming!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "unpaid!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "31c023258e06010103b3c54e5b6cf1c1916f8663cddae3466ee9b412df8c9488"
+}

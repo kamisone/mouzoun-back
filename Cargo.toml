@@ -28,6 +28,8 @@ jsonwebtoken = "9"
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "pool", "hostname", "tokio1", "tokio1-rustls-tls"] }
 minijinja = { version = "2", features = ["loader"] }
 rand = "0.9"
+# WebAuthn ES256 signatures (already in the tree through jsonwebtoken).
+ring = "0.17"
 redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
 # Payment providers and Turnstile (already in the tree through the Google SDK).
 reqwest = { version = "0.13", default-features = false, features = ["json", "form", "rustls"] }

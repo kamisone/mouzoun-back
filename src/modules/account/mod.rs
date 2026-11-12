@@ -6,6 +6,7 @@ pub mod auth;
 pub mod cards;
 pub mod extras;
 pub mod oauth;
+pub mod passkeys;
 pub mod privacy;
 pub mod profile;
 
@@ -27,6 +28,16 @@ pub fn routes() -> Router<AppState> {
         .route("/auth/logout-all", post(auth::logout_all))
         .route("/auth/reauth/code", post(auth::reauth_send))
         .route("/auth/reauth", post(auth::reauth))
+        .route("/auth/passkey/options", post(passkeys::sign_in_options))
+        .route("/auth/passkey", post(passkeys::sign_in))
+        .route(
+            "/auth/reauth/passkey/options",
+            post(passkeys::reauth_options),
+        )
+        .route("/auth/reauth/passkey", post(passkeys::reauth))
+        .route("/passkeys", get(passkeys::list).post(passkeys::register))
+        .route("/passkeys/options", post(passkeys::registration_options))
+        .route("/passkeys/{id}", delete(passkeys::remove))
         .route("/me", get(profile::me).patch(profile::update_me))
         .route("/trips", get(profile::trips))
         .route(

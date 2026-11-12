@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers t SET phone = COALESCE(t.phone, f.phone), country_code = COALESCE(t.country_code, f.country_code),\n                email = COALESCE(t.email, f.email)\n         FROM customers f WHERE t.id = $2 AND f.id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b4d8e14058dc8da1d645aa6957af4a4c0a8bc91764853d0440716b9ba767ebb5"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (id, email, full_name, status, is_staff, email_verified_at, preferred_locale)\n                 VALUES ($1, $2::text::citext, '', 'active', false, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "013ecb5a6510c32de8f42e738b9de0575233f0582bb936ecf9cf3b5eca065da2"
+}

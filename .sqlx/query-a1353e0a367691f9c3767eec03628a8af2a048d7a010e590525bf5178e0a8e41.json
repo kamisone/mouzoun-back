@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.reference, b.status, b.arrival_date, b.departure_date, b.total_minor, b.amount_paid_minor,\n                  b.balance_due_on, b.precheckin_completed_at IS NOT NULL AS \"precheckin!\", b.currency::text AS \"currency!\",\n                  b.adults, b.children, b.infants,\n                  (SELECT string_agg(COALESCE(i.product_snapshot->>'localized_name', i.product_snapshot->>'name'), ' · ' ORDER BY i.created_at)\n                   FROM booking_items i WHERE i.booking_id = b.id AND i.parent_item_id IS NULL AND i.status = 'active') AS \"products?\",\n                  (SELECT p.id FROM booking_items i JOIN products p ON p.id = i.product_id\n                   WHERE i.booking_id = b.id AND i.parent_item_id IS NULL ORDER BY i.created_at LIMIT 1) AS \"product_id?\",\n                  (SELECT m.object_key FROM booking_items i JOIN products p ON p.id = i.product_id\n                   JOIN media_assets m ON m.id = p.cover_media_id\n                   WHERE i.booking_id = b.id AND i.parent_item_id IS NULL ORDER BY i.created_at LIMIT 1) AS \"cover_key?\",\n                  count(*) OVER () AS \"total!\"\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE c.user_id = $1\n             AND CASE $2\n                   WHEN 'cancelled' THEN b.status IN ('cancelled', 'expired', 'no_show')\n                   WHEN 'past' THEN b.status IN ('completed') OR (b.status IN ('confirmed', 'checked_in')\n                                    AND COALESCE(b.departure_date, b.arrival_date) < $3)\n                   ELSE b.status IN ('pending', 'awaiting_payment', 'confirmed', 'checked_in')\n                        AND COALESCE(b.departure_date, b.arrival_date + 1) >= $3\n                 END\n           ORDER BY CASE WHEN $2 = 'upcoming' THEN b.arrival_date END ASC,\n                    CASE WHEN $2 <> 'upcoming' THEN b.arrival_date END DESC,\n                    b.created_at DESC\n           LIMIT 20 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "balance_due_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "precheckin!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "adults",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "children",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 11,
+        "name": "infants",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 12,
+        "name": "products?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "product_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "cover_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Date",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a1353e0a367691f9c3767eec03628a8af2a048d7a010e590525bf5178e0a8e41"
+}

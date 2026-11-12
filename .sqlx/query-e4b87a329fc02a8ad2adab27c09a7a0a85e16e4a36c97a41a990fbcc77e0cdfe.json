@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers SET deleted_at = now(), user_id = NULL, internal_notes = COALESCE(internal_notes || E'\\n', '') || 'Merged into ' || $2::uuid\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4b87a329fc02a8ad2adab27c09a7a0a85e16e4a36c97a41a990fbcc77e0cdfe"
+}

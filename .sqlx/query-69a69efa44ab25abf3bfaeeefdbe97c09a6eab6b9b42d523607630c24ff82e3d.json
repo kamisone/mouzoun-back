@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (btrim(first_name) = '' OR last_name IS NULL OR btrim(last_name) = '') AS \"missing!\"\n           FROM customers WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "missing!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "69a69efa44ab25abf3bfaeeefdbe97c09a6eab6b9b42d523607630c24ff82e3d"
+}

@@ -2112,6 +2112,7 @@ dependencies = [
  "rand 0.9.5",
  "redis",
  "reqwest",
+ "ring",
  "rust_decimal",
  "rustls",
  "serde",

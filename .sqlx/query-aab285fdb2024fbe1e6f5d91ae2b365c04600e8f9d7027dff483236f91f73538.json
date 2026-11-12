@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM user_sessions s JOIN users u ON u.id = s.user_id\n                          WHERE s.id = $1 AND s.revoked_at IS NULL AND s.expires_at > $2\n                            AND u.status = 'active' AND u.deleted_at IS NULL) AS \"ok!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ok!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "aab285fdb2024fbe1e6f5d91ae2b365c04600e8f9d7027dff483236f91f73538"
+}

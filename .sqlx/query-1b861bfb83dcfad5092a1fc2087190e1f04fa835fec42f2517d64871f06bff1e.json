@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.status, b.arrival_date, b.departure_date, b.adults, b.children, b.infants,\n                  b.total_minor, b.amount_paid_minor, b.currency::text AS \"currency!\", b.special_requests, b.created_at,\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('first_name', g.first_name, 'last_name', g.last_name,\n                              'nationality', g.nationality, 'date_of_birth', g.date_of_birth,\n                              'id_document_type', g.id_document_type,\n                              'id_document_stored', g.id_document_number_enc IS NOT NULL))\n                            FROM booking_guests g WHERE g.booking_id = b.id), '[]') AS \"guests!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('amount_minor', p.amount_minor, 'status', p.status,\n                              'provider', p.provider, 'purpose', p.purpose, 'paid_at', p.paid_at, 'created_at', p.created_at))\n                            FROM payments p WHERE p.booking_id = b.id), '[]') AS \"payments!\",\n                  COALESCE((SELECT jsonb_agg(i.number) FROM invoices i WHERE i.booking_id = b.id), '[]') AS \"invoices!\"\n           FROM bookings b WHERE b.customer_id = $1 ORDER BY b.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "adults",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "children",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "infants",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "special_requests",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "guests!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "payments!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 15,
+        "name": "invoices!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1b861bfb83dcfad5092a1fc2087190e1f04fa835fec42f2517d64871f06bff1e"
+}

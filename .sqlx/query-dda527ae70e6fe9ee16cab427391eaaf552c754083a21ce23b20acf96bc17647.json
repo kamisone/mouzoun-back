@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wishlists SET share_token = COALESCE(share_token, $2) WHERE id = $1 RETURNING share_token AS \"t!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "dda527ae70e6fe9ee16cab427391eaaf552c754083a21ce23b20acf96bc17647"
+}

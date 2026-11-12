@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM customers WHERE email = $1::text::citext AND deleted_at IS NULL AND user_id IS NULL\n         FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "53d4a4a3d1b5c1f0719b23675a34ad9fb7d2fa61bd3b1bab0d1a02f1f29dc271"
+}

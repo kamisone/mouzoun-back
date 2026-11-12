@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers SET marketing_consent = $2,\n                    marketing_consent_at = CASE WHEN $2 THEN $3 ELSE marketing_consent_at END\n             WHERE user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e9093037b9bb74c8433bb587b9615f5342db4f63770e69d6d98f53da9b3fbc0"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users u SET password_hash = $2 FROM users old WHERE u.id = $1 AND old.id = $1\n         RETURNING old.password_hash IS NOT NULL AS \"had!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "had!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "efbf198aa3939b32dadafc81377959c249b0ebe2588d44059218413e468e3d63"
+}

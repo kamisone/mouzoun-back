@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO auth_tokens (user_id, purpose, token_hash, expires_at, data) VALUES ($1, 'email_change', $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "80445dd77e27a431e874e4312cd716f9d820465a76a24222583f13772da5bb4a"
+}

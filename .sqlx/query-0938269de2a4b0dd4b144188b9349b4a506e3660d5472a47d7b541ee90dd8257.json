@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO saved_travellers (user_id, first_name, last_name, guest_category_id, date_of_birth, nationality,\n                                       id_document_type, id_document_number_enc, id_consent_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Date",
+        "Bpchar",
+        "Text",
+        "Bytea",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0938269de2a4b0dd4b144188b9349b4a506e3660d5472a47d7b541ee90dd8257"
+}

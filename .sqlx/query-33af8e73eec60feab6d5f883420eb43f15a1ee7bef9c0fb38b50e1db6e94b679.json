@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_sessions s\n           SET previous_refresh_token_hash = s.refresh_token_hash, refresh_token_hash = $2, last_used_at = $3\n           FROM users u\n           WHERE s.refresh_token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > $3 AND s.kind = 'guest'\n             AND u.id = s.user_id AND u.status = 'active' AND u.deleted_at IS NULL\n           RETURNING s.id, s.user_id, s.persistent, s.expires_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "persistent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "33af8e73eec60feab6d5f883420eb43f15a1ee7bef9c0fb38b50e1db6e94b679"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET status = 'suspended' WHERE id = $1 AND NOT is_staff",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0de3b625c35fbddfea6eff81c7f08c6896a4fd3c88ccfe0bc498c5efe50191ea"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users u SET full_name = btrim(c.first_name || ' ' || COALESCE(c.last_name, '')),\n                phone = c.phone, preferred_locale = COALESCE($2, u.preferred_locale),\n                display_currency = COALESCE($3, u.display_currency), date_of_birth = COALESCE($4, u.date_of_birth)\n         FROM customers c WHERE u.id = $1 AND c.id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bpchar",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f521909f5aa1cc7c771137bb12b2760d9919cdc6ae6fa8e6ae3c932215b475e2"
+}

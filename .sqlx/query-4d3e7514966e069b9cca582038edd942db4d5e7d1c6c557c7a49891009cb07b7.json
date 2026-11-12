@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM newsletter_subscribers WHERE email = $1::text::citext",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d3e7514966e069b9cca582038edd942db4d5e7d1c6c557c7a49891009cb07b7"
+}

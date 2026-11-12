@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers SET first_name = 'Deleted', last_name = NULL, email = NULL, phone = NULL, internal_notes = NULL,\n                marketing_consent = false, marketing_consent_at = NULL, stripe_customer_id = NULL,\n                anonymized_at = $2, user_id = NULL\n         WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "55798a31254297ddd1c18dcfb7c8d82b9663b78556b51e1a0174ecef88ee3593"
+}

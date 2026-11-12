@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO auth_tokens (user_id, purpose, token_hash, expires_at, data) VALUES ($1, 'booking_claim', $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "af30f21ee0c348bf15546eb46b073c325e9a24e09a08ea8e19406902c086bc94"
+}

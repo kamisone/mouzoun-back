@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.reference, b.status, b.arrival_date, b.departure_date, b.adults, b.children, b.infants,\n                  c.first_name, c.last_name,\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('name', i.product_snapshot->>'name', 'kind', i.product_kind,\n                              'starts_at', i.starts_at, 'quantity', i.quantity) ORDER BY i.starts_at NULLS FIRST)\n                            FROM booking_items i WHERE i.booking_id = b.id AND i.status = 'active' AND i.parent_item_id IS NULL),\n                           '[]') AS \"items!\"\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.reference = $1 AND c.user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "adults",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "children",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "infants",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "items!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "27de00234f3fb1833f4e48e069ce5f7756a51a5231cfb36735944c2a27b7c490"
+}

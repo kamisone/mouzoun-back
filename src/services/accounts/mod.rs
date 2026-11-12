@@ -3,6 +3,7 @@
 //! docs/accounts/README.md.
 
 pub mod oidc;
+pub mod passkeys;
 pub mod passwords;
 pub mod privacy;
 pub mod sessions;

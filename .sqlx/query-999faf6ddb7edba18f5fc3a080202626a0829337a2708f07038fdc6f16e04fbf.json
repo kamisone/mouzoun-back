@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE auth_tokens SET attempts = $2, used_at = CASE WHEN $2 >= 5 THEN $3::timestamptz ELSE NULL END WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "999faf6ddb7edba18f5fc3a080202626a0829337a2708f07038fdc6f16e04fbf"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM auth_tokens WHERE (expires_at < $1 OR used_at < $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5af8af3f58c8b75f068c5883c16988e1fce05b9e74295c8c80b84549402efc05"
+}

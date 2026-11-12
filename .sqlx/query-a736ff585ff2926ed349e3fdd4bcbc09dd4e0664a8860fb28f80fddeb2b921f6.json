@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE account_deletion_requests SET completed_at = $2, cancel_token_hash = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a736ff585ff2926ed349e3fdd4bcbc09dd4e0664a8860fb28f80fddeb2b921f6"
+}

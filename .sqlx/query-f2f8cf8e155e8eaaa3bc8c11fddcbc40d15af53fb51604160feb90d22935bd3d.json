@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users u SET full_name = btrim(c.first_name || ' ' || COALESCE(c.last_name, ''))\n         FROM customers c WHERE u.id = $1 AND c.id = $2 AND u.full_name = ''",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2f8cf8e155e8eaaa3bc8c11fddcbc40d15af53fb51604160feb90d22935bd3d"
+}

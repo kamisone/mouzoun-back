@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO account_deletion_requests (user_id, customer_id, requested_at, scheduled_for, cancel_token_hash, requested_by)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         ON CONFLICT (user_id) WHERE cancelled_at IS NULL AND completed_at IS NULL DO NOTHING\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c8e817c5d2b2ac44b8de1d686a18a9b522159c282a88806057615bc5138fe805"
+}

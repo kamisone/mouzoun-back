@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT reference, status, arrival_date, departure_date FROM bookings\n           WHERE customer_id = $1 AND status NOT IN ('draft', 'expired') ORDER BY arrival_date DESC NULLS LAST",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "arrival_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "departure_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "fcb5ec79a24e6a225b8c93aba8da49235ccb48434d6c41f10473fff045861b47"
+}

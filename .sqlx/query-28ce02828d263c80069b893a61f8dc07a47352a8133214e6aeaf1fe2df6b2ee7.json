@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT reference, arrival_date AS \"arrival!\", departure_date, status\n               FROM bookings WHERE customer_id = $1 AND status IN ('pending', 'awaiting_payment', 'confirmed', 'checked_in')\n                 AND arrival_date >= $2\n               ORDER BY arrival_date LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "arrival!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 2,
+        "name": "departure_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "28ce02828d263c80069b893a61f8dc07a47352a8133214e6aeaf1fe2df6b2ee7"
+}

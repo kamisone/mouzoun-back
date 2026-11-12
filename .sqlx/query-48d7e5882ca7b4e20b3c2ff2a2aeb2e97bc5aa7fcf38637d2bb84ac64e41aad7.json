@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO wishlist_items (wishlist_id, product_id)\n         SELECT $1, p.id FROM products p WHERE p.id = ANY($2) AND p.status = 'published' AND p.deleted_at IS NULL\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48d7e5882ca7b4e20b3c2ff2a2aeb2e97bc5aa7fcf38637d2bb84ac64e41aad7"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookings b SET customer_id = $2 FROM bookings old WHERE b.id = $1 AND old.id = $1 RETURNING old.customer_id, b.reference",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "customer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9c3aaaf4b6990e28c6382f7024af70dcc3824c9eac15f4e796a0d2637cf9b715"
+}

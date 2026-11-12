@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers SET deleted_at = $2, email = NULL, internal_notes = concat_ws(E'\\n', internal_notes, 'Merged into ' || $3::text) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fff1f9966b303225ed19f198775b60ceabee8d5b7c7b70be497cf1215c52c13e"
+}

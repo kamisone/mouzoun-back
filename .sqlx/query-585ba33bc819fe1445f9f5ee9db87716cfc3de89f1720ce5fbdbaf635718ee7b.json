@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE reviews SET author_name = 'Former guest' WHERE customer_id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "585ba33bc819fe1445f9f5ee9db87716cfc3de89f1720ce5fbdbaf635718ee7b"
+}

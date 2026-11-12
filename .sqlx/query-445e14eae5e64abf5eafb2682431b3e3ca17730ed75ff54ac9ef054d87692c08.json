@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_agent, ip_address::text AS \"ip?\", created_at, last_used_at, persistent\n           FROM user_sessions\n           WHERE user_id = $1 AND kind = 'guest' AND revoked_at IS NULL AND expires_at > $2\n           ORDER BY last_used_at DESC NULLS LAST",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "ip?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_used_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "persistent",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "445e14eae5e64abf5eafb2682431b3e3ca17730ed75ff54ac9ef054d87692c08"
+}

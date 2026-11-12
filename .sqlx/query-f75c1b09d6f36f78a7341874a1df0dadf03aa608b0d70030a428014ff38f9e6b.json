@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id, u.email::text AS \"email!\", u.email_verified_at, u.phone AS user_phone, u.preferred_locale,\n                  u.display_currency::text AS \"display_currency?\", u.date_of_birth, u.password_hash IS NOT NULL AS \"has_password!\",\n                  u.created_at, c.first_name AS \"first_name?\", c.last_name, c.phone AS \"phone?\", c.country_code::text AS \"country_code?\",\n                  COALESCE(c.marketing_consent, false) AS \"marketing_consent!\", c.id AS \"customer_id?\"\n           FROM users u LEFT JOIN customers c ON c.user_id = u.id AND c.deleted_at IS NULL\n           WHERE u.id = $1 AND u.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "email_verified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "preferred_locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "display_currency?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_password!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "first_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "phone?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "country_code?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "marketing_consent!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "customer_id?",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      true,
+      null,
+      true,
+      null,
+      false,
+      false,
+      true,
+      true,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "f75c1b09d6f36f78a7341874a1df0dadf03aa608b0d70030a428014ff38f9e6b"
+}

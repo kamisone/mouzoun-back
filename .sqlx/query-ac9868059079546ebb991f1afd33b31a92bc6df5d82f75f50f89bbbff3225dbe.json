@@ -1,0 +1,108 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.first_name, c.last_name, c.email::text AS \"email?\", c.phone, c.country_code, c.created_at,\n                  c.marketing_consent, c.user_id, u.status AS \"account_status?\", u.last_login_at,\n                  (SELECT count(*) FROM bookings b WHERE b.customer_id = c.id AND b.status NOT IN ('draft', 'expired')) AS \"bookings!\",\n                  (SELECT COALESCE(sum(b.amount_paid_minor), 0) FROM bookings b WHERE b.customer_id = c.id)::bigint AS \"paid_minor!\",\n                  (SELECT max(b.arrival_date) FROM bookings b WHERE b.customer_id = c.id) AS \"last_stay?\",\n                  count(*) OVER () AS \"total!\"\n           FROM customers c LEFT JOIN users u ON u.id = c.user_id\n           WHERE c.deleted_at IS NULL AND c.anonymized_at IS NULL\n             AND ($1 = '%%' OR c.email::text ILIKE $1 OR c.phone ILIKE $1\n                  OR (c.first_name || ' ' || COALESCE(c.last_name, '')) ILIKE $1)\n             AND ($2::text IS NULL OR ($2 = 'with') = (c.user_id IS NOT NULL))\n           ORDER BY c.updated_at DESC LIMIT 50 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "country_code",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "marketing_consent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "account_status?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "last_login_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "bookings!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "paid_minor!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "last_stay?",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 14,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "ac9868059079546ebb991f1afd33b31a92bc6df5d82f75f50f89bbbff3225dbe"
+}

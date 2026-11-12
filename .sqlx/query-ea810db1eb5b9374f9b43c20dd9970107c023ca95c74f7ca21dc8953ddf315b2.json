@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.first_name, c.last_name, c.email::text AS \"email?\", c.phone, c.country_code, c.preferred_locale,\n                  c.marketing_consent, c.marketing_consent_at, c.internal_notes, c.created_at, c.user_id,\n                  u.status AS \"account_status?\", u.created_at AS \"account_created_at?\", u.last_login_at,\n                  u.email_verified_at, u.password_hash IS NOT NULL AS \"has_password?\"\n           FROM customers c LEFT JOIN users u ON u.id = c.user_id\n           WHERE c.id = $1 AND c.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "country_code",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "preferred_locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "marketing_consent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "marketing_consent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "internal_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "account_status?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "account_created_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "last_login_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "email_verified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "has_password?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "ea810db1eb5b9374f9b43c20dd9970107c023ca95c74f7ca21dc8953ddf315b2"
+}

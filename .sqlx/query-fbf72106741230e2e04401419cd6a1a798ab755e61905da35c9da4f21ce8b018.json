@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT first_name, last_name, date_of_birth, nationality::text AS \"nationality?\", id_document_type,\n                  id_document_number_enc IS NOT NULL AS \"id_document_stored!\", id_consent_at\n           FROM saved_travellers WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "nationality?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "id_document_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "id_document_stored!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "id_consent_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "fbf72106741230e2e04401419cd6a1a798ab755e61905da35c9da4f21ce8b018"
+}

@@ -48,7 +48,7 @@ pub fn safe_return_to(raw: Option<&str>) -> Option<String> {
 }
 
 fn site_page(state: &AppState, locale: &str, path: &str) -> String {
-    let origin = state.config.booking.webauthn_origin.trim_end_matches('/');
+    let origin = state.config.email.public_site_url.trim_end_matches('/');
     if locale == "fr" {
         format!("{origin}{path}")
     } else {

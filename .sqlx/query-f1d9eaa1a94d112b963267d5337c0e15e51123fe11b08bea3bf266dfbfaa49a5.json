@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE account_deletion_requests SET cancelled_at = $3\n         WHERE cancelled_at IS NULL AND completed_at IS NULL\n           AND (($1::uuid IS NOT NULL AND user_id = $1) OR ($2::bytea IS NOT NULL AND cancel_token_hash = $2))\n         RETURNING user_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f1d9eaa1a94d112b963267d5337c0e15e51123fe11b08bea3bf266dfbfaa49a5"
+}

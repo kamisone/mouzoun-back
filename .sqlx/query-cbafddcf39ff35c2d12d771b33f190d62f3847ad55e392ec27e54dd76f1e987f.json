@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT saved_payment_method_id AS \"id!\" FROM bookings\n           WHERE customer_id = $1 AND saved_payment_method_id IS NOT NULL AND balance_collection = 'saved_card'\n             AND status IN ('confirmed', 'awaiting_payment') AND total_minor > amount_paid_minor",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "cbafddcf39ff35c2d12d771b33f190d62f3847ad55e392ec27e54dd76f1e987f"
+}

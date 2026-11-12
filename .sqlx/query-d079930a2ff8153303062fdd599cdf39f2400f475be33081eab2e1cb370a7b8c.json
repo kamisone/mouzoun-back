@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.name, COALESCE(array_agg(i.product_id) FILTER (WHERE i.product_id IS NOT NULL), '{}') AS \"products!\"\n           FROM wishlists w LEFT JOIN wishlist_items i ON i.wishlist_id = w.id WHERE w.user_id = $1 GROUP BY w.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "products!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "d079930a2ff8153303062fdd599cdf39f2400f475be33081eab2e1cb370a7b8c"
+}

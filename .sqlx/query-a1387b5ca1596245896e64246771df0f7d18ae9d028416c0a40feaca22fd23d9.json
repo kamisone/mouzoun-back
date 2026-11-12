@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET email = ('deleted-' || id || '@deleted.invalid')::citext, full_name = '', phone = NULL,\n                password_hash = NULL, totp_secret_enc = NULL, date_of_birth = NULL, status = 'suspended', deleted_at = $2\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a1387b5ca1596245896e64246771df0f7d18ae9d028416c0a40feaca22fd23d9"
+}

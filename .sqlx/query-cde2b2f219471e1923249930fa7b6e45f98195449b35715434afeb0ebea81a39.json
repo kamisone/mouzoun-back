@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO wishlist_items (wishlist_id, product_id, note) SELECT $1, $2, $3\n         WHERE EXISTS (SELECT 1 FROM products WHERE id = $2 AND status = 'published' AND deleted_at IS NULL)\n         ON CONFLICT (wishlist_id, product_id) DO UPDATE SET note = COALESCE(EXCLUDED.note, wishlist_items.note)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cde2b2f219471e1923249930fa7b6e45f98195449b35715434afeb0ebea81a39"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, c.user_id FROM bookings b JOIN customers c ON c.id = b.customer_id\n         WHERE b.reference = $1 AND c.email = $2::text::citext",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "f44590f1fa6f82c027bc3869a05aec9ebc535ef1c3147d4d8929c13f6f0b3b13"
+}

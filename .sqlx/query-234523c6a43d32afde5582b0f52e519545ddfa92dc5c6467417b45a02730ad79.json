@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"total!\", count(*) FILTER (WHERE c.user_id IS NOT NULL) AS \"with_account!\"\n           FROM bookings b JOIN customers c ON c.id = b.customer_id\n           WHERE b.created_at >= $1 AND b.status NOT IN ('draft', 'expired')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "with_account!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "234523c6a43d32afde5582b0f52e519545ddfa92dc5c6467417b45a02730ad79"
+}

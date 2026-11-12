@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE newsletter_subscribers SET status = 'unsubscribed', unsubscribed_at = $2\n                 WHERE email = (SELECT email FROM users WHERE id = $1) AND status <> 'unsubscribed'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "85c7d269a7f31654313c389194bd1e585e263c75ae0b37c82a11220ac4773e18"
+}

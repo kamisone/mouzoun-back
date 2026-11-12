@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, first_name, last_name, guest_category_id, date_of_birth, nationality::text AS \"nationality?\",\n                  id_document_type, id_document_number_enc, id_consent_at\n           FROM saved_travellers WHERE user_id = $1 ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "guest_category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "nationality?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "id_document_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "id_document_number_enc",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 8,
+        "name": "id_consent_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "80b8655bc2f0a5e213fc4b454a5d27ed00ea7d72417060e50bf5c095a3160f1e"
+}

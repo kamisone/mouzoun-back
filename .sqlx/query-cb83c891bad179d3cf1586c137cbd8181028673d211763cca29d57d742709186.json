@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_identities SET last_used_at = $3, email = COALESCE($4::text::citext, email)\n             WHERE provider = $1 AND provider_subject = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cb83c891bad179d3cf1586c137cbd8181028673d211763cca29d57d742709186"
+}

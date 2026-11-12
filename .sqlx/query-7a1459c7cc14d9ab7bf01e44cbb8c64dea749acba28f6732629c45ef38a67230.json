@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE account_exports SET data = $2, token_hash = $3, ready_at = $4, expires_at = $5\n             WHERE id = $1 AND ready_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Bytea",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a1459c7cc14d9ab7bf01e44cbb8c64dea749acba28f6732629c45ef38a67230"
+}
