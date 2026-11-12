@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max(received_at) AS \"last?\",\n                      count(*) FILTER (WHERE processed_at IS NULL AND error IS NOT NULL) AS \"errors!\"\n               FROM payment_webhook_events WHERE provider = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "errors!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "8f89f95dd0c9e87909aadb462aaa47f71a337abb590beadb7a28751a525fad5a"
+}

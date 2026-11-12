@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kind, COALESCE(t.name, p.id::text) AS \"name!\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN activities a ON a.product_id = p.id\n           WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.booking_mode <> 'not_bookable'\n             AND (\n               (p.kind = 'accommodation' AND NOT EXISTS (\n                  SELECT 1 FROM inventory_calendar ic\n                  WHERE ic.product_id = p.id AND ic.day >= $1 AND ic.day < $2\n                    AND NOT ic.stop_sell AND ic.capacity > ic.reserved))\n               OR (p.kind = 'activity' AND a.scheduling_mode = 'fixed_slots' AND NOT EXISTS (\n                  SELECT 1 FROM activity_slots s\n                  WHERE s.product_id = p.id AND s.status = 'open' AND s.capacity > s.reserved\n                    AND s.starts_at >= $3 AND s.starts_at < $3 + make_interval(days => $4::int)))\n             )\n           ORDER BY p.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "7f26b62922ef49aa67dc7695770982f227518d95d286c79be1a347befd0b55d8"
+}

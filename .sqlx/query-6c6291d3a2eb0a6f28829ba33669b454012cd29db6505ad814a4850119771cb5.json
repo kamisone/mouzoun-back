@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.provider, p.provider_payment_id AS \"provider_payment_id!\"\n           FROM payments p JOIN bookings b ON b.id = p.booking_id\n           WHERE b.status IN ('expired', 'cancelled') AND p.status IN ('pending', 'requires_action')\n             AND p.provider_payment_id IS NOT NULL\n           ORDER BY p.created_at LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_payment_id!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6c6291d3a2eb0a6f28829ba33669b454012cd29db6505ad814a4850119771cb5"
+}

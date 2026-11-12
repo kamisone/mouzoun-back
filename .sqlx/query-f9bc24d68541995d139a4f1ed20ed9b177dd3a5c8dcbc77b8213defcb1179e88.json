@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT rp.code::text AS \"code!\", rp.cancellation_policy_id IS NOT NULL AS \"has_policy!\"\n           FROM rate_plans rp WHERE rp.is_public AND rp.is_active ORDER BY rp.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "has_policy!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "f9bc24d68541995d139a4f1ed20ed9b177dd3a5c8dcbc77b8213defcb1179e88"
+}

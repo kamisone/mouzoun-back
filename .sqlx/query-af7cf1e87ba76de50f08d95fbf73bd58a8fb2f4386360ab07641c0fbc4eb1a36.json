@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind, COALESCE(t.name, p.id::text) AS \"name!\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.booking_mode <> 'not_bookable'\n             AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.is_active\n                             AND pr.currency = (SELECT code FROM currencies WHERE is_default))\n           ORDER BY p.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "af7cf1e87ba76de50f08d95fbf73bd58a8fb2f4386360ab07641c0fbc4eb1a36"
+}

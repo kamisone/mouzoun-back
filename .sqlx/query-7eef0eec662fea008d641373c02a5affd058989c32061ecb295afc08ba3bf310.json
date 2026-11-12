@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT 'product' AS \"what!\", COALESCE(d.name, p.id::text) AS \"name!\", l.code AS \"locale!\"\n           FROM products p CROSS JOIN locales l\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = l.code\n           WHERE l.is_active AND p.status = 'published' AND p.deleted_at IS NULL\n             AND (t.product_id IS NULL OR btrim(t.name) = '' OR btrim(COALESCE(t.short_description, '')) = '')\n           UNION ALL\n           SELECT 'rate_plan', rp.code::text, l.code\n           FROM rate_plans rp CROSS JOIN locales l\n           WHERE l.is_active AND rp.is_public AND rp.is_active\n             AND NOT EXISTS (SELECT 1 FROM rate_plan_translations t WHERE t.rate_plan_id = rp.id AND t.locale = l.code\n                             AND btrim(t.name) <> '')\n           UNION ALL\n           SELECT 'cancellation_policy', cp.code::text, l.code\n           FROM cancellation_policies cp CROSS JOIN locales l\n           WHERE l.is_active AND EXISTS (SELECT 1 FROM rate_plans rp WHERE rp.cancellation_policy_id = cp.id\n                                          AND rp.is_public AND rp.is_active)\n             AND NOT EXISTS (SELECT 1 FROM cancellation_policy_translations t WHERE t.cancellation_policy_id = cp.id\n                             AND t.locale = l.code AND btrim(t.name) <> '')\n           ORDER BY 1, 2, 3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "what!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "locale!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "7eef0eec662fea008d641373c02a5affd058989c32061ecb295afc08ba3bf310"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings s SET value = $1 FROM settings old\n         WHERE s.key = 'booking.enabled' AND old.key = s.key RETURNING old.value",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "value",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c13e9d7f9353816b079d45e8057f015200ca0ce18f1a8ddad5cdda465fc3f0d"
+}

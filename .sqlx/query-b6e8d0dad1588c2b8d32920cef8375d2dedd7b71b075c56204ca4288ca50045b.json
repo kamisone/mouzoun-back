@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments SET status = 'cancelled' WHERE id = $1 AND status IN ('pending', 'requires_action')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6e8d0dad1588c2b8d32920cef8375d2dedd7b71b075c56204ca4288ca50045b"
+}
