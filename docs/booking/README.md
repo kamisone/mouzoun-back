@@ -124,7 +124,16 @@ off-session charge, verify webhook). `stripe` (PaymentIntents over the REST API)
 4. The return page polls `GET /v1/bookings/{ref}/status` for ~30 s, then says the email will
    follow.
 
-Refunds go through the original provider (`refunds` row with its own idempotency key);
+Holds: an unpaid booking keeps its inventory for `booking.hold_minutes`. When the hold expires
+the inventory is released and the open PaymentIntent is **cancelled at Stripe** (job `booking
+holds`, every minute), so the guest can no longer pay an expired booking. If money still arrives
+(a race with the cancellation), it is refunded in full automatically and staff get a task.
+
+Disputes (`charge.dispute.created`) create a `dispute` staff task with the amount, the reason and
+the evidence deadline; the answer is given in the Stripe dashboard.
+
+Refunds go through the original provider (`refunds` row with its own idempotency key), in full
+or in part;
 offline payments (cash, transfer, card terminal) create a `refund_offline` staff task.
 Cancellation refund = what was paid − the policy fees, never below zero; fees per item =
 `100 − refund %` of the item total, the refund percentage coming from the **snapshot** rules and
@@ -241,6 +250,37 @@ FULLSTACK_API=http://127.0.0.1:18090 E2E_STAFF_EMAIL=… E2E_STAFF_PASSWORD=… 
 4. Replay an event: `stripe events resend evt_…` — processed once (duplicate deliveries are
    ignored).
 
-In production the webhook endpoint is `https://mouzoun.com/api/v1/payments/webhooks/stripe`
-with the events `payment_intent.succeeded`, `payment_intent.payment_failed`,
-`payment_intent.requires_action`, `refund.updated`.
+### Stripe dashboard (production)
+
+Online payment turns on by itself when the three Stripe secrets are on the server: no code
+change, no setting. Until then guests only see "pay at the camp" (prepayment-only rate plans
+cannot be booked online) and the back office says "Online payment not configured".
+
+1. **API keys** — Developers → API keys: the publishable key (`pk_live_…`) and a secret key.
+   A restricted key (`rk_live_…`) is enough with these permissions: *PaymentIntents* write,
+   *SetupIntents* write, *Customers* write, *Payment methods* write, *Refunds* write.
+2. **Webhook** — Developers → Webhooks → Add endpoint:
+   - URL: `https://mouzoun.com/api/v1/payments/webhooks/stripe`
+   - API version: the account's default.
+   - Events (exactly these; anything else is answered 200 and ignored):
+     | Event | What it does |
+     |---|---|
+     | `payment_intent.succeeded` | payment recorded, booking confirmed (or refunded if its hold expired) |
+     | `payment_intent.payment_failed` | payment failed; for an off-session balance: emails + staff task |
+     | `payment_intent.requires_action` | 3-D Secure in progress: the hold is extended by 10 minutes |
+     | `payment_intent.canceled` | payment marked cancelled |
+     | `refund.created`, `refund.updated`, `refund.failed` | refund confirmed or failed |
+     | `charge.dispute.created` | chargeback: staff task with the evidence deadline |
+   - Copy the endpoint's **signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET`.
+3. **Payment methods** — Settings → Payment methods: cards (with Apple Pay / Google Pay) on;
+   3-D Secure is handled by Stripe ("automatic payment methods" on every PaymentIntent).
+4. **Statement descriptor** — Settings → Business → Public details: `MOUZOUN` so guests
+   recognise the charge.
+5. Check: the go-live page (back office) shows "Stripe live" and, after the first test event
+   (Webhooks → your endpoint → *Send test event* → `payment_intent.succeeded`), the date of the
+   last webhook received. `GET /api/health/ready` reports `"payments": {"online": true}`.
+
+Every write to Stripe carries an `Idempotency-Key` (payment attempt, refund, off-session charge,
+cancellation, customer, setup intent), so retries never charge or refund twice. Webhooks are
+verified (signature + 5-minute tolerance, constant-time) and stored before processing (one row
+per Stripe event id): redeliveries are no-ops.
