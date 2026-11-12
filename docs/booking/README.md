@@ -207,7 +207,7 @@ separate Redis queue.
 |---|---|
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | Stripe (all three, or none) |
 | `PAYMENTS_FAKE=true` | fake provider: development and tests only, never on a public server |
-| `TURNSTILE_SECRET_KEY` (back) / `NUXT_PUBLIC_TURNSTILE_SITE_KEY` (front) | bot check on checkout and find-my-booking |
+| `TURNSTILE_SECRET_KEY` + `TURNSTILE_SITE_KEY` (back, both or none) | bot check on checkout, sign-in and find-my-booking; the site reads the site key from `/v1/booking/config` |
 | `GUEST_DATA_KEY` | base64 32-byte AES-256-GCM key for ID numbers (`openssl rand -base64 32`). Without it, ID numbers are refused. **Losing it makes stored numbers unreadable.** |
 | `TRUST_PROXY` | default true: client IP from the last `X-Forwarded-For` entry (our nginx) |
 

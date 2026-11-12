@@ -153,3 +153,27 @@ async fn booking_opens_only_when_every_required_check_passes(db: PgPool) {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["enabled"], false);
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn without_bot_check_keys_the_site_asks_for_no_token(db: PgPool) {
+    let app = TestApp::new(db).await;
+    let (_, config) = app
+        .request(Method::GET, "/v1/booking/config", None, None)
+        .await;
+    assert_eq!(config["captcha"], false);
+    assert_eq!(config["captcha_site_key"], Value::Null);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn the_site_gets_the_bot_check_key_from_the_api(db: PgPool) {
+    let app = TestApp::with_config(db, |c| {
+        c.booking.turnstile_secret = Some("0x4AAAAAAAsecret".into());
+        c.booking.turnstile_site_key = Some("0x4AAAAAAAsite".into());
+    })
+    .await;
+    let (_, config) = app
+        .request(Method::GET, "/v1/booking/config", None, None)
+        .await;
+    assert_eq!(config["captcha"], true);
+    assert_eq!(config["captcha_site_key"], "0x4AAAAAAAsite");
+}

@@ -1,5 +1,6 @@
-//! Cloudflare Turnstile (invisible bot check) on checkout and "find my booking". Disabled when
-//! `TURNSTILE_SECRET_KEY` is not set (local development, tests).
+//! Cloudflare Turnstile (invisible bot check) on checkout, sign-in and "find my booking".
+//! Disabled when `TURNSTILE_SECRET_KEY` / `TURNSTILE_SITE_KEY` are not set (local development,
+//! tests); the site gets the site key from `/v1/booking/config`.
 
 use std::net::IpAddr;
 

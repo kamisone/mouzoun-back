@@ -8,10 +8,12 @@
     <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.arrival }}</td>
     <td style="padding:6px 0;text-align:{{ end }};">{{ date(booking.arrival_date) }}</td>
   </tr>
+  {%- if booking.departure_date %}
   <tr>
     <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.departure }}</td>
     <td style="padding:6px 0;text-align:{{ end }};">{{ date(booking.departure_date) }} ({{ booking.nights_label }})</td>
   </tr>
+  {%- endif %}
   {%- endif %}
   <tr>
     <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ labels.guests }}</td>

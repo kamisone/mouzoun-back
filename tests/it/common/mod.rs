@@ -109,7 +109,17 @@ impl TestApp {
     }
 
     pub async fn with_private_bucket(db: PgPool, private: bool) -> Self {
-        let config = test_config();
+        Self::build(db, private, test_config()).await
+    }
+
+    /// An app with the test configuration changed by `edit` (optional secrets, providers...).
+    pub async fn with_config(db: PgPool, edit: impl FnOnce(&mut Config)) -> Self {
+        let mut config = test_config();
+        edit(&mut config);
+        Self::build(db, false, config).await
+    }
+
+    async fn build(db: PgPool, private: bool, config: Config) -> Self {
         let cache = Cache::connect(&config.redis_url, format!("test:{}", Uuid::new_v4()))
             .await
             .expect("redis");

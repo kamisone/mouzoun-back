@@ -8,7 +8,7 @@ use chrono::{Duration, Utc};
 use mouzoun_api::{
     db::{bookings::CancelledBy, types::Locale},
     services::{
-        booking::{self, AccommodationRequest, CustomerRef},
+        booking::{self, AccommodationRequest, ActivityRequest, CustomerRef},
         email::{
             EmailSettings, Mailer, admin, handler::EmailHandler, samples::TEMPLATE_CODES,
             sender::RecordingSender, templates,
@@ -651,4 +651,57 @@ async fn precheckin_reminders_are_planned_until_the_register_is_complete(db: PgP
             .iter()
             .all(|e| !e.subject.contains("register"))
     );
+}
+
+/// An activity on its own has an arrival day but no departure: every booking email still renders
+/// (the summary used to format the missing departure and the event went dead).
+#[sqlx::test(migrations = "./migrations")]
+async fn an_activity_booked_alone_gets_its_emails(db: PgPool) {
+    let sender = Arc::new(RecordingSender::default());
+    let registry = registry(&db, &mailer(&db, &sender));
+    sqlx::query("UPDATE settings SET value = '\"ops@mouzoun.test\"' WHERE key = 'notifications.staff_email'")
+        .execute(&db)
+        .await
+        .unwrap();
+    let guests = guest_ids(&db).await;
+    let tour = quad_tour(&db, 8, 4).await;
+    let created = booking::book_activity(
+        &db,
+        &ActivityRequest {
+            slot_id: tour.slot_id,
+            guests: adults(&guests, 2),
+            quantity: 1,
+            meta: meta("quad@example.com"),
+        },
+        now(),
+        today(),
+    )
+    .await
+    .unwrap();
+    booking::confirm_booking(&db, created.booking_id, None, now())
+        .await
+        .unwrap();
+    drain(&db, &registry).await;
+
+    let dead: Vec<String> = sqlx::query_scalar(
+        "SELECT event_type || ': ' || COALESCE(last_error, '') FROM outbox_events WHERE failed_at IS NOT NULL",
+    )
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    assert!(dead.is_empty(), "{dead:?}");
+    let sent = sender.sent();
+    let to_guest: Vec<&str> = sent
+        .iter()
+        .filter(|e| e.to_email == "quad@example.com")
+        .map(|e| e.subject.as_str())
+        .collect();
+    assert!(!to_guest.is_empty(), "the guest is told");
+    assert!(
+        sent.iter().any(|e| e.to_email == "ops@mouzoun.test"),
+        "the staff is told"
+    );
+    for email in &sent {
+        assert!(!email.html.contains("None"), "{}", email.subject);
+    }
 }

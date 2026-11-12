@@ -278,14 +278,26 @@ fn moment(value: &str) -> Result<Moment, Error> {
     })
 }
 
+/// One line per error in the chain: an error inside an included partial is the source of the
+/// "error in <partial>" reported at the include line, and is the part that says what is wrong.
 fn describe(e: &Error) -> String {
-    match e.line() {
+    let one = |e: &Error| match e.line() {
         Some(line) => format!(
             "{} (line {line})",
             e.detail().unwrap_or(&e.kind().to_string())
         ),
         None => e.to_string(),
+    };
+    let mut out = one(e);
+    let mut cause = std::error::Error::source(e);
+    while let Some(inner) = cause {
+        match inner.downcast_ref::<Error>() {
+            Some(inner) => out.push_str(&format!(": {}", one(inner))),
+            None => out.push_str(&format!(": {inner}")),
+        }
+        cause = inner.source();
     }
+    out
 }
 
 fn sorted(set: HashSet<String>) -> Vec<String> {

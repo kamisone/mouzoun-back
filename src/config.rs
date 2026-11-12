@@ -63,8 +63,12 @@ pub struct BookingConfig {
     /// `PAYMENTS_FAKE=true`: a provider that "pays" without any card, for local development and
     /// end-to-end tests. Never enable it on a public server.
     pub fake_payments: bool,
-    /// `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile check on checkout and "find my booking".
+    /// `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile check on checkout, sign-in and "find my
+    /// booking". Set together with `TURNSTILE_SITE_KEY`.
     pub turnstile_secret: Option<String>,
+    /// `TURNSTILE_SITE_KEY`: public key of the same widget, served to the site by
+    /// `/v1/booking/config` so the check is on for both sides or for neither.
+    pub turnstile_site_key: Option<String>,
     /// `GUEST_DATA_KEY` (base64, 32 bytes): AES-256-GCM key of guest ID document numbers.
     pub guest_data_key: Option<[u8; 32]>,
     /// Trust `X-Forwarded-For` (set by our nginx) for the client IP (`TRUST_PROXY`, default true).
@@ -211,6 +215,18 @@ impl BookingConfig {
                 );
             }
         };
+        // Bot protection: the API demands a token only when the site can produce one.
+        let (turnstile_secret, turnstile_site_key) = match (
+            optional("TURNSTILE_SECRET_KEY"),
+            optional("TURNSTILE_SITE_KEY"),
+        ) {
+            (Some(secret), Some(site_key)) => (Some(secret), Some(site_key)),
+            (None, None) => (None, None),
+            (Some(_), None) => bail!("Turnstile is partly configured: also set TURNSTILE_SITE_KEY"),
+            (None, Some(_)) => {
+                bail!("Turnstile is partly configured: also set TURNSTILE_SECRET_KEY")
+            }
+        };
         let paypal = match optional("PAYPAL_CLIENT_ID") {
             Some(client_id) => Some(PaypalConfig {
                 client_id,
@@ -241,7 +257,8 @@ impl BookingConfig {
             stripe,
             paypal,
             fake_payments: parse_or("PAYMENTS_FAKE", false)?,
-            turnstile_secret: optional("TURNSTILE_SECRET_KEY"),
+            turnstile_secret,
+            turnstile_site_key,
             guest_data_key,
             trust_proxy: parse_or("TRUST_PROXY", true)?,
             hibp_enabled: parse_or("HIBP_ENABLED", true)?,

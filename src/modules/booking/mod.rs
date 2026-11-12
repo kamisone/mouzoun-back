@@ -128,5 +128,6 @@ pub async fn config(State(state): State<AppState>) -> AppResult<Json<Value>> {
         "payments": state.payments.public_config(),
         "providers": state.payments.names(),
         "captcha": state.config.booking.turnstile_secret.is_some(),
+        "captcha_site_key": state.config.booking.turnstile_site_key,
     })))
 }

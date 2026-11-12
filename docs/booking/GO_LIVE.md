@@ -27,7 +27,8 @@ Stripe — **add these last** (step 5). All three or none; the deploy and the AP
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` of the webhook endpoint (step 5) |
 
-Optional: `TURNSTILE_SECRET_KEY` (bot protection), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`,
+Optional: `TURNSTILE_SECRET_KEY` + `TURNSTILE_SITE_KEY` (bot protection, both or none; nothing to
+set on the front), `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`,
 `APPLE_CLIENT_ID`/`APPLE_TEAM_ID`/`APPLE_KEY_ID`/`APPLE_PRIVATE_KEY` (docs/accounts/README.md).
 
 `APP_ENV=production`, `PAYMENTS_FAKE=false`, the API/WebAuthn URLs and secure cookies are set by

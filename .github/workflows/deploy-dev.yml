@@ -146,6 +146,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           # Optional: bot protection, Google / Apple sign-in.
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
@@ -169,6 +170,11 @@ jobs:
             3) ;;
             *) echo "::error::Set all three STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, or none"; exit 1 ;;
           esac
+
+          # Turnstile: both keys or none (the API refuses one alone at startup too).
+          if { [ -n "$TURNSTILE_SECRET_KEY" ] && [ -z "$TURNSTILE_SITE_KEY" ]; } || { [ -z "$TURNSTILE_SECRET_KEY" ] && [ -n "$TURNSTILE_SITE_KEY" ]; }; then
+            echo "::error::Set both TURNSTILE_SECRET_KEY and TURNSTILE_SITE_KEY, or none"; exit 1
+          fi
 
           # https://mouzoun.com → mouzoun.com (nginx server names, CORS)
           app_url="${APP_URL%/}"
@@ -204,6 +210,7 @@ jobs:
             printf '%s\n' "APP_ENV=production" "PAYMENTS_FAKE=false" "COOKIE_SECURE=true" \
               "API_PUBLIC_URL=$app_url/api" "WEBAUTHN_RP_ID=$domain" "WEBAUTHN_ORIGIN=$app_url" \
               "GUEST_DATA_KEY=$GUEST_DATA_KEY" "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY" \
+              "TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY" \
               "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" "STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY" \
               "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" \
               "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
