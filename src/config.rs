@@ -5,8 +5,33 @@ use std::{fmt, time::Duration};
 
 use anyhow::{Context, Result, bail};
 
+/// Where the API runs (`APP_ENV`, default `development`). Production turns on the strict checks
+/// of [`Config::validate`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppEnv {
+    Development,
+    Test,
+    Production,
+}
+
+impl AppEnv {
+    fn from_env() -> Result<Self> {
+        match optional("APP_ENV").as_deref() {
+            None | Some("development") => Ok(Self::Development),
+            Some("test") => Ok(Self::Test),
+            Some("production") => Ok(Self::Production),
+            Some(other) => bail!("APP_ENV must be development, test or production, got {other:?}"),
+        }
+    }
+
+    pub fn is_production(self) -> bool {
+        self == Self::Production
+    }
+}
+
 #[derive(Clone)]
 pub struct Config {
+    pub app_env: AppEnv,
     pub host: String,
     pub port: u16,
     pub database_url: String,
@@ -81,6 +106,51 @@ pub struct StripeConfig {
     pub api_base: String,
 }
 
+/// Live or test keys (from the key prefixes).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StripeMode {
+    Test,
+    Live,
+}
+
+impl StripeConfig {
+    pub fn mode(&self) -> StripeMode {
+        if self.secret_key.contains("_live_") {
+            StripeMode::Live
+        } else {
+            StripeMode::Test
+        }
+    }
+
+    /// Keys pasted in the wrong variable, or test and live keys mixed.
+    fn problems(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        let secret_ok = ["sk_test_", "sk_live_", "rk_test_", "rk_live_"]
+            .iter()
+            .any(|p| self.secret_key.starts_with(p));
+        if !secret_ok {
+            out.push(
+                "STRIPE_SECRET_KEY must start with sk_test_, sk_live_, rk_test_ or rk_live_".into(),
+            );
+        }
+        if !(self.publishable_key.starts_with("pk_test_")
+            || self.publishable_key.starts_with("pk_live_"))
+        {
+            out.push("STRIPE_PUBLISHABLE_KEY must start with pk_test_ or pk_live_".into());
+        }
+        if !self.webhook_secret.starts_with("whsec_") {
+            out.push("STRIPE_WEBHOOK_SECRET must start with whsec_ (Stripe dashboard → Webhooks → signing secret)".into());
+        }
+        if secret_ok
+            && self.secret_key.contains("_live_") != self.publishable_key.contains("_live_")
+        {
+            out.push("STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY mix test and live keys".into());
+        }
+        out
+    }
+}
+
 #[derive(Clone)]
 pub struct PaypalConfig {
     pub client_id: String,
@@ -107,17 +177,39 @@ impl fmt::Debug for BookingConfig {
 
 impl BookingConfig {
     pub fn from_env() -> Result<Self> {
-        let stripe = match optional("STRIPE_SECRET_KEY") {
-            Some(secret_key) => Some(StripeConfig {
+        // Stripe is optional until online payments are wanted; its three secrets go together.
+        let stripe_keys = [
+            "STRIPE_SECRET_KEY",
+            "STRIPE_PUBLISHABLE_KEY",
+            "STRIPE_WEBHOOK_SECRET",
+        ];
+        let stripe = match stripe_keys.map(optional) {
+            [
+                Some(secret_key),
+                Some(publishable_key),
+                Some(webhook_secret),
+            ] => Some(StripeConfig {
                 secret_key,
-                publishable_key: required("STRIPE_PUBLISHABLE_KEY")?,
-                webhook_secret: required("STRIPE_WEBHOOK_SECRET")?,
+                publishable_key,
+                webhook_secret,
                 api_base: optional("STRIPE_API_BASE")
                     .unwrap_or_else(|| "https://api.stripe.com".into())
                     .trim_end_matches('/')
                     .to_string(),
             }),
-            None => None,
+            [None, None, None] => None,
+            values => {
+                let missing: Vec<&str> = stripe_keys
+                    .iter()
+                    .zip(values.iter())
+                    .filter(|(_, v)| v.is_none())
+                    .map(|(k, _)| *k)
+                    .collect();
+                bail!(
+                    "Stripe is partly configured: also set {}",
+                    missing.join(", ")
+                );
+            }
         };
         let paypal = match optional("PAYPAL_CLIENT_ID") {
             Some(client_id) => Some(PaypalConfig {
@@ -303,13 +395,50 @@ pub struct MediaConfig {
     pub cleanup_interval: Duration,
 }
 
+/// Variables the API cannot start without.
+const REQUIRED: &[&str] = &["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "GCS_BUCKET_NAME"];
+/// Also required in production (defaults are for local development only).
+const REQUIRED_IN_PRODUCTION: &[&str] = &[
+    "CORS_ORIGINS",
+    "PUBLIC_SITE_URL",
+    "API_PUBLIC_URL",
+    "WEBAUTHN_RP_ID",
+    "WEBAUTHN_ORIGIN",
+    "GUEST_DATA_KEY",
+];
+
 impl Config {
+    /// Loads and validates the configuration. Every missing variable is reported at once.
     pub fn from_env() -> Result<Self> {
-        let jwt_secret = required("JWT_SECRET")?;
-        if jwt_secret.len() < 32 {
-            bail!("JWT_SECRET must be at least 32 characters");
+        let app_env = AppEnv::from_env()?;
+        let mut missing: Vec<&str> = REQUIRED
+            .iter()
+            .copied()
+            .filter(|k| optional(k).is_none())
+            .collect();
+        if app_env.is_production() {
+            missing.extend(
+                REQUIRED_IN_PRODUCTION
+                    .iter()
+                    .copied()
+                    .filter(|k| optional(k).is_none()),
+            );
         }
+        if !missing.is_empty() {
+            bail!(
+                "missing required environment variables: {}",
+                missing.join(", ")
+            );
+        }
+        let config = Self::load(app_env)?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    fn load(app_env: AppEnv) -> Result<Self> {
+        let jwt_secret = required("JWT_SECRET")?;
         Ok(Self {
+            app_env,
             host: optional("APP_HOST").unwrap_or_else(|| "0.0.0.0".into()),
             port: parse_or("APP_PORT", 8080)?,
             database_url: required("DATABASE_URL")?,
@@ -334,6 +463,47 @@ impl Config {
             worker: WorkerConfig::from_env()?,
             booking: BookingConfig::from_env()?,
         })
+    }
+}
+
+impl Config {
+    /// Rules that hold in every environment, plus the production ones. Pure: tested below.
+    pub fn validate(&self) -> Result<()> {
+        let mut problems: Vec<String> = Vec::new();
+        if self.jwt_secret.len() < 32 {
+            problems.push("JWT_SECRET must be at least 32 characters".into());
+        }
+        if let Some(stripe) = &self.booking.stripe {
+            problems.extend(stripe.problems());
+        }
+        if self.app_env.is_production() {
+            if self.booking.fake_payments {
+                problems.push(
+                    "PAYMENTS_FAKE=true is refused when APP_ENV=production: it confirms bookings without any payment"
+                        .into(),
+                );
+            }
+            if !self.cookie_secure {
+                problems.push("COOKIE_SECURE must be true in production".into());
+            }
+            for (name, url) in [
+                ("PUBLIC_SITE_URL", &self.email.public_site_url),
+                ("API_PUBLIC_URL", &self.booking.api_public_url),
+                ("WEBAUTHN_ORIGIN", &self.booking.webauthn_origin),
+            ] {
+                if !url.starts_with("https://") {
+                    problems.push(format!("{name} must be an https:// URL in production"));
+                }
+            }
+            if self.cors_origins.iter().any(|o| !o.starts_with("https://")) {
+                problems.push("CORS_ORIGINS must only list https:// origins in production".into());
+            }
+        }
+        if problems.is_empty() {
+            Ok(())
+        } else {
+            bail!("invalid configuration:\n  - {}", problems.join("\n  - "))
+        }
     }
 }
 
@@ -482,7 +652,120 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_private_key;
+    use super::*;
+
+    fn base() -> Config {
+        Config {
+            app_env: AppEnv::Production,
+            host: "0.0.0.0".into(),
+            port: 8080,
+            database_url: "postgres://x".into(),
+            database_max_connections: 5,
+            run_migrations: true,
+            redis_url: "redis://x".into(),
+            jwt_secret: "x".repeat(40),
+            jwt_ttl_minutes: 60,
+            cookie_secure: true,
+            cors_origins: vec!["https://mouzoun.com".into()],
+            log_json: true,
+            admin_email: None,
+            admin_password: None,
+            storage: StorageConfig {
+                public_bucket: "b".into(),
+                private_bucket: None,
+                public_base_url: "https://storage.googleapis.com/b".into(),
+                credentials: GcsCredentials::ApplicationDefault,
+            },
+            media: MediaConfig {
+                max_upload_bytes: 1,
+                upload_url_ttl: Duration::from_secs(1),
+                download_url_ttl: Duration::from_secs(1),
+                pending_ttl: Duration::from_secs(1),
+                cleanup_interval: Duration::from_secs(1),
+            },
+            email: EmailConfig {
+                provider: EmailProvider::Log,
+                from_email: "no-reply@mouzoun.com".into(),
+                from_name: "Mouzoun".into(),
+                reply_to: None,
+                smtp: None,
+                public_site_url: "https://mouzoun.com".into(),
+            },
+            worker: WorkerConfig {
+                in_api: true,
+                max_attempts: 8,
+                batch_size: 20,
+                poll_interval: Duration::from_secs(5),
+                scheduler_interval: Duration::from_secs(300),
+            },
+            booking: BookingConfig {
+                api_public_url: "https://mouzoun.com/api".into(),
+                webauthn_rp_id: "mouzoun.com".into(),
+                webauthn_origin: "https://mouzoun.com".into(),
+                ..BookingConfig::default()
+            },
+        }
+    }
+
+    fn stripe(secret: &str, publishable: &str, webhook: &str) -> Option<StripeConfig> {
+        Some(StripeConfig {
+            secret_key: secret.into(),
+            publishable_key: publishable.into(),
+            webhook_secret: webhook.into(),
+            api_base: "https://api.stripe.com".into(),
+        })
+    }
+
+    #[test]
+    fn production_configuration_without_stripe_is_valid() {
+        assert!(base().validate().is_ok());
+    }
+
+    #[test]
+    fn fake_payments_are_refused_in_production_only() {
+        let mut c = base();
+        c.booking.fake_payments = true;
+        let err = c.validate().unwrap_err().to_string();
+        assert!(err.contains("PAYMENTS_FAKE"), "{err}");
+        c.app_env = AppEnv::Development;
+        assert!(c.validate().is_ok());
+    }
+
+    #[test]
+    fn production_needs_https_and_secure_cookies() {
+        let mut c = base();
+        c.cookie_secure = false;
+        c.email.public_site_url = "http://mouzoun.com".into();
+        let err = c.validate().unwrap_err().to_string();
+        assert!(
+            err.contains("COOKIE_SECURE") && err.contains("PUBLIC_SITE_URL"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn stripe_keys_are_checked_for_their_kind_and_mode() {
+        let mut c = base();
+        c.booking.stripe = stripe("sk_test_a", "pk_test_b", "whsec_c");
+        assert!(c.validate().is_ok());
+        assert_eq!(
+            c.booking.stripe.as_ref().map(StripeConfig::mode),
+            Some(StripeMode::Test)
+        );
+        c.booking.stripe = stripe("sk_live_a", "pk_test_b", "whsec_c");
+        assert!(
+            c.validate()
+                .unwrap_err()
+                .to_string()
+                .contains("mix test and live")
+        );
+        c.booking.stripe = stripe("pk_live_a", "sk_live_b", "secret");
+        let err = c.validate().unwrap_err().to_string();
+        assert!(
+            err.contains("STRIPE_SECRET_KEY") && err.contains("STRIPE_WEBHOOK_SECRET"),
+            "{err}"
+        );
+    }
 
     #[test]
     fn private_key_escaped_newlines_are_restored() {

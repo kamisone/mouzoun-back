@@ -15,7 +15,7 @@ use http_body_util::BodyExt;
 use mouzoun_api::{
     auth::jwt,
     config::{
-        BookingConfig, Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig,
+        AppEnv, BookingConfig, Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig,
         StorageConfig, WorkerConfig,
     },
     infra::{
@@ -43,6 +43,7 @@ pub struct TestApp {
 
 pub fn test_config() -> Config {
     Config {
+        app_env: AppEnv::Test,
         host: "127.0.0.1".into(),
         port: 0,
         database_url: String::new(),

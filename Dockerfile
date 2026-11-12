@@ -19,14 +19,14 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 # sqlx macros check queries against the committed .sqlx metadata: no database at build time.
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --locked --bin mouzoun-api --bin worker --bin email
+RUN cargo build --release --locked --bin mouzoun-api --bin worker --bin email --bin migrations
 
 # ---- Runtime: tiny, no shell, non-root ----
 FROM gcr.io/distroless/cc-debian12:nonroot
 WORKDIR /app
 COPY --from=builder /app/target/release/mouzoun-api /app/mouzoun-api
-# Ops tools, run with `docker exec <container> /app/email list-dead` (same env as the API).
-COPY --from=builder /app/target/release/worker /app/target/release/email /app/
+# Ops tools, run with `docker exec <container> /app/email list-dead` or `/app/migrations status`.
+COPY --from=builder /app/target/release/worker /app/target/release/email /app/target/release/migrations /app/
 ENV APP_HOST=0.0.0.0 APP_PORT=8080 LOG_JSON=true
 EXPOSE 8080
 USER nonroot

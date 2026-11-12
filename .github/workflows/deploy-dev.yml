@@ -20,6 +20,9 @@ jobs:
   test:
     if: inputs.image_tag == ''
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     services:
       postgres:
         image: postgres:17-alpine
@@ -41,6 +44,29 @@ jobs:
       SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Applied migrations are immutable: SQLx refuses to start when one changes (checksum), so an
+      # edit breaks every later deploy (what happened with 0006/0008/0012). Compared with the
+      # commit of the last SUCCESSFUL deploy, i.e. what production really applied.
+      - name: deployed migrations are unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          deployed="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy-dev.yml/runs?branch=dev&status=success&per_page=1" \
+            | jq -r '.workflow_runs[0].head_sha // empty')"
+          if [ -z "$deployed" ] || ! git cat-file -e "$deployed^{commit}" 2>/dev/null; then
+            echo "no successful deploy to compare with"; exit 0
+          fi
+          changed="$(git diff --name-only --diff-filter=MDR "$deployed" HEAD -- migrations/)"
+          if [ -n "$changed" ]; then
+            echo "::error::Migrations applied in production (deployed commit $deployed) were modified, renamed or deleted:"
+            echo "$changed"
+            echo "Restore them and put the change in a new migration."
+            exit 1
+          fi
+          echo "migrations applied in production ($deployed) are unchanged"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -111,14 +137,37 @@ jobs:
           SMTP_TLS: ${{ secrets.SMTP_TLS }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          # Booking: guest ID numbers are encrypted with this key (openssl rand -base64 32).
+          GUEST_DATA_KEY: ${{ secrets.GUEST_DATA_KEY }}
+          # Online payments (optional until you add them: the three go together).
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          # Optional: bot protection, Google / Apple sign-in.
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
         run: |
           missing=""
           for name in APP_URL POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET \
                       ADMIN_EMAIL ADMIN_PASSWORD GCS_BUCKET_NAME GCS_PROJECT_ID GCS_CLIENT_EMAIL \
-                      GCS_PRIVATE_KEY_ID GCS_PRIVATE_KEY; do
+                      GCS_PRIVATE_KEY_ID GCS_PRIVATE_KEY GUEST_DATA_KEY; do
             [ -n "${!name}" ] || missing="$missing $name"
           done
           [ -z "$missing" ] || { echo "::error::Missing secrets on the 'dev' environment:$missing"; exit 1; }
+
+          # Stripe: all three or none (the API refuses a partial set at startup too).
+          stripe_set=0
+          for name in STRIPE_SECRET_KEY STRIPE_PUBLISHABLE_KEY STRIPE_WEBHOOK_SECRET; do [ -n "${!name}" ] && stripe_set=$((stripe_set + 1)); done
+          case "$stripe_set" in
+            0) echo "::warning::Stripe is not configured: online payment is off (pay at the camp only)" ;;
+            3) ;;
+            *) echo "::error::Set all three STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, or none"; exit 1 ;;
+          esac
 
           # https://mouzoun.com → mouzoun.com (nginx server names, CORS)
           app_url="${APP_URL%/}"
@@ -151,6 +200,14 @@ jobs:
             printf '%s\n' "POSTGRES_USER=$POSTGRES_USER" "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
               "POSTGRES_DB=$POSTGRES_DB" "REDIS_PASSWORD=$REDIS_PASSWORD"
             # API
+            printf '%s\n' "APP_ENV=production" "PAYMENTS_FAKE=false" "COOKIE_SECURE=true" \
+              "API_PUBLIC_URL=$app_url/api" "WEBAUTHN_RP_ID=$domain" "WEBAUTHN_ORIGIN=$app_url" \
+              "GUEST_DATA_KEY=$GUEST_DATA_KEY" "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY" \
+              "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" "STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY" \
+              "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" \
+              "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
+              "APPLE_CLIENT_ID=$APPLE_CLIENT_ID" "APPLE_TEAM_ID=$APPLE_TEAM_ID" "APPLE_KEY_ID=$APPLE_KEY_ID" \
+              "APPLE_PRIVATE_KEY=${APPLE_PRIVATE_KEY//$'\n'/\\n}"
             printf '%s\n' "LOG_JSON=true" "RUST_LOG=mouzoun_api=info,tower_http=info" \
               "DATABASE_MAX_CONNECTIONS=30" "JWT_SECRET=$JWT_SECRET" "JWT_TTL_MINUTES=720" \
               "CORS_ORIGINS=https://$domain,https://www.$domain" \
