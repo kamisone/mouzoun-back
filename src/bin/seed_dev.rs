@@ -8,6 +8,9 @@
 //! It also books one pending demo stay and sends staff notifications to the admin address, so
 //! the email pipeline can be tried without the HTTP API:
 //! `cargo run --bin seed_dev -- confirm MZ-26-000001` confirms it (→ confirmation email).
+//!
+//! `cargo run --bin seed_dev -- staff <email> <password> <role>` creates or resets a staff
+//! account (development only; e.g. the full-stack tests' E2E_STAFF_EMAIL).
 
 use anyhow::{Context, bail};
 use chrono::{NaiveDate, Utc};
@@ -39,6 +42,19 @@ async fn main() -> anyhow::Result<()> {
             .filter(|v| !v.is_empty())
     };
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL is required")?;
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let [command, email, password, role] = args.as_slice()
+        && command == "staff"
+    {
+        // Development accounts only (e.g. the full-stack test suite's staff login).
+        if std::env::var("APP_ENV").as_deref() == Ok("production") {
+            bail!("refused with APP_ENV=production");
+        }
+        let pool = infra::db::connect(&database_url, 2).await?;
+        identity::upsert_staff(&pool, email, password, "Staff (development)", role).await?;
+        println!("staff account ready: {email} ({role})");
+        return Ok(());
+    }
     let email = env("SEED_ADMIN_EMAIL", "ADMIN_EMAIL")
         .context("SEED_ADMIN_EMAIL (or ADMIN_EMAIL) is required")?;
     let password = env("SEED_ADMIN_PASSWORD", "ADMIN_PASSWORD")
@@ -47,9 +63,11 @@ async fn main() -> anyhow::Result<()> {
     let pool = infra::db::connect(&database_url, 5).await?;
     infra::db::migrate(&pool).await?;
 
-    if let [command, reference] = std::env::args().skip(1).collect::<Vec<_>>().as_slice() {
+    if let [command, reference] = args.as_slice() {
         if command != "confirm" {
-            bail!("usage: seed_dev [confirm <booking reference>]");
+            bail!(
+                "usage: seed_dev [confirm <booking reference> | staff <email> <password> <role>]"
+            );
         }
         let id = sqlx::query_scalar!("SELECT id FROM bookings WHERE reference = $1", reference)
             .fetch_optional(&pool)

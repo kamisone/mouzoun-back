@@ -83,6 +83,21 @@ pub async fn ensure_super_admin(
     if exists {
         return Ok(false);
     }
+    upsert_staff(pool, email, pass, full_name, "super_admin").await?;
+    if pass.chars().count() < 12 {
+        tracing::warn!("ADMIN_PASSWORD is shorter than 12 characters: use a stronger password");
+    }
+    Ok(true)
+}
+
+/// Creates (or reactivates, with a new password) a staff account holding `role`. Returns its id.
+pub async fn upsert_staff(
+    pool: &PgPool,
+    email: &str,
+    pass: &str,
+    full_name: &str,
+    role: &str,
+) -> anyhow::Result<Uuid> {
     let hash = password::hash(pass.to_owned())
         .await
         .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -100,17 +115,27 @@ pub async fn ensure_super_admin(
     )
     .fetch_one(&mut *tx)
     .await?;
-    sqlx::query!(
+    let granted = sqlx::query!(
         "INSERT INTO user_roles (user_id, role_id)
-         SELECT $1, id FROM roles WHERE code = 'super_admin'
+         SELECT $1, id FROM roles WHERE code = $2::text::citext
          ON CONFLICT DO NOTHING",
-        user_id
+        user_id,
+        role
     )
     .execute(&mut *tx)
     .await?;
-    tx.commit().await?;
-    if pass.chars().count() < 12 {
-        tracing::warn!("ADMIN_PASSWORD is shorter than 12 characters: use a stronger password");
+    let has_role = granted.rows_affected() > 0
+        || sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+                              WHERE ur.user_id = $1 AND r.code = $2::text::citext) AS "x!""#,
+            user_id,
+            role
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+    if !has_role {
+        anyhow::bail!("unknown role {role}");
     }
-    Ok(true)
+    tx.commit().await?;
+    Ok(user_id)
 }

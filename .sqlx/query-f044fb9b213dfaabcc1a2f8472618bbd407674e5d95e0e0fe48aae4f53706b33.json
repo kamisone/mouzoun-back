@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_roles (user_id, role_id)\n         SELECT $1, id FROM roles WHERE code = $2::text::citext\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f044fb9b213dfaabcc1a2f8472618bbd407674e5d95e0e0fe48aae4f53706b33"
+}
