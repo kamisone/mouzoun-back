@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path, State},
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 use super::{booking_settings, trip_context};
 use crate::{
+    auth::GuestUser,
     error::{AppError, AppResult},
     services::booking::{
         quote_token,
@@ -107,23 +108,93 @@ fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-pub(crate) async fn load(state: &AppState, jar: &CookieJar) -> (Option<String>, Cart) {
-    let Some(id) = jar
-        .get(cookie_name(state.config.cookie_secure))
+fn anon_id(state: &AppState, jar: &CookieJar) -> Option<String> {
+    jar.get(cookie_name(state.config.cookie_secure))
         .map(|c| c.value().to_string())
         .filter(|id| valid_id(id))
-    else {
-        return (None, Cart::default());
-    };
+}
+
+async fn read(state: &AppState, id: &str) -> Cart {
     let mut conn = state.cache.connection();
-    let raw: Option<String> = conn.get(redis_key(state, &id)).await.unwrap_or_else(|e| {
+    let raw: Option<String> = conn.get(redis_key(state, id)).await.unwrap_or_else(|e| {
         tracing::warn!(error = %e, "cart: redis read failed");
         None
     });
-    let cart = raw
-        .and_then(|r| serde_json::from_str(&r).ok())
-        .unwrap_or_default();
+    raw.and_then(|r| serde_json::from_str(&r).ok())
+        .unwrap_or_default()
+}
+
+/// The basket of this visitor: the account's basket when signed in (an anonymous basket left in
+/// the cookie is merged into it once, without duplicates), else the cookie's.
+pub(crate) async fn load(
+    state: &AppState,
+    jar: &CookieJar,
+    user: Option<Uuid>,
+) -> (Option<String>, Cart) {
+    let Some(user) = user else {
+        return match anon_id(state, jar) {
+            Some(id) => {
+                let cart = read(state, &id).await;
+                (Some(id), cart)
+            }
+            None => (None, Cart::default()),
+        };
+    };
+    let id = format!("u:{user}");
+    let mut cart = read(state, &id).await;
+    if let Some(anon) = anon_id(state, jar) {
+        let guest_cart = read(state, &anon).await;
+        if !guest_cart.items.is_empty() {
+            merge(&mut cart, guest_cart);
+            let mut conn = state.cache.connection();
+            let _: redis::RedisResult<()> = conn
+                .set_ex(
+                    redis_key(state, &id),
+                    serde_json::to_string(&cart).unwrap_or_default(),
+                    TTL_SECS,
+                )
+                .await;
+            let _: redis::RedisResult<()> = conn.del(redis_key(state, &anon)).await;
+        }
+    }
     (Some(id), cart)
+}
+
+/// Adds the items of `other` that `cart` does not already have (same item, same parent), and
+/// keeps its promo code when `cart` has none. Prices are re-validated at the next read.
+pub(crate) fn merge(cart: &mut Cart, other: Cart) {
+    let mut ids: HashMap<Uuid, Uuid> = HashMap::new();
+    for item in other.items {
+        let parent = item.parent_id.and_then(|p| ids.get(&p).copied());
+        if let Some(existing) = cart
+            .items
+            .iter()
+            .find(|c| c.item == item.item && c.parent_id == parent)
+        {
+            ids.insert(item.id, existing.id);
+            continue;
+        }
+        if cart.items.len() >= MAX_ITEMS {
+            break;
+        }
+        let new_id = Uuid::now_v7();
+        ids.insert(item.id, new_id);
+        cart.items.push(CartItem {
+            id: new_id,
+            parent_id: parent,
+            item: item.item,
+        });
+    }
+    if cart.promo_code.is_none() {
+        cart.promo_code = other.promo_code;
+    }
+    if cart.rate_plan_id.is_none() {
+        cart.rate_plan_id = other.rate_plan_id;
+    }
+    if cart.child_ages.is_empty() {
+        cart.child_ages = other.child_ages;
+    }
+    cart.updated_at = Some(Utc::now());
 }
 
 pub(crate) async fn save(
@@ -145,6 +216,14 @@ pub(crate) async fn save(
             TTL_SECS,
         )
         .await?;
+    if id.starts_with("u:") {
+        // Signed in: the account holds the basket, the anonymous cookie is no longer needed.
+        return Ok(jar.remove(
+            Cookie::build(cookie_name(state.config.cookie_secure))
+                .path("/")
+                .build(),
+        ));
+    }
     let cookie = Cookie::build((cookie_name(state.config.cookie_secure), id))
         .http_only(true)
         .secure(state.config.cookie_secure)
@@ -155,7 +234,20 @@ pub(crate) async fn save(
     Ok(jar.add(cookie))
 }
 
-pub(crate) async fn clear(state: &AppState, jar: CookieJar) -> CookieJar {
+/// After sign-in: merges the anonymous basket into the account's.
+pub(crate) async fn merge_on_sign_in(state: &AppState, jar: CookieJar, user: Uuid) -> CookieJar {
+    if anon_id(state, &jar).is_none() {
+        return jar;
+    }
+    let (id, cart) = load(state, &jar, Some(user)).await;
+    save(state, jar.clone(), id, &cart).await.unwrap_or(jar)
+}
+
+pub(crate) async fn clear(state: &AppState, jar: CookieJar, user: Option<Uuid>) -> CookieJar {
+    if let Some(user) = user {
+        let mut conn = state.cache.connection();
+        let _: redis::RedisResult<()> = conn.del(redis_key(state, &format!("u:{user}"))).await;
+    }
     if let Some(id) = jar
         .get(cookie_name(state.config.cookie_secure))
         .map(|c| c.value().to_string())
@@ -263,8 +355,9 @@ pub async fn get(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
-    let (id, mut cart) = load(&state, &jar).await;
+    let (id, mut cart) = load(&state, &jar, guest.map(|g| g.user_id)).await;
     let body = view(&state, &locale, &mut cart).await?;
     let jar = if id.is_some() {
         save(&state, jar, id, &cart).await?
@@ -295,9 +388,10 @@ pub async fn add(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
     Json(body): Json<ItemBody>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
-    let (id, mut cart) = load(&state, &jar).await;
+    let (id, mut cart) = load(&state, &jar, guest.map(|g| g.user_id)).await;
     if cart.items.len() >= MAX_ITEMS {
         return Err(AppError::BadRequest("the trip is full".into()));
     }
@@ -319,10 +413,11 @@ pub async fn update_item(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
     Path(item_id): Path<Uuid>,
     Json(body): Json<ItemBody>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
-    let (id, mut cart) = load(&state, &jar).await;
+    let (id, mut cart) = load(&state, &jar, guest.map(|g| g.user_id)).await;
     check_parent(&cart, body.parent_id)?;
     let item = cart
         .items
@@ -341,9 +436,10 @@ pub async fn remove_item(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
     Path(item_id): Path<Uuid>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
-    let (id, mut cart) = load(&state, &jar).await;
+    let (id, mut cart) = load(&state, &jar, guest.map(|g| g.user_id)).await;
     let before = cart.items.len();
     cart.items
         .retain(|i| i.id != item_id && i.parent_id != Some(item_id));
@@ -370,9 +466,10 @@ pub async fn update(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
     Json(body): Json<CartOptions>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
-    let (id, mut cart) = load(&state, &jar).await;
+    let (id, mut cart) = load(&state, &jar, guest.map(|g| g.user_id)).await;
     if let Some(code) = body.promo_code {
         let code = code.trim().to_string();
         if code.len() > 40 {
@@ -391,8 +488,12 @@ pub async fn update(
     Ok((jar, Json(view)))
 }
 
-pub async fn delete(State(state): State<AppState>, jar: CookieJar) -> (CookieJar, Json<Value>) {
-    let jar = clear(&state, jar).await;
+pub async fn delete(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
+) -> (CookieJar, Json<Value>) {
+    let jar = clear(&state, jar, guest.map(|g| g.user_id)).await;
     (
         jar,
         Json(json!({ "items": [], "count": 0, "quote": null, "notices": [] })),

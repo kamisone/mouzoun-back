@@ -1,5 +1,6 @@
 //! Business services built on the data layer (`crate::db`).
 
+pub mod accounts;
 pub mod audit;
 pub mod booking;
 pub mod cache_invalidation;

@@ -1,0 +1,9 @@
+//! Guest accounts: sign-in by email code / magic link / password / social identity, rotating
+//! sessions, profile, trips, wishlists, saved travellers, preferences, privacy. See
+//! docs/accounts/README.md.
+
+pub mod passwords;
+pub mod sessions;
+pub mod signin;
+pub mod tokens;
+pub mod totp;

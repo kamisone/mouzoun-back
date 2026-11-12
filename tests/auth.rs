@@ -8,7 +8,17 @@ use sqlx::PgPool;
 
 const COOKIE: &str = "__Host-mouzoun_session";
 
+/// These tests check the password step: the second factor (on by default, tested in
+/// tests/accounts.rs) is switched off.
+async fn without_2fa(app: &TestApp) {
+    sqlx::query("UPDATE settings SET value = 'false' WHERE key = 'auth.staff_2fa_required'")
+        .execute(&app.db)
+        .await
+        .unwrap();
+}
+
 async fn create_user(app: &TestApp, email: &str, pass: &str, staff: bool) -> uuid::Uuid {
+    without_2fa(app).await;
     let hash = password::hash(pass.to_string()).await.unwrap();
     common::create_user(&app.db, email, &hash, staff, staff.then_some("manager")).await
 }
@@ -138,14 +148,18 @@ async fn the_cookie_authenticates_and_logout_ends_the_session(db: PgPool) {
 async fn a_non_staff_session_cannot_reach_the_back_office(db: PgPool) {
     let app = TestApp::new(db).await;
     create_user(&app, "client@mouzoun.com", "abc123", false).await;
+    // A guest account cannot even open a back-office session...
     let (status, cookie, _) = login(&app, "client@mouzoun.com", "abc123").await;
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!((status, cookie), (StatusCode::UNAUTHORIZED, None));
+    // ...and a forged non-staff token is refused by the guard.
+    let token =
+        mouzoun_api::auth::jwt::issue(common::JWT_SECRET, uuid::Uuid::now_v7(), false, 5).unwrap();
     let (status, _, _) = app
         .send(
             Method::GET,
             "/v1/admin/media",
             None,
-            &[("cookie", cookie.unwrap())],
+            &[("authorization", format!("Bearer {token}"))],
         )
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);

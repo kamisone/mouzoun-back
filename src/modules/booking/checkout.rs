@@ -5,7 +5,7 @@
 use std::time::Duration as StdDuration;
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::State,
     http::{HeaderMap, StatusCode},
 };
@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 use super::{booking_settings, cart, trip_context};
 use crate::{
+    auth::GuestUser,
     db::bookings::{BookingSource, BookingStatus, PaymentOption, PaymentPurpose},
     error::{AppError, AppResult},
     services::{
@@ -201,8 +202,15 @@ pub async fn checkout(
     client: ClientInfo,
     headers: HeaderMap,
     jar: CookieJar,
+    guest: Option<Extension<GuestUser>>,
     Json(body): Json<CheckoutBody>,
 ) -> AppResult<(CookieJar, Json<Value>)> {
+    let user = guest.map(|g| g.user_id);
+    // Signed in: the booking goes to the account's customer record (details kept up to date).
+    let account_customer = match user {
+        Some(u) => Some(crate::services::accounts::signin::customer_of(&state.db, u).await?),
+        None => None,
+    };
     rate_limit(
         &state.cache,
         "checkout",
@@ -228,7 +236,7 @@ pub async fn checkout(
     )
     .await?;
 
-    let (cart_id, basket) = cart::load(&state, &jar).await;
+    let (cart_id, basket) = cart::load(&state, &jar, user).await;
     let from_cart = body.items.is_none();
     let request = match &body.items {
         Some(items) => TripRequest {
@@ -287,6 +295,24 @@ pub async fn checkout(
         return Err(AppError::BadRequest("unknown payment provider".into()));
     }
 
+    if let Some(customer_id) = account_customer {
+        let c = &body.customer;
+        sqlx::query!(
+            "UPDATE customers SET first_name = $2, last_name = $3, phone = COALESCE($4, phone),
+                    country_code = COALESCE($5, country_code)
+             WHERE id = $1",
+            customer_id,
+            c.first_name.trim(),
+            c.last_name.trim(),
+            c.phone.as_deref().map(str::trim).filter(|p| !p.is_empty()),
+            c.country_code
+                .as_deref()
+                .map(str::to_ascii_uppercase)
+                .filter(|c| c.len() == 2),
+        )
+        .execute(&state.db)
+        .await?;
+    }
     let key = idempotency_key(&headers);
     let state2 = state.clone();
     let response = idempotent(&state.cache, "checkout", key, || async move {
@@ -294,7 +320,9 @@ pub async fn checkout(
         let c = &body.customer;
         let input = CheckoutInput {
             request: request.clone(),
-            customer: CustomerRef::New(CustomerInput {
+            customer: match account_customer {
+                Some(id) => CustomerRef::Existing(id),
+                None => CustomerRef::New(CustomerInput {
                 email: Some(c.email.trim().to_lowercase()),
                 first_name: c.first_name.trim().to_string(),
                 last_name: Some(c.last_name.trim().to_string()),
@@ -302,6 +330,7 @@ pub async fn checkout(
                 country_code: c.country_code.clone().map(|c| c.to_ascii_uppercase()).filter(|c| !c.is_empty()),
                 preferred_locale: Some(locale.clone()),
             }),
+            },
             payment_option: body.payment_option,
             expected_total_minor: Some(expected),
             special_requests: body.special_requests.clone(),
@@ -373,7 +402,7 @@ pub async fn checkout(
     })
     .await?;
     let jar = if from_cart && cart_id.is_some() {
-        cart::clear(&state, jar).await
+        cart::clear(&state, jar, user).await
     } else {
         jar
     };

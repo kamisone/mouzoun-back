@@ -88,6 +88,10 @@ pub fn test_config() -> Config {
             fake_payments: true,
             guest_data_key: Some([7; 32]),
             trust_proxy: true,
+            hibp_enabled: false,
+            api_public_url: "https://mouzoun.test/api".into(),
+            webauthn_rp_id: "mouzoun.test".into(),
+            webauthn_origin: ALLOWED_ORIGIN.into(),
             ..BookingConfig::default()
         },
     }

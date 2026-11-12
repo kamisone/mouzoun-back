@@ -44,6 +44,32 @@ pub struct BookingConfig {
     pub guest_data_key: Option<[u8; 32]>,
     /// Trust `X-Forwarded-For` (set by our nginx) for the client IP (`TRUST_PROXY`, default true).
     pub trust_proxy: bool,
+    /// Check new passwords against Have I Been Pwned (`HIBP_ENABLED`, default true).
+    pub hibp_enabled: bool,
+    /// Social sign-in (OpenID Connect).
+    pub google: Option<OidcClient>,
+    pub apple: Option<AppleClient>,
+    /// Public URL of the API as seen by browsers (OIDC redirect URIs), e.g. https://mouzoun.com/api.
+    pub api_public_url: String,
+    /// WebAuthn relying party: id (domain) and origin (`WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`).
+    pub webauthn_rp_id: String,
+    pub webauthn_origin: String,
+}
+
+#[derive(Clone)]
+pub struct OidcClient {
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+#[derive(Clone)]
+pub struct AppleClient {
+    /// Services ID (e.g. com.mouzoun.web).
+    pub client_id: String,
+    pub team_id: String,
+    pub key_id: String,
+    /// ES256 private key (.p8, PEM).
+    pub private_key: String,
 }
 
 #[derive(Clone)]
@@ -72,6 +98,9 @@ impl fmt::Debug for BookingConfig {
             .field("fake_payments", &self.fake_payments)
             .field("turnstile", &self.turnstile_secret.is_some())
             .field("guest_data_key", &self.guest_data_key.is_some())
+            .field("google", &self.google.is_some())
+            .field("apple", &self.apple.is_some())
+            .field("webauthn_rp_id", &self.webauthn_rp_id)
             .finish()
     }
 }
@@ -123,6 +152,30 @@ impl BookingConfig {
             turnstile_secret: optional("TURNSTILE_SECRET_KEY"),
             guest_data_key,
             trust_proxy: parse_or("TRUST_PROXY", true)?,
+            hibp_enabled: parse_or("HIBP_ENABLED", true)?,
+            google: match optional("GOOGLE_CLIENT_ID") {
+                Some(client_id) => Some(OidcClient {
+                    client_id,
+                    client_secret: required("GOOGLE_CLIENT_SECRET")?,
+                }),
+                None => None,
+            },
+            apple: match optional("APPLE_CLIENT_ID") {
+                Some(client_id) => Some(AppleClient {
+                    client_id,
+                    team_id: required("APPLE_TEAM_ID")?,
+                    key_id: required("APPLE_KEY_ID")?,
+                    private_key: required("APPLE_PRIVATE_KEY")?.replace("\\n", "\n"),
+                }),
+                None => None,
+            },
+            api_public_url: optional("API_PUBLIC_URL")
+                .unwrap_or_else(|| "http://localhost:8080".into())
+                .trim_end_matches('/')
+                .to_string(),
+            webauthn_rp_id: optional("WEBAUTHN_RP_ID").unwrap_or_else(|| "localhost".into()),
+            webauthn_origin: optional("WEBAUTHN_ORIGIN")
+                .unwrap_or_else(|| "http://localhost:3001".into()),
         })
     }
 }

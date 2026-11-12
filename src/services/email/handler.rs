@@ -83,6 +83,19 @@ const EVENT_TYPES: &[&str] = &[
     types::BOOKING_ACCESS_REQUESTED,
     types::REFUND_SUCCEEDED,
     types::CART_ABANDONED,
+    types::AUTH_LOGIN_CODE,
+    types::ACCOUNT_CREATED,
+    types::AUTH_NEW_DEVICE,
+    types::AUTH_PASSWORD_CHANGED,
+    types::AUTH_EMAIL_CHANGE_REQUESTED,
+    types::AUTH_EMAIL_CHANGED,
+    types::AUTH_PASSKEY_ADDED,
+    types::AUTH_IDENTITY_LINKED,
+    types::BOOKING_CLAIM_REQUESTED,
+    types::BOOKING_CLAIMED,
+    types::ACCOUNT_EXPORT_READY,
+    types::ACCOUNT_DELETION_SCHEDULED,
+    types::ACCOUNT_DELETED,
 ];
 
 #[async_trait]
@@ -514,6 +527,15 @@ impl EmailHandler {
                     .await
             }
             other => {
+                if let Some(jobs) = super::account_jobs::jobs(
+                    &self.pool,
+                    &self.mailer.settings().public_site_url,
+                    event,
+                )
+                .await?
+                {
+                    return Ok(jobs);
+                }
                 tracing::warn!(event_type = other, "email handler: unsupported event type");
                 Ok(vec![])
             }

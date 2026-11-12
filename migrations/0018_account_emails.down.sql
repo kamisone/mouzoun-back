@@ -1,0 +1,1 @@
+DELETE FROM email_templates WHERE code IN ('sign_in_code', 'account_welcome', 'security_new_device', 'security_password_changed', 'email_change_code', 'email_change_notice', 'security_email_changed', 'security_identity_linked', 'security_passkey_added', 'booking_claim', 'booking_claimed', 'account_export_ready', 'account_deletion_scheduled', 'account_deleted');

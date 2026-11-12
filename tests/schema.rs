@@ -111,6 +111,11 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
     let checked = assert_mirrors!(&db,
         "users"."status" => UserStatus,
         "auth_tokens"."purpose" => TokenPurpose,
+        "user_sessions"."kind" => SessionKind,
+        "user_identities"."provider" => IdentityProvider,
+        "notification_preferences"."category" => NotificationCategory,
+        "notification_preferences"."channel" => NotificationChannel,
+        "account_deletion_requests"."requested_by" => DeletionRequestedBy,
         "settings"."value_type" => SettingValueType,
         "media_assets"."kind" => MediaKind,
         "categories"."scope" => CategoryScope,
@@ -168,7 +173,7 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "email_log"."status" => EmailStatus,
         "audit_logs"."actor_type" => ActorType,
     );
-    assert_eq!(checked, 58);
+    assert_eq!(checked, 63);
 }
 
 #[sqlx::test(migrations = "./migrations")]

@@ -13,7 +13,14 @@ text_enum!(TokenPurpose {
     PasswordReset = "password_reset",
     EmailVerification = "email_verification",
     Invitation = "invitation",
+    EmailChange = "email_change",
+    BookingClaim = "booking_claim",
 });
+text_enum!(SessionKind { Guest = "guest", Staff = "staff" });
+text_enum!(IdentityProvider { Google = "google", Apple = "apple", Facebook = "facebook" });
+text_enum!(NotificationCategory { Reminders = "reminders", Offers = "offers", Reviews = "reviews" });
+text_enum!(NotificationChannel { Email = "email", Sms = "sms", Whatsapp = "whatsapp" });
+text_enum!(DeletionRequestedBy { Customer = "customer", Staff = "staff" });
 text_enum!(SettingValueType {
     String = "string",
     Number = "number",

@@ -6,6 +6,7 @@
 //! - `model.rs`      request/response types
 //!
 //! The data layer is `crate::db`; booking, pricing and inventory rules are in `crate::services`.
+pub mod account;
 pub mod booking;
 pub mod booking_admin;
 pub mod media;

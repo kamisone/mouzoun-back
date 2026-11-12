@@ -10,7 +10,7 @@ use super::views::{
 };
 
 /// Every template the application sends.
-pub const TEMPLATE_CODES: [&str; 24] = [
+pub const TEMPLATE_CODES: [&str; 38] = [
     "booking_received",
     "booking_confirmation",
     "booking_cancelled",
@@ -35,6 +35,20 @@ pub const TEMPLATE_CODES: [&str; 24] = [
     "booking_magic_link",
     "refund_receipt",
     "cart_abandoned",
+    "sign_in_code",
+    "account_welcome",
+    "security_new_device",
+    "security_password_changed",
+    "email_change_code",
+    "email_change_notice",
+    "security_email_changed",
+    "security_identity_linked",
+    "security_passkey_added",
+    "booking_claim",
+    "booking_claimed",
+    "account_export_ready",
+    "account_deletion_scheduled",
+    "account_deleted",
 ];
 
 fn at(s: &str) -> DateTime<Utc> {
@@ -212,6 +226,67 @@ pub fn for_template(code: &str, locale: &str, site_url: &str) -> Option<Value> {
             );
         }
         "cart_abandoned" => booking_vars(&mut vars, "expired"),
+        "sign_in_code" => {
+            vars.insert("code".into(), json!("042917"));
+            vars.insert(
+                "link".into(),
+                json!(format!(
+                    "{site_url}/{locale}/account/signin/link?e=a%40x.ma&t=sample"
+                )),
+            );
+            vars.insert("minutes".into(), json!(10));
+        }
+        "email_change_code" => {
+            vars.insert("code".into(), json!("318204"));
+        }
+        "account_deleted" => {}
+        code if code.starts_with("security_")
+            || matches!(
+                code,
+                "account_welcome"
+                    | "email_change_notice"
+                    | "booking_claim"
+                    | "booking_claimed"
+                    | "account_export_ready"
+                    | "account_deletion_scheduled"
+            ) =>
+        {
+            for (k, v) in [
+                ("first_name", json!("Amina")),
+                ("account_url", json!(format!("{site_url}/{locale}/account"))),
+                (
+                    "security_url",
+                    json!(format!("{site_url}/{locale}/account/security")),
+                ),
+                ("device", json!("Safari · iPhone")),
+                ("when", json!("2027-01-03T09:45:00Z")),
+                ("change", json!("added")),
+                ("new_email", json!("amina.new@example.com")),
+                ("old_email", json!("amina@example.com")),
+                ("provider", json!("Google")),
+                ("reference", json!("MZ-27-000042")),
+                (
+                    "link",
+                    json!(format!(
+                        "{site_url}/{locale}/account/trips/claim?token=sample"
+                    )),
+                ),
+                (
+                    "trip_url",
+                    json!(format!("{site_url}/{locale}/booking/MZ-27-000042")),
+                ),
+                ("days", json!(7)),
+                ("scheduled_for", json!("2027-01-17T10:00:00Z")),
+                (
+                    "cancel_url",
+                    json!(format!(
+                        "{site_url}/{locale}/account/privacy/cancel-deletion?token=sample"
+                    )),
+                ),
+            ] {
+                vars.insert(k.into(), v);
+            }
+        }
         "payment_receipt" => {
             booking_vars(&mut vars, "confirmed");
             vars.insert(

@@ -40,9 +40,19 @@ pub fn router(state: AppState) -> Router {
             auth::require_staff,
         ));
 
+    // Public API: the guest-session middleware identifies signed-in guests (and refreshes their
+    // session transparently). The back office keeps its own cookie and guard.
+    let public = Router::new()
+        .merge(modules::booking::public_routes())
+        .nest("/account", modules::account::routes())
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::guest::guest_session,
+        ));
+
     let api_v1 = Router::new()
         .nest("/auth", auth::routes())
-        .merge(modules::booking::public_routes())
+        .merge(public)
         .nest("/admin", admin);
 
     Router::new()

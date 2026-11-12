@@ -2,6 +2,7 @@
 //! sent through an [`EmailSender`], logged in `email_log` and triggered by outbox events
 //! (see `docs/email/README.md`).
 
+pub mod account_jobs;
 pub mod admin;
 mod context;
 pub mod delivery;

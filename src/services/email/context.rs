@@ -414,6 +414,12 @@ pub async fn build(
                 (crate::db::identity::TokenPurpose::Invitation, _) => {
                     "admin/accept-invitation".to_string()
                 }
+                (crate::db::identity::TokenPurpose::EmailChange, _) => {
+                    format!("{locale}/account/email/confirm")
+                }
+                (crate::db::identity::TokenPurpose::BookingClaim, _) => {
+                    format!("{locale}/account/trips/claim")
+                }
             };
             let inviter = match invited_by {
                 Some(id) => {

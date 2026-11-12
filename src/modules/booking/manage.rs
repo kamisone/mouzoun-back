@@ -5,7 +5,7 @@
 use std::{collections::HashMap, time::Duration as StdDuration};
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Response},
@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 use super::booking_settings;
 use crate::{
+    auth::GuestUser,
     camp_time,
     db::bookings::{BookingStatus, CancelledBy, PaymentPurpose},
     error::{AppError, AppResult},
@@ -36,14 +37,28 @@ use crate::{
     },
 };
 
-/// The booking a request may see: `?t=` or `X-Booking-Token` must be its signed token.
-/// Unknown reference and wrong token both answer 404 (no enumeration).
+/// The booking a request may see: `?t=` or `X-Booking-Token` must be its signed token, or the
+/// signed-in guest's customer record must own it. Unknown reference, wrong token and someone
+/// else's booking all answer 404 (no enumeration).
 pub(crate) async fn access(
     state: &AppState,
     reference: &str,
     headers: &HeaderMap,
     query: &HashMap<String, String>,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<Uuid> {
+    if let Some(Extension(g)) = guest
+        && let Some(id) = sqlx::query_scalar!(
+            "SELECT b.id FROM bookings b JOIN customers c ON c.id = b.customer_id
+             WHERE b.reference = $1 AND c.user_id = $2",
+            reference,
+            g.user_id
+        )
+        .fetch_optional(&state.db)
+        .await?
+    {
+        return Ok(id);
+    }
     let token = query
         .get("t")
         .cloned()
@@ -202,8 +217,9 @@ pub async fn get(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     Ok(Json(booking_view(&state, id).await?))
 }
 
@@ -213,8 +229,9 @@ pub async fn status(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let s = sqlx::query!(
         r#"SELECT b.status AS "status: BookingStatus", b.amount_paid_minor, b.total_minor, b.hold_expires_at,
                   (SELECT p.status FROM payments p WHERE p.booking_id = b.id ORDER BY p.created_at DESC LIMIT 1) AS "payment_status?",
@@ -243,6 +260,7 @@ pub async fn pay(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
     client: ClientInfo,
     Json(body): Json<PayBody>,
 ) -> AppResult<Json<Value>> {
@@ -254,7 +272,7 @@ pub async fn pay(
         StdDuration::from_secs(60),
     )
     .await?;
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let key = idempotency_key(&headers);
     let response = idempotent(&state.cache, "pay", key, || async {
         let b = sqlx::query!(
@@ -286,8 +304,9 @@ pub async fn cancellation_preview(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let mut conn = state.db.acquire().await?;
     let preview = manage::preview_cancellation(&mut conn, id, None, Utc::now()).await?;
     let settings = booking_settings(&state).await?;
@@ -316,10 +335,11 @@ pub async fn cancel(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
     client: ClientInfo,
     Json(body): Json<CancelBody>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let settings = booking_settings(&state).await?;
     let started = trip_start(&state, id)
         .await?
@@ -362,10 +382,11 @@ pub async fn update(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
     client: ClientInfo,
     Json(body): Json<DetailsBody>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     if body
         .special_requests
         .as_deref()
@@ -389,8 +410,9 @@ pub async fn guests(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let guests = register::load(
         &state.db,
         state.config.booking.guest_data_key.as_ref(),
@@ -413,10 +435,11 @@ pub async fn save_guests(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
     client: ClientInfo,
     Json(body): Json<GuestsBody>,
 ) -> AppResult<Json<Value>> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let complete = register::save(
         &state.db,
         state.config.booking.guest_data_key.as_ref(),
@@ -531,9 +554,10 @@ pub async fn ics(
     Path(reference): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
+    guest: Option<Extension<GuestUser>>,
     RequestLocale(_locale): RequestLocale,
 ) -> AppResult<Response> {
-    let id = access(&state, &reference, &headers, &query).await?;
+    let id = access(&state, &reference, &headers, &query, guest).await?;
     let view = booking_view(&state, id).await?;
     let site = sqlx::query_scalar!("SELECT value FROM settings WHERE key = 'contact.address'")
         .fetch_optional(&state.db)

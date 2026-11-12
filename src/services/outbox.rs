@@ -96,6 +96,67 @@ pub enum Event {
     InquiryCreated {
         inquiry_id: Uuid,
     },
+    /// Sign-in code + magic link. The address may have no account yet: everything is secret.
+    AuthLoginCode {
+        email: String,
+        locale: String,
+        code: String,
+        token: String,
+        return_to: Option<String>,
+    },
+    AccountCreated {
+        user_id: Uuid,
+    },
+    AuthNewDevice {
+        user_id: Uuid,
+        session_id: Uuid,
+    },
+    /// `change`: `added`, `changed` or `removed`.
+    AuthPasswordChanged {
+        user_id: Uuid,
+        change: String,
+    },
+    /// Code sent to the new address, notice to the current one.
+    AuthEmailChangeRequested {
+        user_id: Uuid,
+        new_email: String,
+        code: String,
+    },
+    AuthEmailChanged {
+        user_id: Uuid,
+        old_email: String,
+    },
+    AuthPasskeyAdded {
+        user_id: Uuid,
+    },
+    AuthIdentityLinked {
+        user_id: Uuid,
+        provider: String,
+    },
+    BookingClaimRequested {
+        booking_id: Uuid,
+        user_id: Uuid,
+        token: String,
+    },
+    BookingClaimed {
+        booking_id: Uuid,
+        user_id: Uuid,
+    },
+    AccountExportReady {
+        user_id: Uuid,
+        export_id: Uuid,
+        token: String,
+    },
+    AccountDeletionScheduled {
+        user_id: Uuid,
+        request_id: Uuid,
+        token: String,
+    },
+    /// Sent after the account is gone: the address only travels as a secret.
+    AccountDeleted {
+        email: String,
+        locale: String,
+    },
     NewsletterSubscribed {
         subscriber_id: Uuid,
         token: String,
@@ -209,6 +270,19 @@ pub mod types {
     pub const BOOKING_CHANGE_REQUESTED: &str = "booking.change_requested";
     pub const CART_ABANDONED: &str = "cart.abandoned";
     pub const INQUIRY_CREATED: &str = "inquiry.created";
+    pub const AUTH_LOGIN_CODE: &str = "auth.login_code";
+    pub const ACCOUNT_CREATED: &str = "account.created";
+    pub const AUTH_NEW_DEVICE: &str = "auth.new_device";
+    pub const AUTH_PASSWORD_CHANGED: &str = "auth.password_changed";
+    pub const AUTH_EMAIL_CHANGE_REQUESTED: &str = "auth.email_change_requested";
+    pub const AUTH_EMAIL_CHANGED: &str = "auth.email_changed";
+    pub const AUTH_PASSKEY_ADDED: &str = "auth.passkey_added";
+    pub const AUTH_IDENTITY_LINKED: &str = "auth.identity_linked";
+    pub const BOOKING_CLAIM_REQUESTED: &str = "booking.claim_requested";
+    pub const BOOKING_CLAIMED: &str = "booking.claimed";
+    pub const ACCOUNT_EXPORT_READY: &str = "account.export_ready";
+    pub const ACCOUNT_DELETION_SCHEDULED: &str = "account.deletion_scheduled";
+    pub const ACCOUNT_DELETED: &str = "account.deleted";
     pub const NEWSLETTER_SUBSCRIBED: &str = "newsletter.subscribed";
     pub const PASSWORD_RESET_REQUESTED: &str = "auth.password_reset_requested";
     pub const EMAIL_VERIFICATION_REQUESTED: &str = "auth.email_verification_requested";
@@ -242,6 +316,19 @@ impl Event {
             Self::BookingChangeRequested { .. } => BOOKING_CHANGE_REQUESTED,
             Self::CartAbandoned { .. } => CART_ABANDONED,
             Self::InquiryCreated { .. } => INQUIRY_CREATED,
+            Self::AuthLoginCode { .. } => AUTH_LOGIN_CODE,
+            Self::AccountCreated { .. } => ACCOUNT_CREATED,
+            Self::AuthNewDevice { .. } => AUTH_NEW_DEVICE,
+            Self::AuthPasswordChanged { .. } => AUTH_PASSWORD_CHANGED,
+            Self::AuthEmailChangeRequested { .. } => AUTH_EMAIL_CHANGE_REQUESTED,
+            Self::AuthEmailChanged { .. } => AUTH_EMAIL_CHANGED,
+            Self::AuthPasskeyAdded { .. } => AUTH_PASSKEY_ADDED,
+            Self::AuthIdentityLinked { .. } => AUTH_IDENTITY_LINKED,
+            Self::BookingClaimRequested { .. } => BOOKING_CLAIM_REQUESTED,
+            Self::BookingClaimed { .. } => BOOKING_CLAIMED,
+            Self::AccountExportReady { .. } => ACCOUNT_EXPORT_READY,
+            Self::AccountDeletionScheduled { .. } => ACCOUNT_DELETION_SCHEDULED,
+            Self::AccountDeleted { .. } => ACCOUNT_DELETED,
             Self::NewsletterSubscribed { .. } => NEWSLETTER_SUBSCRIBED,
             Self::PasswordResetRequested { .. } => PASSWORD_RESET_REQUESTED,
             Self::EmailVerificationRequested { .. } => EMAIL_VERIFICATION_REQUESTED,
@@ -306,6 +393,92 @@ impl Event {
                 "booking",
                 booking_id.to_string(),
                 json!({ "booking_id": booking_id, "change_request_id": change_request_id }),
+            ),
+            Self::AuthLoginCode {
+                email,
+                locale,
+                code,
+                token,
+                return_to,
+            } => (
+                "email",
+                super::accounts::tokens::sha256_hex(email),
+                json!({ "locale": locale, SECRET_KEY: { "email": email, "code": code, "token": token, "return_to": return_to } }),
+            ),
+            Self::AccountCreated { user_id } | Self::AuthPasskeyAdded { user_id } => {
+                ("user", user_id.to_string(), json!({ "user_id": user_id }))
+            }
+            Self::AuthNewDevice {
+                user_id,
+                session_id,
+            } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, "session_id": session_id }),
+            ),
+            Self::AuthPasswordChanged { user_id, change } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, "change": change }),
+            ),
+            Self::AuthEmailChangeRequested {
+                user_id,
+                new_email,
+                code,
+            } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, SECRET_KEY: { "new_email": new_email, "code": code } }),
+            ),
+            Self::AuthEmailChanged { user_id, old_email } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, SECRET_KEY: { "old_email": old_email } }),
+            ),
+            Self::AuthIdentityLinked { user_id, provider } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, "provider": provider }),
+            ),
+            Self::BookingClaimRequested {
+                booking_id,
+                user_id,
+                token,
+            } => (
+                "booking",
+                booking_id.to_string(),
+                json!({ "booking_id": booking_id, "user_id": user_id, SECRET_KEY: secret(token) }),
+            ),
+            Self::BookingClaimed {
+                booking_id,
+                user_id,
+            } => (
+                "booking",
+                booking_id.to_string(),
+                json!({ "booking_id": booking_id, "user_id": user_id }),
+            ),
+            Self::AccountExportReady {
+                user_id,
+                export_id,
+                token,
+            } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, "export_id": export_id, SECRET_KEY: secret(token) }),
+            ),
+            Self::AccountDeletionScheduled {
+                user_id,
+                request_id,
+                token,
+            } => (
+                "user",
+                user_id.to_string(),
+                json!({ "user_id": user_id, "request_id": request_id, SECRET_KEY: secret(token) }),
+            ),
+            Self::AccountDeleted { email, locale } => (
+                "email",
+                super::accounts::tokens::sha256_hex(email),
+                json!({ "locale": locale, SECRET_KEY: { "email": email } }),
             ),
             Self::InquiryCreated { inquiry_id } => (
                 "inquiry",
