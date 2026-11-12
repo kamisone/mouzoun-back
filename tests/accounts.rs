@@ -745,3 +745,127 @@ async fn cards_are_saved_through_the_provider_and_removed_only_by_their_owner(db
         .await;
     assert_eq!(status, StatusCode::NO_CONTENT);
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn data_export_and_account_deletion_with_grace_period(db: PgPool) {
+    use mouzoun_api::services::accounts::privacy;
+    let app = TestApp::new(db.clone()).await;
+    let guests = guest_ids(&db).await;
+    let tent = accommodation(&db, "pool", 3).await;
+    let mut req_meta = meta("amina@example.com");
+    req_meta.rate_plan_id = None;
+    let booking = mouzoun_api::services::booking::book_accommodation(
+        &db,
+        &mouzoun_api::services::booking::AccommodationRequest {
+            product_id: tent,
+            arrival: d(2027, 3, 10),
+            departure: d(2027, 3, 12),
+            quantity: 1,
+            guests: adults(&guests, 2),
+            meta: req_meta,
+        },
+        now(),
+        today(),
+    )
+    .await
+    .unwrap();
+    let (_, jar) = sign_in(&app, "amina@example.com", None).await;
+    let me = vec![("cookie", cookie_header(&jar))];
+
+    // Export: built by the job, link emailed, downloadable by the account only.
+    let (status, _, _) = app
+        .send(Method::POST, "/v1/account/privacy/export", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    let (status, _, _) = app
+        .send(Method::POST, "/v1/account/privacy/export", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "one per day");
+    privacy::build_pending_exports(&db, chrono::Utc::now())
+        .await
+        .unwrap();
+    let token: String = sqlx::query_scalar(
+        "SELECT payload->'secret'->>'token' FROM outbox_events WHERE event_type = 'account.export_ready'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let (status, _, data) = app
+        .send(
+            Method::GET,
+            &format!("/v1/account/privacy/export?token={token}"),
+            None,
+            &me,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(data["account"]["email"], "amina@example.com");
+    assert_eq!(data["bookings"].as_array().unwrap().len(), 1);
+
+    // Deletion refused while a stay is upcoming.
+    let (status, _, body) = app
+        .send(Method::POST, "/v1/account/privacy/deletion", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(
+        body["error"]["details"]["blockers"][0], "upcoming_stay",
+        "{body}"
+    );
+    sqlx::query("UPDATE bookings SET status = 'cancelled' WHERE id = $1")
+        .bind(booking.booking_id)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    // Scheduled, cancellable by link, scheduled again, then carried out.
+    let (status, _, body) = app
+        .send(Method::POST, "/v1/account/privacy/deletion", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{body}");
+    let cancel: String = sqlx::query_scalar(
+        "SELECT payload->'secret'->>'token' FROM outbox_events WHERE event_type = 'account.deletion_scheduled'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let (status, _) = app
+        .request(
+            Method::POST,
+            "/v1/account/privacy/deletion/cancel",
+            Some(json!({ "token": cancel })),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (status, _, _) = app
+        .send(Method::POST, "/v1/account/privacy/deletion", None, &me)
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    let later = chrono::Utc::now() + chrono::Duration::days(15);
+    assert_eq!(privacy::run_due_deletions(&db, later).await.unwrap(), 1);
+
+    let (status, _, _) = app.send(Method::GET, "/v1/account/me", None, &me).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED, "sessions are gone");
+    let row: (Option<String>, String) = sqlx::query_as(
+        "SELECT email::text, first_name FROM customers c JOIN bookings b ON b.customer_id = c.id WHERE b.id = $1",
+    )
+    .bind(booking.booking_id)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        row,
+        (None, "Deleted".into()),
+        "the booking stays, without contact details"
+    );
+    let goodbye: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM outbox_events WHERE event_type = 'account.deleted'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(goodbye, 1);
+    // The address can create a fresh account.
+    let (body, _) = sign_in(&app, "amina@example.com", None).await;
+    assert_eq!(body["created"], true);
+}

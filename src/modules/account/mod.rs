@@ -6,6 +6,7 @@ pub mod auth;
 pub mod cards;
 pub mod extras;
 pub mod oauth;
+pub mod privacy;
 pub mod profile;
 
 use axum::{
@@ -78,6 +79,20 @@ pub fn routes() -> Router<AppState> {
         .route("/payment-methods", get(cards::list))
         .route("/payment-methods/setup", post(cards::setup))
         .route("/payment-methods/{id}", delete(cards::remove))
+        .route(
+            "/privacy/export",
+            get(privacy::download_export).post(privacy::request_export),
+        )
+        .route(
+            "/privacy/deletion",
+            get(privacy::deletion_status)
+                .post(privacy::request_deletion)
+                .delete(privacy::cancel_deletion),
+        )
+        .route(
+            "/privacy/deletion/cancel",
+            post(privacy::cancel_deletion_by_link),
+        )
         .route("/trips/claim", post(extras::claim))
         .route("/trips/claim/confirm", post(extras::confirm_claim))
 }

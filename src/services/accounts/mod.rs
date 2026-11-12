@@ -4,6 +4,7 @@
 
 pub mod oidc;
 pub mod passwords;
+pub mod privacy;
 pub mod sessions;
 pub mod signin;
 pub mod tokens;

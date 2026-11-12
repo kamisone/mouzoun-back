@@ -1,6 +1,7 @@
 //! Background workers. Each runs until the shutdown token is cancelled. All of them are safe to
 //! run on several API instances at once (row locks with SKIP LOCKED, idempotent inserts).
 
+mod accounts;
 mod booking_holds;
 pub mod booking_ops;
 mod inventory;
@@ -45,6 +46,10 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
                 move || booking_ops::run_once(db.clone(), payments.clone())
             },
         ),
+        every("accounts", Duration::from_secs(900), shutdown.clone(), {
+            let db = state.db.clone();
+            move || accounts::run_once(db.clone())
+        }),
         every("inventory", Duration::from_secs(24 * 3600), shutdown, {
             let db = state.db.clone();
             move || inventory::run_once(db.clone())
