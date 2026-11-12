@@ -2101,7 +2101,6 @@ dependencies = [
  "google-cloud-gax",
  "google-cloud-storage",
  "google-cloud-wkt",
- "hmac 0.12.1",
  "http-body-util",
  "ipnetwork",
  "jiff",

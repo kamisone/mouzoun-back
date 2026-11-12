@@ -386,8 +386,123 @@ async fn process(
             .await?;
             Ok(())
         }
+        WebhookOutcome::PaymentCanceled {
+            provider_payment_id,
+        } => {
+            sqlx::query!(
+                "UPDATE payments SET status = 'cancelled'
+                 WHERE provider_payment_id = $1 AND status IN ('pending', 'requires_action')",
+                provider_payment_id
+            )
+            .execute(pool)
+            .await?;
+            Ok(())
+        }
+        WebhookOutcome::DisputeOpened {
+            provider_payment_id,
+            amount_minor,
+            reason,
+            evidence_due_by,
+        } => {
+            dispute_opened(
+                pool,
+                provider_payment_id,
+                *amount_minor,
+                reason,
+                *evidence_due_by,
+            )
+            .await
+        }
         WebhookOutcome::Ignored => Ok(()),
     }
+}
+
+/// A chargeback: staff must answer at the provider before the evidence deadline.
+async fn dispute_opened(
+    pool: &PgPool,
+    provider_payment_id: &str,
+    amount_minor: Option<i64>,
+    reason: &str,
+    evidence_due_by: Option<i64>,
+) -> Result<(), PaymentError> {
+    let mut tx = pool.begin().await?;
+    let Some(payment) = sqlx::query!(
+        "SELECT id, booking_id FROM payments WHERE provider_payment_id = $1",
+        provider_payment_id
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        tracing::warn!(
+            provider_payment_id,
+            alert = true,
+            "dispute on an unknown payment"
+        );
+        return Ok(());
+    };
+    let due = evidence_due_by.and_then(|t| DateTime::<Utc>::from_timestamp(t, 0));
+    create_task(
+        &mut tx,
+        StaffTaskKind::Dispute,
+        Some(payment.booking_id),
+        Some(payment.id),
+        "Card payment disputed: answer in the payment provider's dashboard before the deadline",
+        json!({ "amount_minor": amount_minor, "reason": reason, "evidence_due_by": due }),
+        Some(&format!("dispute:{}", payment.id)),
+    )
+    .await?;
+    audit::record(
+        &mut tx,
+        &Actor::webhook(),
+        "payment.disputed",
+        "payment",
+        &payment.id.to_string(),
+        json!({ "booking_id": payment.booking_id, "amount_minor": amount_minor, "reason": reason }),
+    )
+    .await?;
+    tx.commit().await?;
+    tracing::warn!(payment = %payment.id, alert = true, "payment disputed");
+    Ok(())
+}
+
+/// Payments still open on bookings whose hold expired are cancelled at the provider, so the
+/// guest can no longer pay a booking whose inventory was released. Returns how many.
+pub async fn cancel_abandoned(
+    pool: &PgPool,
+    payments: &Payments,
+    limit: i64,
+) -> Result<usize, PaymentError> {
+    let open = sqlx::query!(
+        r#"SELECT p.id, p.provider, p.provider_payment_id AS "provider_payment_id!"
+           FROM payments p JOIN bookings b ON b.id = p.booking_id
+           WHERE b.status IN ('expired', 'cancelled') AND p.status IN ('pending', 'requires_action')
+             AND p.provider_payment_id IS NOT NULL
+           ORDER BY p.created_at LIMIT $1"#,
+        limit
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut cancelled = 0;
+    for p in open {
+        let Some(gateway) = payments.for_payment(&p.provider, Some(&p.provider_payment_id)) else {
+            continue;
+        };
+        if let Err(e) = gateway
+            .cancel_payment(&p.provider_payment_id, &format!("cancel-{}", p.id))
+            .await
+        {
+            tracing::warn!(payment = %p.id, error = %e, "could not cancel an abandoned payment, retried next run");
+            continue;
+        }
+        sqlx::query!(
+            "UPDATE payments SET status = 'cancelled' WHERE id = $1 AND status IN ('pending', 'requires_action')",
+            p.id
+        )
+        .execute(pool)
+        .await?;
+        cancelled += 1;
+    }
+    Ok(cancelled)
 }
 
 /// `amount_paid_minor` = succeeded payments − succeeded refunds (one statement, in the caller's

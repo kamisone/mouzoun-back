@@ -24,3 +24,4 @@ mod oidc;
 mod outbox;
 mod passkeys;
 mod schema;
+mod stripe;

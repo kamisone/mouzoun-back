@@ -5,7 +5,7 @@ use axum::http::{Method, StatusCode};
 use chrono::Utc;
 use mouzoun_api::services::{
     booking,
-    payments::{fake, stripe},
+    payments::{self, fake, stripe},
 };
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -466,4 +466,133 @@ async fn find_my_booking_sends_a_single_use_link(db: PgPool) {
         (status, body["error"]["code"].as_str()),
         (StatusCode::GONE, Some("link_expired"))
     );
+}
+
+async fn signed_webhook(app: &TestApp, event: Value) -> StatusCode {
+    let body = serde_json::to_vec(&event).unwrap();
+    let signature = stripe::sign(&body, fake::WEBHOOK_SECRET, Utc::now().timestamp());
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/payments/webhooks/fake",
+            Some(event),
+            &[("stripe-signature", signature)],
+        )
+        .await;
+    status
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn expired_holds_cancel_their_payment_and_disputes_reach_staff(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    open_booking(&db).await;
+    rate_plan(&db).await;
+    let guests = guest_ids(&db).await;
+    let tent = accommodation(&db, "unit", 2).await;
+    let items = json!([stay(tent, guests.adult)]);
+    let token = quote(&app, items.clone()).await["quote_token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let (_, created) = checkout(&app, items.clone(), &token, "full", "abandoned").await;
+    let abandoned = created["payment"]["payment_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // The guest leaves: the hold expires and the open payment is cancelled at the provider.
+    sqlx::query("UPDATE bookings SET hold_expires_at = now() - interval '1 minute'")
+        .execute(&db)
+        .await
+        .unwrap();
+    booking::expire_holds(&db, Utc::now(), 10).await.unwrap();
+    assert_eq!(
+        payments::cancel_abandoned(&db, &app.state.payments, 10)
+            .await
+            .unwrap(),
+        1
+    );
+    let status: String = sqlx::query_scalar("SELECT status FROM payments WHERE id = $1::uuid")
+        .bind(&abandoned)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(status, "cancelled");
+    assert_eq!(
+        payments::cancel_abandoned(&db, &app.state.payments, 10)
+            .await
+            .unwrap(),
+        0,
+        "once"
+    );
+
+    // A second booking is paid, then disputed by the guest's bank.
+    let token = quote(&app, items.clone()).await["quote_token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let (_, created) = checkout(&app, items, &token, "full", "paid").await;
+    let paid = created["payment"]["payment_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let (status, _) = app
+        .request(
+            Method::POST,
+            &format!("/v1/payments/fake/{paid}/succeed"),
+            None,
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let intent: String =
+        sqlx::query_scalar("SELECT provider_payment_id FROM payments WHERE id = $1::uuid")
+            .bind(&paid)
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    let dispute = json!({ "id": "evt_dispute", "type": "charge.dispute.created", "data": { "object": {
+        "id": "dp_1", "payment_intent": intent, "amount": 6000, "reason": "fraudulent",
+        "evidence_details": { "due_by": 1_900_000_000 } } } });
+    assert_eq!(signed_webhook(&app, dispute.clone()).await, StatusCode::OK);
+    assert_eq!(
+        signed_webhook(&app, dispute).await,
+        StatusCode::OK,
+        "redelivery"
+    );
+    let (tasks, reason): (i64, String) = sqlx::query_as(
+        "SELECT count(*), max(details->>'reason') FROM staff_tasks WHERE kind = 'dispute'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!((tasks, reason.as_str()), (1, "fraudulent"));
+
+    // A payment cancelled from the provider's side is recorded as such.
+    let (_, created) = {
+        let items = json!([stay(tent, guests.adult)]);
+        let token = quote(&app, items.clone()).await["quote_token"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        checkout(&app, items, &token, "full", "canceled").await
+    };
+    let open = created["payment"]["payment_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let intent: String =
+        sqlx::query_scalar("SELECT provider_payment_id FROM payments WHERE id = $1::uuid")
+            .bind(&open)
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    let canceled = json!({ "id": "evt_cancel", "type": "payment_intent.canceled", "data": { "object": { "id": intent } } });
+    assert_eq!(signed_webhook(&app, canceled).await, StatusCode::OK);
+    let status: String = sqlx::query_scalar("SELECT status FROM payments WHERE id = $1::uuid")
+        .bind(&open)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(status, "cancelled");
 }

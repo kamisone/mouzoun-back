@@ -86,6 +86,7 @@ text_enum!(StaffTaskKind {
     ChangeRequest = "change_request",
     PaymentAfterExpiry = "payment_after_expiry",
     WebhookError = "webhook_error",
+    Dispute = "dispute",
     Other = "other",
 });
 text_enum!(StaffTaskStatus { Open = "open", Done = "done", Dismissed = "dismissed" });

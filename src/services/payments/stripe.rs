@@ -3,9 +3,7 @@
 
 use async_trait::async_trait;
 use axum::http::HeaderMap;
-use hmac::{Hmac, Mac};
 use serde_json::{Value, json};
-use sha2::Sha256;
 
 use super::gateway::{
     CardSetup, CreatePayment, GatewayError, OffSessionCharge, PaymentGateway, ProviderPayment,
@@ -268,6 +266,29 @@ impl PaymentGateway for StripeGateway {
         })
     }
 
+    async fn cancel_payment(
+        &self,
+        provider_payment_id: &str,
+        idempotency_key: &str,
+    ) -> Result<(), GatewayError> {
+        let path = format!("payment_intents/{provider_payment_id}/cancel");
+        let form = [("cancellation_reason".to_string(), "abandoned".to_string())];
+        match self.post(&path, &form, idempotency_key).await {
+            Ok(_) => Ok(()),
+            // Already succeeded / canceled: Stripe answers 400 (payment_intent_unexpected_state),
+            // the webhook of that state is (or was) handled on its own.
+            Err(GatewayError::Declined(message)) => {
+                tracing::info!(
+                    provider_payment_id,
+                    message,
+                    "payment not cancellable, left as is"
+                );
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     async fn charge_off_session(
         &self,
         req: &OffSessionCharge<'_>,
@@ -337,15 +358,16 @@ pub fn verify_signature(
     if (now - timestamp).abs() > TOLERANCE_SECS {
         return Err(invalid("timestamp outside the tolerance"));
     }
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA256, secret.as_bytes());
+    let mut signed = timestamp.to_string().into_bytes();
+    signed.push(b'.');
+    signed.extend_from_slice(body);
     for signature in signatures {
         let Ok(expected) = hex_decode(&signature) else {
             continue;
         };
-        let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("any key length");
-        mac.update(timestamp.to_string().as_bytes());
-        mac.update(b".");
-        mac.update(body);
-        if mac.verify_slice(&expected).is_ok() {
+        // Constant-time comparison.
+        if ring::hmac::verify(&key, &signed, &expected).is_ok() {
             return Ok(());
         }
     }
@@ -354,13 +376,14 @@ pub fn verify_signature(
 
 /// Signature header for `body` (tests and the Stripe CLI-like fixtures).
 pub fn sign(body: &[u8], secret: &str, timestamp: i64) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("any key length");
-    mac.update(timestamp.to_string().as_bytes());
-    mac.update(b".");
-    mac.update(body);
-    let hex: String = mac
-        .finalize()
-        .into_bytes()
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA256, secret.as_bytes());
+    let mut ctx = ring::hmac::Context::with_key(&key);
+    ctx.update(timestamp.to_string().as_bytes());
+    ctx.update(b".");
+    ctx.update(body);
+    let hex: String = ctx
+        .sign()
+        .as_ref()
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
@@ -405,6 +428,18 @@ pub fn parse_event(body: &[u8]) -> Result<WebhookEvent, GatewayError> {
         },
         "payment_intent.requires_action" => WebhookOutcome::RequiresAction {
             provider_payment_id: id,
+        },
+        "payment_intent.canceled" => WebhookOutcome::PaymentCanceled {
+            provider_payment_id: id,
+        },
+        "charge.dispute.created" => WebhookOutcome::DisputeOpened {
+            provider_payment_id: object["payment_intent"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            amount_minor: object["amount"].as_i64(),
+            reason: object["reason"].as_str().unwrap_or("unknown").to_string(),
+            evidence_due_by: object["evidence_details"]["due_by"].as_i64(),
         },
         "refund.updated" | "refund.created" if object["status"] == "succeeded" => {
             WebhookOutcome::RefundSucceeded {

@@ -140,7 +140,7 @@ pub async fn verify(
     let _: () = conn.del(&key).await?;
     if ticket.new_secret.is_some() {
         // Stored as base32 text inside the AES envelope.
-        let enc = register::encrypt(&totp_key, &totp::base32(&secret));
+        let enc = register::encrypt(&totp_key, &totp::base32(&secret))?;
         sqlx::query!(
             "UPDATE users SET totp_secret_enc = $2, totp_enabled_at = $3 WHERE id = $1",
             ticket.user_id,

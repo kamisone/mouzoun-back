@@ -33,8 +33,8 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
             Duration::from_secs(60),
             shutdown.clone(),
             {
-                let db = state.db.clone();
-                move || booking_holds::run_once(db.clone())
+                let (db, payments) = (state.db.clone(), state.payments.clone());
+                move || booking_holds::run_once(db.clone(), payments.clone())
             },
         ),
         every(

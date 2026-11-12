@@ -53,16 +53,27 @@ pub struct GuestView {
     pub is_lead: bool,
 }
 
-pub fn encrypt(key: &[u8; 32], plain: &str) -> Vec<u8> {
+/// Encrypts with a fresh random nonce: `nonce (12 bytes) ‖ ciphertext ‖ tag`.
+pub fn encrypt(key: &[u8; 32], plain: &str) -> Result<Vec<u8>, EncryptionError> {
     let cipher = Aes256Gcm::new(key.into());
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
     let mut out = nonce.to_vec();
     out.extend(
         cipher
             .encrypt(&nonce, plain.as_bytes())
-            .expect("AES-GCM encryption cannot fail for small inputs"),
+            .map_err(|_| EncryptionError)?,
     );
-    out
+    Ok(out)
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("encryption failed")]
+pub struct EncryptionError;
+
+impl From<EncryptionError> for crate::error::AppError {
+    fn from(e: EncryptionError) -> Self {
+        crate::error::AppError::Internal(e.into())
+    }
 }
 
 pub fn decrypt(key: &[u8; 32], data: &[u8]) -> Option<String> {
@@ -161,7 +172,9 @@ pub async fn save(
             .map(str::trim)
             .filter(|n| !n.is_empty());
         let encrypted = match (number, key) {
-            (Some(n), Some(k)) => Some(encrypt(k, n)),
+            (Some(n), Some(k)) => {
+                Some(encrypt(k, n).map_err(|e| BookingError::Invalid(e.to_string()))?)
+            }
             // Keep the stored number of the same person when the form left it blank.
             _ => previous
                 .iter()
@@ -289,8 +302,8 @@ mod tests {
     #[test]
     fn numbers_round_trip_and_are_masked() {
         let key = [3u8; 32];
-        let a = encrypt(&key, "AB123456");
-        let b = encrypt(&key, "AB123456");
+        let a = encrypt(&key, "AB123456").unwrap();
+        let b = encrypt(&key, "AB123456").unwrap();
         assert_ne!(a, b, "random nonce");
         assert_eq!(decrypt(&key, &a).as_deref(), Some("AB123456"));
         assert_eq!(decrypt(&[4u8; 32], &a), None, "wrong key");

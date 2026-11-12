@@ -114,6 +114,17 @@ pub enum WebhookOutcome {
         provider_payment_id: String,
         message: String,
     },
+    /// The payment was cancelled at the provider (abandoned hold, or from its dashboard).
+    PaymentCanceled {
+        provider_payment_id: String,
+    },
+    /// The guest's bank opened a dispute (chargeback) on this payment.
+    DisputeOpened {
+        provider_payment_id: String,
+        amount_minor: Option<i64>,
+        reason: String,
+        evidence_due_by: Option<i64>,
+    },
     /// 3-D Secure or another step is pending on the guest's side.
     RequiresAction {
         provider_payment_id: String,
@@ -142,6 +153,16 @@ pub trait PaymentGateway: Send + Sync {
     ) -> Result<ProviderPayment, GatewayError>;
 
     async fn refund(&self, req: &RefundRequest<'_>) -> Result<ProviderRefund, GatewayError>;
+
+    /// Cancels a payment not paid yet (hold expired): the guest can no longer complete it.
+    /// Already paid or already cancelled is not an error.
+    async fn cancel_payment(
+        &self,
+        _provider_payment_id: &str,
+        _idempotency_key: &str,
+    ) -> Result<(), GatewayError> {
+        Ok(())
+    }
 
     async fn charge_off_session(
         &self,

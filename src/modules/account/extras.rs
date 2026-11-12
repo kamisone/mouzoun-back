@@ -476,7 +476,7 @@ fn encrypt_number(state: &AppState, b: &TravellerBody) -> AppResult<Option<Vec<u
                         "ID numbers cannot be stored",
                     )
                 })?;
-            Ok(Some(register::encrypt(key, n)))
+            Ok(Some(register::encrypt(key, n)?))
         }
     }
 }

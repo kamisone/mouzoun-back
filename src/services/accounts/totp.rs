@@ -1,9 +1,7 @@
 //! TOTP (RFC 6238: HMAC-SHA1, 30-second steps, 6 digits) for staff two-factor sign-in. The
 //! secret is stored encrypted (AES-256-GCM, key derived from JWT_SECRET) in `users.totp_secret_enc`.
 
-use hmac::{Hmac, Mac};
 use rand::RngCore;
-use sha1::Sha1;
 use sha2::{Digest, Sha256};
 
 const ALPHABET: &[u8; 32] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -47,9 +45,10 @@ pub fn base32_decode(text: &str) -> Option<Vec<u8>> {
 }
 
 fn hotp(secret: &[u8], counter: u64) -> u32 {
-    let mut mac = Hmac::<Sha1>::new_from_slice(secret).expect("any key length");
-    mac.update(&counter.to_be_bytes());
-    let h = mac.finalize().into_bytes();
+    // RFC 6238 mandates HMAC-SHA1 for TOTP (authenticator apps), hence the legacy algorithm.
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, secret);
+    let tag = ring::hmac::sign(&key, &counter.to_be_bytes());
+    let h = tag.as_ref();
     let offset = (h[19] & 0x0f) as usize;
     let bin = (u32::from(h[offset]) & 0x7f) << 24
         | u32::from(h[offset + 1]) << 16

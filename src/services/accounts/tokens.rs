@@ -2,7 +2,6 @@
 //! email); the database and Redis keep their SHA-256.
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use hmac::{Hmac, Mac};
 use rand::{Rng, RngCore};
 use sha2::{Digest, Sha256};
 
@@ -31,7 +30,8 @@ pub fn sha256_hex(value: &str) -> String {
 
 /// HMAC-SHA256 of `parts` under `secret` and a domain label (never reused across purposes).
 pub fn mac(secret: &str, label: &str, parts: &[&[u8]]) -> Vec<u8> {
-    let mut m = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("any key length");
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA256, secret.as_bytes());
+    let mut m = ring::hmac::Context::with_key(&key);
     m.update(b"mouzoun:");
     m.update(label.as_bytes());
     m.update(b":");
@@ -39,7 +39,7 @@ pub fn mac(secret: &str, label: &str, parts: &[&[u8]]) -> Vec<u8> {
         m.update(p);
         m.update(b"\0");
     }
-    m.finalize().into_bytes().to_vec()
+    m.sign().as_ref().to_vec()
 }
 
 pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {

@@ -5,7 +5,6 @@
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
-use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -29,10 +28,11 @@ fn request_hash(request: &TripRequest) -> String {
 }
 
 fn mac(secret: &str, payload: &str) -> Vec<u8> {
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("any key length");
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA256, secret.as_bytes());
+    let mut mac = ring::hmac::Context::with_key(&key);
     mac.update(b"mouzoun:quote:");
     mac.update(payload.as_bytes());
-    mac.finalize().into_bytes().to_vec()
+    mac.sign().as_ref().to_vec()
 }
 
 pub fn sign(

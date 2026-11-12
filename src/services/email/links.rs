@@ -2,15 +2,14 @@
 //! alone is guessable, the token is not (HMAC-SHA256 of the booking id).
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use uuid::Uuid;
 
 pub fn booking_token(secret: &str, booking_id: Uuid) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("any key length works");
+    let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA256, secret.as_bytes());
+    let mut mac = ring::hmac::Context::with_key(&key);
     mac.update(b"mouzoun:booking-link:");
     mac.update(booking_id.as_bytes());
-    URL_SAFE_NO_PAD.encode(&mac.finalize().into_bytes()[..16])
+    URL_SAFE_NO_PAD.encode(&mac.sign().as_ref()[..16])
 }
 
 pub fn booking_url(base: &str, locale: &str, reference: &str, token: &str) -> String {
