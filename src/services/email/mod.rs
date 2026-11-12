@@ -8,7 +8,7 @@ pub mod delivery;
 pub mod format;
 pub mod handler;
 pub mod labels;
-mod links;
+pub mod links;
 pub mod render;
 pub mod samples;
 pub mod sender;

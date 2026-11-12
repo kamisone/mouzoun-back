@@ -10,5 +10,7 @@ pub mod inventory;
 pub mod locale;
 pub mod numbering;
 pub mod outbox;
+pub mod payments;
 pub mod pricing;
 pub mod settings;
+pub mod turnstile;

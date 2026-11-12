@@ -50,6 +50,49 @@ pub enum Event {
         payment_id: Uuid,
         booking_id: Uuid,
     },
+    /// A payment attempt failed (off-session balance charge, declined card after 3DS...).
+    PaymentFailed {
+        payment_id: Uuid,
+        booking_id: Uuid,
+    },
+    RefundSucceeded {
+        refund_id: Uuid,
+        booking_id: Uuid,
+    },
+    /// The camp declined a booking request.
+    BookingDeclined {
+        booking_id: Uuid,
+    },
+    /// The camp accepted a request that needs a payment: the guest gets the payment link.
+    BookingRequestAccepted {
+        booking_id: Uuid,
+    },
+    /// Scheduled: the balance is due soon (payment link) or will be charged.
+    BookingBalanceDue {
+        booking_id: Uuid,
+    },
+    /// The saved card was declined for the balance (guest + staff).
+    BookingBalanceFailed {
+        booking_id: Uuid,
+    },
+    /// Scheduled: pre-check-in (guest register) reminder.
+    BookingPrecheckinDue {
+        booking_id: Uuid,
+    },
+    /// "Find my booking": a magic link to email (raw token under `secret`).
+    BookingAccessRequested {
+        booking_id: Uuid,
+        token: String,
+    },
+    /// The guest asked to change dates / guests (staff decision needed).
+    BookingChangeRequested {
+        booking_id: Uuid,
+        change_request_id: Uuid,
+    },
+    /// Expired checkout of a guest who accepted marketing emails (at most one email).
+    CartAbandoned {
+        booking_id: Uuid,
+    },
     InquiryCreated {
         inquiry_id: Uuid,
     },
@@ -100,6 +143,25 @@ pub struct PaymentPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefundPayload {
+    pub refund_id: Uuid,
+    pub booking_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BookingAccessPayload {
+    pub booking_id: Uuid,
+    #[serde(default)]
+    pub secret: Option<TokenSecret>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChangeRequestPayload {
+    pub booking_id: Uuid,
+    pub change_request_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InquiryPayload {
     pub inquiry_id: Uuid,
 }
@@ -136,6 +198,16 @@ pub mod types {
     pub const BOOKING_PRE_ARRIVAL_DUE: &str = "booking.pre_arrival_due";
     pub const BOOKING_REVIEW_DUE: &str = "booking.review_due";
     pub const PAYMENT_SUCCEEDED: &str = "payment.succeeded";
+    pub const PAYMENT_FAILED: &str = "payment.failed";
+    pub const REFUND_SUCCEEDED: &str = "refund.succeeded";
+    pub const BOOKING_DECLINED: &str = "booking.declined";
+    pub const BOOKING_REQUEST_ACCEPTED: &str = "booking.request_accepted";
+    pub const BOOKING_BALANCE_DUE: &str = "booking.balance_due";
+    pub const BOOKING_BALANCE_FAILED: &str = "booking.balance_failed";
+    pub const BOOKING_PRECHECKIN_DUE: &str = "booking.precheckin_due";
+    pub const BOOKING_ACCESS_REQUESTED: &str = "booking.access_requested";
+    pub const BOOKING_CHANGE_REQUESTED: &str = "booking.change_requested";
+    pub const CART_ABANDONED: &str = "cart.abandoned";
     pub const INQUIRY_CREATED: &str = "inquiry.created";
     pub const NEWSLETTER_SUBSCRIBED: &str = "newsletter.subscribed";
     pub const PASSWORD_RESET_REQUESTED: &str = "auth.password_reset_requested";
@@ -159,6 +231,16 @@ impl Event {
             Self::BookingPreArrivalDue { .. } => BOOKING_PRE_ARRIVAL_DUE,
             Self::BookingReviewDue { .. } => BOOKING_REVIEW_DUE,
             Self::PaymentSucceeded { .. } => PAYMENT_SUCCEEDED,
+            Self::PaymentFailed { .. } => PAYMENT_FAILED,
+            Self::RefundSucceeded { .. } => REFUND_SUCCEEDED,
+            Self::BookingDeclined { .. } => BOOKING_DECLINED,
+            Self::BookingRequestAccepted { .. } => BOOKING_REQUEST_ACCEPTED,
+            Self::BookingBalanceDue { .. } => BOOKING_BALANCE_DUE,
+            Self::BookingBalanceFailed { .. } => BOOKING_BALANCE_FAILED,
+            Self::BookingPrecheckinDue { .. } => BOOKING_PRECHECKIN_DUE,
+            Self::BookingAccessRequested { .. } => BOOKING_ACCESS_REQUESTED,
+            Self::BookingChangeRequested { .. } => BOOKING_CHANGE_REQUESTED,
+            Self::CartAbandoned { .. } => CART_ABANDONED,
             Self::InquiryCreated { .. } => INQUIRY_CREATED,
             Self::NewsletterSubscribed { .. } => NEWSLETTER_SUBSCRIBED,
             Self::PasswordResetRequested { .. } => PASSWORD_RESET_REQUESTED,
@@ -181,7 +263,13 @@ impl Event {
             | Self::BookingCancelled { booking_id }
             | Self::BookingExpired { booking_id }
             | Self::BookingPreArrivalDue { booking_id }
-            | Self::BookingReviewDue { booking_id } => (
+            | Self::BookingReviewDue { booking_id }
+            | Self::BookingDeclined { booking_id }
+            | Self::BookingRequestAccepted { booking_id }
+            | Self::BookingBalanceDue { booking_id }
+            | Self::BookingBalanceFailed { booking_id }
+            | Self::BookingPrecheckinDue { booking_id }
+            | Self::CartAbandoned { booking_id } => (
                 "booking",
                 booking_id.to_string(),
                 json!({ "booking_id": booking_id }),
@@ -189,10 +277,35 @@ impl Event {
             Self::PaymentSucceeded {
                 payment_id,
                 booking_id,
+            }
+            | Self::PaymentFailed {
+                payment_id,
+                booking_id,
             } => (
                 "payment",
                 payment_id.to_string(),
                 json!({ "payment_id": payment_id, "booking_id": booking_id }),
+            ),
+            Self::RefundSucceeded {
+                refund_id,
+                booking_id,
+            } => (
+                "refund",
+                refund_id.to_string(),
+                json!({ "refund_id": refund_id, "booking_id": booking_id }),
+            ),
+            Self::BookingAccessRequested { booking_id, token } => (
+                "booking",
+                booking_id.to_string(),
+                json!({ "booking_id": booking_id, SECRET_KEY: secret(token) }),
+            ),
+            Self::BookingChangeRequested {
+                booking_id,
+                change_request_id,
+            } => (
+                "booking",
+                booking_id.to_string(),
+                json!({ "booking_id": booking_id, "change_request_id": change_request_id }),
             ),
             Self::InquiryCreated { inquiry_id } => (
                 "inquiry",

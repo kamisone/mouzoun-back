@@ -27,6 +27,104 @@ pub struct Config {
     pub media: MediaConfig,
     pub email: EmailConfig,
     pub worker: WorkerConfig,
+    pub booking: BookingConfig,
+}
+
+/// Payments, bot protection and guest-data encryption (docs/booking/README.md).
+#[derive(Clone, Default)]
+pub struct BookingConfig {
+    pub stripe: Option<StripeConfig>,
+    pub paypal: Option<PaypalConfig>,
+    /// `PAYMENTS_FAKE=true`: a provider that "pays" without any card, for local development and
+    /// end-to-end tests. Never enable it on a public server.
+    pub fake_payments: bool,
+    /// `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile check on checkout and "find my booking".
+    pub turnstile_secret: Option<String>,
+    /// `GUEST_DATA_KEY` (base64, 32 bytes): AES-256-GCM key of guest ID document numbers.
+    pub guest_data_key: Option<[u8; 32]>,
+    /// Trust `X-Forwarded-For` (set by our nginx) for the client IP (`TRUST_PROXY`, default true).
+    pub trust_proxy: bool,
+}
+
+#[derive(Clone)]
+pub struct StripeConfig {
+    pub secret_key: String,
+    pub publishable_key: String,
+    pub webhook_secret: String,
+    /// `STRIPE_API_BASE` (tests point it at a mock), default https://api.stripe.com.
+    pub api_base: String,
+}
+
+#[derive(Clone)]
+pub struct PaypalConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub webhook_id: String,
+    /// https://api-m.sandbox.paypal.com or https://api-m.paypal.com (`PAYPAL_MODE=sandbox|live`).
+    pub api_base: String,
+}
+
+impl fmt::Debug for BookingConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BookingConfig")
+            .field("stripe", &self.stripe.as_ref().map(|s| &s.api_base))
+            .field("paypal", &self.paypal.as_ref().map(|p| &p.api_base))
+            .field("fake_payments", &self.fake_payments)
+            .field("turnstile", &self.turnstile_secret.is_some())
+            .field("guest_data_key", &self.guest_data_key.is_some())
+            .finish()
+    }
+}
+
+impl BookingConfig {
+    pub fn from_env() -> Result<Self> {
+        let stripe = match optional("STRIPE_SECRET_KEY") {
+            Some(secret_key) => Some(StripeConfig {
+                secret_key,
+                publishable_key: required("STRIPE_PUBLISHABLE_KEY")?,
+                webhook_secret: required("STRIPE_WEBHOOK_SECRET")?,
+                api_base: optional("STRIPE_API_BASE")
+                    .unwrap_or_else(|| "https://api.stripe.com".into())
+                    .trim_end_matches('/')
+                    .to_string(),
+            }),
+            None => None,
+        };
+        let paypal = match optional("PAYPAL_CLIENT_ID") {
+            Some(client_id) => Some(PaypalConfig {
+                client_id,
+                client_secret: required("PAYPAL_CLIENT_SECRET")?,
+                webhook_id: required("PAYPAL_WEBHOOK_ID")?,
+                api_base: match optional("PAYPAL_MODE").as_deref() {
+                    None | Some("sandbox") => "https://api-m.sandbox.paypal.com".into(),
+                    Some("live") => "https://api-m.paypal.com".into(),
+                    Some(other) => bail!("PAYPAL_MODE must be sandbox or live, got {other:?}"),
+                },
+            }),
+            None => None,
+        };
+        let guest_data_key = match optional("GUEST_DATA_KEY") {
+            Some(raw) => {
+                use base64::Engine;
+                let bytes = base64::engine::general_purpose::STANDARD
+                    .decode(raw.trim())
+                    .context("GUEST_DATA_KEY must be base64")?;
+                Some(
+                    <[u8; 32]>::try_from(bytes.as_slice())
+                        .map_err(|_| anyhow::anyhow!("GUEST_DATA_KEY must decode to 32 bytes"))?,
+                )
+            }
+            None => None,
+        };
+        Ok(Self {
+            stripe,
+            paypal,
+            fake_payments: parse_or("PAYMENTS_FAKE", false)?,
+            turnstile_secret: optional("TURNSTILE_SECRET_KEY"),
+            guest_data_key,
+            trust_proxy: parse_or("TRUST_PROXY", true)?,
+        })
+    }
 }
 
 /// Transactional emails.
@@ -181,6 +279,7 @@ impl Config {
             media: MediaConfig::from_env()?,
             email: EmailConfig::from_env()?,
             worker: WorkerConfig::from_env()?,
+            booking: BookingConfig::from_env()?,
         })
     }
 }

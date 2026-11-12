@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
-use super::{BookingError, common::record_status};
+use super::{BookingError, common::record_status, state};
 use crate::{
     db::{
         bookings::{BookingStatus, CancelledBy},
@@ -32,10 +32,7 @@ pub async fn confirm_booking(
 ) -> Result<(), BookingError> {
     let mut tx = pool.begin().await?;
     let status = lock_status(&mut tx, booking_id).await?;
-    if !matches!(
-        status,
-        BookingStatus::Draft | BookingStatus::Pending | BookingStatus::AwaitingPayment
-    ) {
+    if !state::allowed(status, BookingStatus::Confirmed) {
         return Err(BookingError::InvalidTransition(status));
     }
     sqlx::query!(
@@ -67,7 +64,7 @@ pub async fn cancel_booking(
 ) -> Result<(), BookingError> {
     let mut tx = pool.begin().await?;
     let status = lock_status(&mut tx, booking_id).await?;
-    if !status.is_open() {
+    if !state::cancellable(status) {
         return Err(BookingError::InvalidTransition(status));
     }
     release(
@@ -151,14 +148,17 @@ async fn lock_status(
     .ok_or(BookingError::NotFound)
 }
 
-async fn release(
+/// Releases everything the booking holds and moves it to `to` (cancelled or expired). The
+/// caller holds the booking row lock and has checked the transition.
+/// Gives back the inventory of the active items `only` (all active items when `None`) of a
+/// booking: night counters, slot seats, unit allocations and resource assignments, and marks
+/// the items cancelled. Same lock order as booking (nights by product then day).
+pub(crate) async fn release_items(
     tx: &mut PgConnection,
     booking_id: Uuid,
-    from: BookingStatus,
-    to: BookingStatus,
-    cancellation: &Cancellation,
+    only: Option<&[Uuid]>,
     now: DateTime<Utc>,
-) -> Result<(), BookingError> {
+) -> Result<Vec<Uuid>, BookingError> {
     let items = sqlx::query!(
         r#"SELECT i.id, i.product_id, i.product_kind AS "product_kind: ProductKind", i.quantity,
                   i.service_period AS "service_period: DateRange", i.activity_slot_id,
@@ -166,9 +166,10 @@ async fn release(
                             JOIN guest_categories gc ON gc.id = g.guest_category_id
                             WHERE g.booking_item_id = i.id AND gc.counts_toward_capacity), 0)::int AS "participants!"
            FROM booking_items i
-           WHERE i.booking_id = $1 AND i.status = 'active'
+           WHERE i.booking_id = $1 AND i.status = 'active' AND ($2::uuid[] IS NULL OR i.id = ANY($2))
            ORDER BY i.product_id, i.id"#,
-        booking_id
+        booking_id,
+        only.map(<[Uuid]>::to_vec) as Option<Vec<Uuid>>
     )
     .fetch_all(&mut *tx)
     .await?;
@@ -219,8 +220,9 @@ async fn release(
 
     let item_ids: Vec<Uuid> = items.iter().map(|i| i.id).collect();
     sqlx::query!(
-        "UPDATE booking_items SET status = 'cancelled' WHERE id = ANY($1)",
-        &item_ids
+        "UPDATE booking_items SET status = 'cancelled', cancelled_at = $2 WHERE id = ANY($1)",
+        &item_ids,
+        now
     )
     .execute(&mut *tx)
     .await?;
@@ -238,6 +240,31 @@ async fn release(
     )
     .execute(&mut *tx)
     .await?;
+    Ok(item_ids)
+}
+
+pub(crate) async fn release(
+    tx: &mut PgConnection,
+    booking_id: Uuid,
+    from: BookingStatus,
+    to: BookingStatus,
+    cancellation: &Cancellation,
+    now: DateTime<Utc>,
+) -> Result<(), BookingError> {
+    release_as(tx, booking_id, from, to, cancellation, false, now).await
+}
+
+/// `declined`: the camp refused a request (`booking.declined` instead of `booking.cancelled`).
+pub(crate) async fn release_as(
+    tx: &mut PgConnection,
+    booking_id: Uuid,
+    from: BookingStatus,
+    to: BookingStatus,
+    cancellation: &Cancellation,
+    declined: bool,
+    now: DateTime<Utc>,
+) -> Result<(), BookingError> {
+    release_items(tx, booking_id, None, now).await?;
     sqlx::query!(
         "UPDATE bookings
          SET status = $2, cancelled_at = $3, cancelled_by = $4, cancellation_reason = $5, hold_expires_at = NULL
@@ -259,11 +286,52 @@ async fn release(
         cancellation.reason.as_deref(),
     )
     .await?;
+    crate::services::audit::record(
+        tx,
+        &match cancellation.changed_by {
+            Some(user) => crate::services::audit::Actor::staff(user),
+            None if cancellation.by == CancelledBy::Customer => {
+                crate::services::audit::Actor::customer()
+            }
+            None => crate::services::audit::Actor::system(),
+        },
+        "booking.status_changed",
+        "booking",
+        &booking_id.to_string(),
+        serde_json::json!({ "before": { "status": from }, "after": { "status": to },
+                            "reason": cancellation.reason }),
+    )
+    .await?;
     let event = if to == BookingStatus::Expired {
         Event::BookingExpired { booking_id }
+    } else if declined {
+        Event::BookingDeclined { booking_id }
     } else {
         Event::BookingCancelled { booking_id }
     };
     outbox::enqueue(tx, &event).await?;
+    // An unfinished online checkout of a guest who accepted marketing emails: one reminder at
+    // most, ever (dedupe per customer), and only if they did not book since.
+    if to == BookingStatus::Expired && from == BookingStatus::AwaitingPayment {
+        let customer = sqlx::query!(
+            r#"SELECT c.id, c.marketing_consent,
+                      EXISTS (SELECT 1 FROM bookings o WHERE o.customer_id = c.id AND o.id <> $1
+                              AND o.status IN ('confirmed', 'checked_in', 'completed', 'awaiting_payment', 'pending')
+                              AND o.created_at > b.created_at) AS "booked_since!"
+               FROM bookings b JOIN customers c ON c.id = b.customer_id WHERE b.id = $1"#,
+            booking_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if customer.marketing_consent && !customer.booked_since {
+            outbox::enqueue_scheduled(
+                tx,
+                &Event::CartAbandoned { booking_id },
+                now + chrono::Duration::hours(1),
+                &format!("cart.abandoned:{}", customer.id),
+            )
+            .await?;
+        }
+    }
     Ok(())
 }

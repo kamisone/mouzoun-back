@@ -1,8 +1,10 @@
 //! HTTP layer: router composition and cross-cutting middleware.
 
+pub mod client;
 pub mod csrf;
 pub mod extract;
 pub mod health;
+pub mod limits;
 pub mod pagination;
 
 use std::time::Duration;
@@ -38,6 +40,7 @@ pub fn router(state: AppState) -> Router {
 
     let api_v1 = Router::new()
         .nest("/auth", auth::routes())
+        .merge(modules::booking::public_routes())
         .nest("/admin", admin);
 
     Router::new()
@@ -80,7 +83,13 @@ fn cors(state: &AppState) -> CorsLayer {
             Method::PATCH,
             Method::DELETE,
         ])
-        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT_LANGUAGE,
+            HeaderName::from_static("idempotency-key"),
+            HeaderName::from_static("x-booking-token"),
+        ])
         // The session cookie is sent cross-origin in local development (front :3001 → API :8080).
         // Safe because the allowed origins are an explicit list, never `*`.
         .allow_credentials(true)

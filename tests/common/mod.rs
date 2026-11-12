@@ -15,8 +15,8 @@ use http_body_util::BodyExt;
 use mouzoun_api::{
     auth::jwt,
     config::{
-        Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig, StorageConfig,
-        WorkerConfig,
+        BookingConfig, Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig,
+        StorageConfig, WorkerConfig,
     },
     infra::{
         cache::Cache,
@@ -83,6 +83,12 @@ pub fn test_config() -> Config {
             batch_size: 20,
             poll_interval: Duration::from_secs(60),
             scheduler_interval: Duration::from_secs(3600),
+        },
+        booking: BookingConfig {
+            fake_payments: true,
+            guest_data_key: Some([7; 32]),
+            trust_proxy: true,
+            ..BookingConfig::default()
         },
     }
 }

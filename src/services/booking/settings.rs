@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::PgExecutor;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookingSettings {
     pub enabled: bool,
     pub site_live: bool,
