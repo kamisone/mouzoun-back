@@ -1,7 +1,5 @@
 //! Localised reads: slug per locale, field-by-field fallback, alternates.
 
-mod common;
-
 use mouzoun_api::{db::types::Locale, services::catalog};
 use sqlx::PgPool;
 use uuid::Uuid;

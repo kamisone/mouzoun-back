@@ -1,9 +1,7 @@
 //! Guest accounts against the real router, Postgres and Redis.
 
-mod common;
-
+use crate::common::{TestApp, create_user, fixtures::*};
 use axum::http::{HeaderMap, Method, StatusCode};
-use common::{TestApp, create_user, fixtures::*};
 use mouzoun_api::services::accounts::totp;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -906,7 +904,7 @@ async fn confirmed_trips_have_a_signed_ticket_staff_can_scan(db: PgPool) {
     assert!(!token.contains("amina"), "no personal data in the QR code");
 
     let staff = create_user(&db, "desk@mouzoun.test", "x", true, Some("reception")).await;
-    let staff = mouzoun_api::auth::jwt::issue(common::JWT_SECRET, staff, true, 60).unwrap();
+    let staff = mouzoun_api::auth::jwt::issue(crate::common::JWT_SECRET, staff, true, 60).unwrap();
     let (status, scanned) = app
         .request(
             Method::POST,

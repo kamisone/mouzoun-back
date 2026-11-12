@@ -1,16 +1,14 @@
 //! Outbox dispatcher: exactly-once processing across concurrent workers, retries with backoff,
 //! dead events, unknown types, deferral and secret scrubbing.
 
-mod common;
-
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
+use crate::common::fixtures::now;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use common::fixtures::now;
 use mouzoun_api::{
     db::operations::OutboxEvent,
     services::email::admin,

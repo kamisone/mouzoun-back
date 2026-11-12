@@ -1,12 +1,10 @@
 //! Transactional emails end to end, against a real PostgreSQL: events → handlers → templates →
 //! sender, with idempotency, retries, locales and scheduling.
 
-mod common;
-
 use std::{sync::Arc, time::Duration as StdDuration};
 
+use crate::common::{JWT_SECRET, fixtures::*, test_config};
 use chrono::{Duration, Utc};
-use common::{JWT_SECRET, fixtures::*, test_config};
 use mouzoun_api::{
     db::{bookings::CancelledBy, types::Locale},
     services::{
@@ -526,7 +524,8 @@ async fn pre_arrival_emails_are_planned_once_and_sent_on_time(db: PgPool) {
 
 #[sqlx::test(migrations = "./migrations")]
 async fn account_emails_carry_the_one_time_token_which_is_then_scrubbed(db: PgPool) {
-    let user_id = common::create_user(&db, "staff@mouzoun.test", "x", true, Some("manager")).await;
+    let user_id =
+        crate::common::create_user(&db, "staff@mouzoun.test", "x", true, Some("manager")).await;
     let token_id = Uuid::now_v7();
     sqlx::query(
         "INSERT INTO auth_tokens (id, user_id, purpose, token_hash, expires_at)

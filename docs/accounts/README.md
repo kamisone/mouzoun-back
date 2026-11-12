@@ -172,7 +172,7 @@ All secrets go in GitHub secrets for deployment, one per value.
 
 ## Tests
 
-`cargo test --test accounts --test oidc --test passkeys --test crm` (rotation and reuse,
+`cargo test --test it accounts:: oidc:: passkeys:: crm::` (rotation and reuse,
 enumeration, single-use codes, claims, ownership 404s, wishlists, travellers, cards, export and
 deletion, tickets, OIDC token checks with a local key, passkeys with a software authenticator,
 CRM permissions). Front: `npm run test:e2e` (`tests/e2e/accounts.spec.ts`: code sign-in with a

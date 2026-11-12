@@ -1,6 +1,6 @@
 //! Test harness: real router + real Postgres (one fresh database per test via `sqlx::test`)
 //! + real Redis (namespaced per test) + in-memory object storage.
-#![allow(dead_code)] // shared by several test binaries, each using a subset
+#![allow(dead_code)] // helpers shared by the test modules, not each used everywhere
 
 pub mod fixtures;
 

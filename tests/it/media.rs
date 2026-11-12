@@ -1,9 +1,7 @@
 //! Media uploads: Redis ticket → direct upload → verified `media_assets` row.
 
-mod common;
-
+use crate::common::{TestApp, png_bytes};
 use axum::http::{Method, StatusCode};
-use common::{TestApp, png_bytes};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 

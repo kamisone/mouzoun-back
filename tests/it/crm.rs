@@ -1,9 +1,7 @@
 //! Customer CRM in the back office.
 
-mod common;
-
+use crate::common::{JWT_SECRET, TestApp, create_user};
 use axum::http::{Method, StatusCode};
-use common::{JWT_SECRET, TestApp, create_user};
 use mouzoun_api::auth::jwt;
 use serde_json::{Value, json};
 use sqlx::PgPool;

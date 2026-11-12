@@ -1,10 +1,8 @@
 //! Invariants 2 and 3 for activities, against a real PostgreSQL.
 
-mod common;
-
 use std::sync::Arc;
 
-use common::fixtures::*;
+use crate::common::fixtures::*;
 use mouzoun_api::{
     db::bookings::CancelledBy,
     services::booking::{self, ActivityRequest, BookingError, Cancellation},

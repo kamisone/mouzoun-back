@@ -1,10 +1,8 @@
 //! Passkeys against a software authenticator (P-256 key made with ring).
 
-mod common;
-
+use crate::common::{ALLOWED_ORIGIN, TestApp};
 use axum::http::{HeaderMap, Method, StatusCode};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use common::{ALLOWED_ORIGIN, TestApp};
 use ring::{
     rand::SystemRandom,
     signature::{ECDSA_P256_SHA256_ASN1_SIGNING, EcdsaKeyPair, KeyPair},

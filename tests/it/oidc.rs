@@ -1,7 +1,5 @@
 //! "Continue with Google / Apple": ID token checks and account linking rules.
 
-mod common;
-
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, EncodingKey, Header, jwk::JwkSet};
 use mouzoun_api::{

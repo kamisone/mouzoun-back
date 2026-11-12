@@ -1,8 +1,6 @@
 //! Invariant 7: booking references and gap-free invoice numbers.
 
-mod common;
-
-use common::fixtures::now;
+use crate::common::fixtures::now;
 use mouzoun_api::services::numbering::{next_booking_reference, next_invoice_number};
 use sqlx::PgPool;
 

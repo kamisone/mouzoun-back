@@ -51,6 +51,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4", "v7", "serde"] }
 validator = { version = "0.20", features = ["derive"] }
 
+# Development builds: file and line numbers in backtraces, no full debug info (several times
+# smaller binaries). Third-party libraries carry no debug info at all.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# Tests: the incremental cache barely helps here and grows without limit.
+[profile.test]
+incremental = false
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

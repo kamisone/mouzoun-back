@@ -1,7 +1,5 @@
-mod common;
-
+use crate::common::{ALLOWED_ORIGIN, TestApp};
 use axum::http::{HeaderMap, Method, StatusCode, header};
-use common::{ALLOWED_ORIGIN, TestApp};
 use mouzoun_api::auth::password;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -20,7 +18,7 @@ async fn without_2fa(app: &TestApp) {
 async fn create_user(app: &TestApp, email: &str, pass: &str, staff: bool) -> uuid::Uuid {
     without_2fa(app).await;
     let hash = password::hash(pass.to_string()).await.unwrap();
-    common::create_user(&app.db, email, &hash, staff, staff.then_some("manager")).await
+    crate::common::create_user(&app.db, email, &hash, staff, staff.then_some("manager")).await
 }
 
 fn set_cookie(headers: &HeaderMap) -> String {
@@ -153,7 +151,8 @@ async fn a_non_staff_session_cannot_reach_the_back_office(db: PgPool) {
     assert_eq!((status, cookie), (StatusCode::UNAUTHORIZED, None));
     // ...and a forged non-staff token is refused by the guard.
     let token =
-        mouzoun_api::auth::jwt::issue(common::JWT_SECRET, uuid::Uuid::now_v7(), false, 5).unwrap();
+        mouzoun_api::auth::jwt::issue(crate::common::JWT_SECRET, uuid::Uuid::now_v7(), false, 5)
+            .unwrap();
     let (status, _, _) = app
         .send(
             Method::GET,

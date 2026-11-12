@@ -1,10 +1,8 @@
 //! The public booking API end to end (real router, Postgres, Redis; fake payment provider).
 
-mod common;
-
+use crate::common::{TestApp, fixtures::*};
 use axum::http::{Method, StatusCode};
 use chrono::Utc;
-use common::{TestApp, fixtures::*};
 use mouzoun_api::services::{
     booking,
     payments::{fake, stripe},

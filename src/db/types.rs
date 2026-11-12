@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// Declares a Rust enum mirroring a `text` column constrained by `CHECK (col IN (...))`.
 ///
 /// Each variant states its stored value explicitly; `rename_all = "snake_case"` encodes the same
-/// value for sqlx, and `tests/schema.rs` proves the three agree with the database constraint.
+/// value for sqlx, and `tests/it/schema.rs` proves the three agree with the database constraint.
 #[macro_export]
 macro_rules! text_enum {
     ($(#[$meta:meta])* $name:ident { $($variant:ident = $value:literal),+ $(,)? }) => {

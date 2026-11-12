@@ -59,7 +59,7 @@ It refuses to run twice; reset the database to seed again
 - Every mutable table has `created_at` / `updated_at` (`timestamptz`); content tables add
   `deleted_at` (soft delete — queries filter `deleted_at IS NULL`).
 - Statuses and kinds are `text` + `CHECK (... IN (...))`, mirrored by Rust enums declared with
-  `text_enum!` in `src/db/`. `tests/schema.rs` fails if a CHECK list and its enum drift apart.
+  `text_enum!` in `src/db/`. `tests/it/schema.rs` fails if a CHECK list and its enum drift apart.
 - Translatable entities have an `x_translations` table, primary key `(x_id, locale)`; slugs are
   `UNIQUE (locale, slug)`. Reads fall back field by field to the default locale.
 - Money is stored in minor units (`*_minor bigint`, always with a currency column) and handled
@@ -91,7 +91,7 @@ CREATE TRIGGER things_set_updated_at BEFORE UPDATE ON things
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-(`DROP TABLE` in the down migration removes the trigger with it.) `tests/schema.rs` checks that
+(`DROP TABLE` in the down migration removes the trigger with it.) `tests/it/schema.rs` checks that
 every table with an `updated_at` column has the trigger.
 
 ## Adding a language

@@ -1,9 +1,7 @@
 //! Back-office booking API: manual bookings, request decisions, stay lifecycle, permissions.
 
-mod common;
-
+use crate::common::{JWT_SECRET, TestApp, create_user, fixtures::*};
 use axum::http::{Method, StatusCode};
-use common::{JWT_SECRET, TestApp, create_user, fixtures::*};
 use mouzoun_api::auth::jwt;
 use serde_json::{Value, json};
 use sqlx::PgPool;

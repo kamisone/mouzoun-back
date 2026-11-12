@@ -1,10 +1,8 @@
 //! Invariants 1 and 3 for accommodations, against a real PostgreSQL.
 
-mod common;
-
 use std::sync::Arc;
 
-use common::fixtures::*;
+use crate::common::fixtures::*;
 use mouzoun_api::{
     db::bookings::CancelledBy,
     services::booking::{self, AccommodationRequest, BookingError, Cancellation},

@@ -1,9 +1,7 @@
 //! Invariants 5 (calendar generator) and 6 (slot generator).
 
-mod common;
-
+use crate::common::fixtures::*;
 use chrono::{Datelike, TimeZone, Utc, Weekday};
-use common::fixtures::*;
 use mouzoun_api::services::inventory::{generate_activity_slots, generate_inventory_calendar};
 use sqlx::PgPool;
 use uuid::Uuid;

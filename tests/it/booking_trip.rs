@@ -1,11 +1,9 @@
 //! Trips (stay + activities + extras in one booking) against a real PostgreSQL: pricing,
 //! promotions, restrictions, payment options, concurrency and price tampering.
 
-mod common;
-
 use std::sync::Arc;
 
-use common::fixtures::*;
+use crate::common::fixtures::*;
 use mouzoun_api::{
     db::{
         bookings::{BookingSource, BookingStatus, PaymentOption},
