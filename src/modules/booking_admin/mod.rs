@@ -12,8 +12,10 @@
 //! | GET …/guests (numbers revealed with guests.read_identity), PUT …/guests | bookings.read / bookings.write |
 //! | GET customers | customers.read |
 //! | GET/PATCH tasks | bookings.read / bookings.write |
+//! | crm/... | see `customers.rs` |
 
 mod bookings;
+mod customers;
 mod dashboard;
 
 use axum::{
@@ -47,6 +49,30 @@ pub fn admin_routes() -> Router<AppState> {
             "/bookings/{id}/guests",
             get(bookings::guests).put(bookings::save_guests),
         )
+        .route("/crm/customers", get(customers::list))
+        .route("/crm/customers/{id}", get(customers::detail))
+        .route(
+            "/crm/customers/{id}/sign-in-link",
+            post(customers::send_sign_in_link),
+        )
+        .route("/crm/customers/{id}/suspend", post(customers::suspend))
+        .route(
+            "/crm/customers/{id}/reactivate",
+            post(customers::reactivate),
+        )
+        .route(
+            "/crm/customers/{id}/sign-out-all",
+            post(customers::sign_out_all),
+        )
+        .route("/crm/customers/{id}/merge", post(customers::merge))
+        .route("/crm/customers/{id}/view-as", get(customers::view_as))
+        .route("/crm/customers/{id}/export", get(customers::export))
+        .route(
+            "/crm/customers/{id}/deletion",
+            post(customers::schedule_deletion),
+        )
+        .route("/crm/bookings/{id}/attach", post(customers::attach_booking))
+        .route("/crm/reports/accounts", get(customers::report))
         .route("/tasks", get(bookings::tasks))
         .route("/tasks/{id}", patch(bookings::update_task))
 }
