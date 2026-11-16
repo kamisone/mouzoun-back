@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT m.id, m.kind, m.mime_type, m.storage_provider, m.bucket, m.object_key, m.width, m.height, m.blurhash,\n                  m.focal_x::float8 AS \"focal_x?\", m.focal_y::float8 AS \"focal_y?\", m.variants,\n                  COALESCE(NULLIF(t.alt_text, ''), d.alt_text) AS \"alt?\"\n           FROM media_assets m\n           LEFT JOIN media_asset_translations t ON t.media_asset_id = m.id AND t.locale = $2\n           LEFT JOIN media_asset_translations d ON d.media_asset_id = m.id AND d.locale = $3\n           WHERE m.id = ANY($1) AND m.deleted_at IS NULL",
+  "query": "SELECT m.id, m.kind, m.mime_type, m.storage_provider, m.object_key, m.width, m.height, m.blurhash,\n                  m.focal_x::float8 AS \"focal_x?\", m.focal_y::float8 AS \"focal_y?\", m.variants,\n                  COALESCE(NULLIF(t.alt_text, ''), d.alt_text) AS \"alt?\"\n           FROM media_assets m\n           LEFT JOIN media_asset_translations t ON t.media_asset_id = m.id AND t.locale = $2\n           LEFT JOIN media_asset_translations d ON d.media_asset_id = m.id AND d.locale = $3\n           WHERE m.id = ANY($1) AND m.deleted_at IS NULL AND m.visibility = 'public'",
   "describe": {
     "columns": [
       {
@@ -25,46 +25,41 @@
       },
       {
         "ordinal": 4,
-        "name": "bucket",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 5,
         "name": "object_key",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "width",
         "type_info": "Int4"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "height",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "blurhash",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "focal_x?",
         "type_info": "Float8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "focal_y?",
         "type_info": "Float8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "variants",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "alt?",
         "type_info": "Text"
       }
@@ -82,7 +77,6 @@
       false,
       false,
       false,
-      false,
       true,
       true,
       true,
@@ -92,5 +86,5 @@
       null
     ]
   },
-  "hash": "845299220a3db45a7770b1d9943b40d2fc94c4d54c8f83f9d1767f1890a71666"
+  "hash": "661780e5de95d6e7026723de1d44a800eef0c006667f75cf2cb05afbadc4ef24"
 }

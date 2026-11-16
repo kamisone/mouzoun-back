@@ -43,6 +43,8 @@ pub struct MediaAssetRecord {
     pub folder_id: Option<Uuid>,
     pub storage_provider: String,
     pub bucket: String,
+    /// `public` (public-read ACL) or `private` (signed URLs only).
+    pub visibility: String,
     pub object_key: String,
     pub original_filename: String,
     pub mime_type: String,

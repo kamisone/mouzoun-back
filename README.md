@@ -72,17 +72,21 @@ admin ── PUT <signed url> (file, with the returned headers) ─────�
 admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type + magic bytes ► media_assets row
 ```
 
-- The signed URL (V4, 15 min) pins content type, **exact size** and cache headers.
+- The signed URL (V4, 15 min) pins content type, **exact size**, cache headers and the
+  object's **ACL** (`x-goog-acl`): the browser cannot upload a private file as public.
 - Completion re-checks what actually landed in the bucket and sniffs the first bytes:
   a renamed `.exe`/`.html` is deleted and refused.
 - Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts). Max 15 MB.
-- Keys are opaque (`media/YYYY/MM/<uuid>.<ext>`), never derived from filenames, and
-  public objects are served with `Cache-Control: public, max-age=31536000, immutable`.
+- Keys are opaque (`media/YYYY/MM/<uuid>.<ext>`), never derived from filenames.
+- One bucket, fine-grained access control, ACL chosen per file (`media_assets.visibility`):
+  - `"visibility": "public"` (default: site photos) → ACL `public-read`, served at its plain URL
+    with `Cache-Control: public, max-age=31536000, immutable`;
+  - `"visibility": "private"` (files tied to a person) → ACL `private`, `Cache-Control: private,
+    no-store`, only ever served through short-lived signed download URLs (attachment, original
+    name). Public pages, the catalogue and account covers never show private files.
 - Only completed uploads exist in `media_assets`; pending ones live in Redis until completed.
 - Deleting media is a soft delete (`deleted_at`): references from content keep working.
 - Uploads never completed are purged hourly after 24 h (`jobs/media_cleanup.rs`).
-- Private media (`"visibility": "private"`) needs `GCS_PRIVATE_BUCKET_NAME`; it is only ever
-  served through short-lived signed download URLs.
 
 ### Bucket setup (once per environment)
 
@@ -90,12 +94,13 @@ admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type
 B=mouzoun-local                                   # or the production bucket
 SA=mouzoun-storage-buckets@mouzoun.iam.gserviceaccount.com
 
-# Service account: read/write objects in this bucket only
-gcloud storage buckets add-iam-policy-binding gs://$B --member=serviceAccount:$SA --role=roles/storage.objectUser
+# Fine-grained access control: each object carries its own ACL (public-read or private).
+# Never grant allUsers on the bucket: that would make private files public too.
+gcloud storage buckets update gs://$B --no-uniform-bucket-level-access --no-public-access-prevention
 
-# Public read for the public bucket (never do this on the private bucket)
-gcloud storage buckets update gs://$B --uniform-bucket-level-access
-gcloud storage buckets add-iam-policy-binding gs://$B --member=allUsers --role=roles/storage.objectViewer
+# Service account: objects of this bucket only. objectAdmin, because setting an object's ACL
+# at upload needs storage.objects.setIamPolicy (objectUser does not have it).
+gcloud storage buckets add-iam-policy-binding gs://$B --member=serviceAccount:$SA --role=roles/storage.objectAdmin
 
 # Allow browser uploads from the front origins (edit deploy/gcs-cors.json first)
 gcloud storage buckets update gs://$B --cors-file=deploy/gcs-cors.json
@@ -230,7 +235,7 @@ silomis), `SERVER_USER` allowed to `sudo`.
    | `JWT_SECRET` | `openssl rand -hex 32` | to add |
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | first admin account | to add |
    | `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, `GCS_CLIENT_EMAIL`, `GCS_PRIVATE_KEY_ID`, `GCS_PRIVATE_KEY` | from the service-account JSON; the key can be pasted as is (multi-line) | to add |
-   | `GCS_PRIVATE_BUCKET_NAME`, `GCS_PUBLIC_BASE_URL` | | optional |
+   | `GCS_PUBLIC_BASE_URL` | e.g. a CDN in front of the bucket | optional |
    | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | your SMTP provider; `EMAIL_FROM` e.g. `reservations@mouzoun.com` | to add (without `SMTP_HOST`, emails are only logged) |
    | `SMTP_PORT`, `SMTP_TLS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO` | `587`, `starttls`, `Mouzoun`, `contact@mouzoun.com` | optional |
 

@@ -22,6 +22,7 @@ The schema lives in `migrations/` as reversible sqlx migrations; the Rust models
 | `0013`–`0022` | emails, booking system, accounts, corrections (see each file's header) |
 | `0023_page_builder` | section types, sections (extended `content_blocks`), items, refs, page revisions — see [`docs/page-builder/README.md`](../page-builder/README.md) |
 | `0024_staff_2fa_optional` | removes `auth.staff_2fa_required`: staff turn two-factor sign-in on themselves (back-office settings) |
+| `0025_media_visibility` | `media_assets.visibility` (`public` / `private`): one bucket, ACL set per object at upload |
 
 ## Running migrations
 

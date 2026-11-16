@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 use crate::{
     config::Config,
-    infra::{cache::Cache, clock::Clock, storage::Buckets},
+    infra::{cache::Cache, clock::Clock, storage::SharedStorage},
     modules::{media::MediaService, pages::SectionRegistry},
     services::payments::Payments,
 };
@@ -31,7 +31,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(config: Config, db: PgPool, cache: Cache, buckets: Buckets) -> Self {
+    pub fn new(config: Config, db: PgPool, cache: Cache, buckets: SharedStorage) -> Self {
         let config = Arc::new(config);
         let media = MediaService::new(db.clone(), buckets, cache.clone(), config.media.clone());
         let http = reqwest::Client::builder()

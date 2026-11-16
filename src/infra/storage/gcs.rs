@@ -24,7 +24,7 @@ use google_cloud_storage::{
 use serde_json::json;
 
 use super::{
-    Buckets, ObjectMeta, ObjectStorage, SignedRequest, StorageError, UploadConstraints,
+    ObjectMeta, ObjectStorage, SharedStorage, SignedRequest, StorageError, UploadConstraints,
     upload_headers,
 };
 use crate::config::{GcsCredentials, StorageConfig};
@@ -43,8 +43,8 @@ pub struct GcsBucket {
     public_base_url: String,
 }
 
-/// Builds the GCS clients and the configured buckets. Fails fast on malformed credentials.
-pub async fn connect(config: &StorageConfig) -> anyhow::Result<Buckets> {
+/// Builds the GCS clients and the bucket. Fails fast on malformed credentials.
+pub async fn connect(config: &StorageConfig) -> anyhow::Result<SharedStorage> {
     let (credentials, signer) = build_credentials(&config.credentials)?;
     let storage = Storage::builder()
         .with_credentials(credentials.clone())
@@ -62,26 +62,19 @@ pub async fn connect(config: &StorageConfig) -> anyhow::Result<Buckets> {
         signer,
     });
 
-    let public = Arc::new(GcsBucket::new(
-        clients.clone(),
-        &config.public_bucket,
+    let bucket = Arc::new(GcsBucket::new(
+        clients,
+        &config.bucket,
         config.public_base_url.clone(),
     ));
-    let private = config.private_bucket.as_deref().map(|name| {
-        Arc::new(GcsBucket::new(
-            clients.clone(),
-            name,
-            format!("https://storage.googleapis.com/{name}"),
-        )) as Arc<dyn ObjectStorage>
-    });
 
     // Signing is local: this proves the private key is usable before we accept traffic.
-    public
+    bucket
         .signed_download_url("__startup_check__", Duration::from_secs(60), None)
         .await
         .context("GCS credentials cannot sign URLs (check GCS_PRIVATE_KEY)")?;
 
-    Ok(Buckets { public, private })
+    Ok(bucket)
 }
 
 fn build_credentials(creds: &GcsCredentials) -> anyhow::Result<(Credentials, Signer)> {

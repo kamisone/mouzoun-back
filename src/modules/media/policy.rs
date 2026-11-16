@@ -9,6 +9,10 @@ pub const SNIFF_LEN: u64 = 16;
 /// Public objects have unique, never-reused keys, so they can be cached forever.
 pub const PUBLIC_CACHE_CONTROL: &str = "public, max-age=31536000, immutable";
 
+/// Private files: never kept by shared caches (CDN, proxies) nor reused from the browser cache
+/// once their signed URL has expired.
+pub const PRIVATE_CACHE_CONTROL: &str = "private, no-store";
+
 #[derive(Debug)]
 pub struct FileKind {
     pub content_type: &'static str,

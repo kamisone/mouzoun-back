@@ -251,7 +251,7 @@ pub async fn trips(
                   (SELECT p.id FROM booking_items i JOIN products p ON p.id = i.product_id
                    WHERE i.booking_id = b.id AND i.parent_item_id IS NULL ORDER BY i.created_at LIMIT 1) AS "product_id?",
                   (SELECT m.object_key FROM booking_items i JOIN products p ON p.id = i.product_id
-                   JOIN media_assets m ON m.id = p.cover_media_id
+                   JOIN media_assets m ON m.id = p.cover_media_id AND m.visibility = 'public'
                    WHERE i.booking_id = b.id AND i.parent_item_id IS NULL ORDER BY i.created_at LIMIT 1) AS "cover_key?",
                   count(*) OVER () AS "total!"
            FROM bookings b JOIN customers c ON c.id = b.customer_id

@@ -669,26 +669,22 @@ pub async fn media_views(
         return Ok(HashMap::new());
     }
     let rows = sqlx::query!(
-        r#"SELECT m.id, m.kind, m.mime_type, m.storage_provider, m.bucket, m.object_key, m.width, m.height, m.blurhash,
+        r#"SELECT m.id, m.kind, m.mime_type, m.storage_provider, m.object_key, m.width, m.height, m.blurhash,
                   m.focal_x::float8 AS "focal_x?", m.focal_y::float8 AS "focal_y?", m.variants,
                   COALESCE(NULLIF(t.alt_text, ''), d.alt_text) AS "alt?"
            FROM media_assets m
            LEFT JOIN media_asset_translations t ON t.media_asset_id = m.id AND t.locale = $2
            LEFT JOIN media_asset_translations d ON d.media_asset_id = m.id AND d.locale = $3
-           WHERE m.id = ANY($1) AND m.deleted_at IS NULL"#,
+           WHERE m.id = ANY($1) AND m.deleted_at IS NULL AND m.visibility = 'public'"#,
         ids,
         lang.locale,
         lang.default
     )
     .fetch_all(&state.db)
     .await?;
-    let public_bucket = &state.config.storage.public_bucket;
     let mut out = HashMap::new();
     for r in rows {
         let site = r.storage_provider == "site";
-        if !site && &r.bucket != public_bucket {
-            continue; // private files never appear on public pages
-        }
         let url_of = |key: &str| {
             if site {
                 key.to_string()
@@ -867,7 +863,7 @@ async fn section_data(
             let mut photos = if str_of(s, "/source") == Some("gallery") {
                 match str_of(s, "/gallery_id").and_then(|g| g.parse::<Uuid>().ok()) {
                     Some(g) => sqlx::query_scalar!(
-                        "SELECT gi.media_id FROM gallery_items gi JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL
+                        "SELECT gi.media_id FROM gallery_items gi JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.visibility = 'public'
                          WHERE gi.gallery_id = $1 ORDER BY gi.sort_order, gi.media_id",
                         g
                     )

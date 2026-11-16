@@ -182,10 +182,6 @@ async fn upload_requests_are_validated(db: PgPool) {
             json!({ "filename": "", "content_type": "image/png", "size_bytes": 10 }),
             StatusCode::UNPROCESSABLE_ENTITY,
         ),
-        (
-            json!({ "filename": "x.pdf", "content_type": "application/pdf", "size_bytes": 10, "visibility": "private" }),
-            StatusCode::BAD_REQUEST,
-        ),
     ] {
         let (status, res) = app
             .admin(Method::POST, "/v1/admin/media/uploads", Some(body.clone()))
@@ -195,20 +191,50 @@ async fn upload_requests_are_validated(db: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn private_files_are_served_through_signed_urls(db: PgPool) {
-    let app = TestApp::with_private_bucket(db, true).await;
+async fn each_upload_is_signed_with_its_acl_and_private_files_use_signed_urls(db: PgPool) {
+    let app = TestApp::new(db).await;
+    // Public: readable by anyone, cached for good.
+    let (_, _, ticket) = start_upload(&app, 32).await;
+    let headers = &ticket["upload"]["headers"];
+    assert_eq!(headers["x-goog-acl"], "public-read");
+    assert_eq!(
+        headers["cache-control"],
+        "public, max-age=31536000, immutable"
+    );
+
+    // Private: owner-only ACL, never cached, served through signed URLs.
     let (status, ticket) = app
         .admin(
             Method::POST,
             "/v1/admin/media/uploads",
-            Some(json!({ "filename": "facture.pdf", "content_type": "application/pdf", "size_bytes": 10, "visibility": "private" })),
+            Some(json!({ "filename": "passeport.pdf", "content_type": "application/pdf", "size_bytes": 16, "visibility": "private" })),
         )
         .await;
     assert_eq!(status, StatusCode::CREATED, "{ticket}");
-    assert!(
-        ticket["upload"]["headers"].get("cache-control").is_none(),
-        "private files are not CDN-cached"
-    );
+    let headers = &ticket["upload"]["headers"];
+    assert_eq!(headers["x-goog-acl"], "private");
+    assert_eq!(headers["cache-control"], "private, no-store");
+    let id = ticket["media_id"].as_str().unwrap().to_string();
+    let key = object_key(&ticket);
+    app.storage
+        .put(&key, b"%PDF-1.7\n0123456".to_vec(), "application/pdf");
+    let (status, media) = app
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/media/{id}/complete"),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{media}");
+    assert_eq!(media["visibility"], "private");
+    assert_eq!(media["url"], format!("memory://download/{key}?signed=1"));
+    let visibility: String =
+        sqlx::query_scalar("SELECT visibility FROM media_assets WHERE id = $1::uuid")
+            .bind(&id)
+            .fetch_one(&app.db)
+            .await
+            .unwrap();
+    assert_eq!(visibility, "private");
 }
 
 #[sqlx::test(migrations = "./migrations")]

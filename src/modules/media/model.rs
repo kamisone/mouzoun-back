@@ -5,8 +5,8 @@ use validator::Validate;
 
 use crate::{db::media::MediaKind, infra::storage::SignedRequest};
 
-/// Which bucket a file goes to: the public one (served as-is, CDN-cacheable) or the private
-/// one (only reachable through short-lived signed URLs).
+/// Who can read a file: anyone at its public URL (`public-read` ACL, CDN-cacheable), or only
+/// through short-lived signed URLs (`private` ACL: files tied to a person).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaVisibility {

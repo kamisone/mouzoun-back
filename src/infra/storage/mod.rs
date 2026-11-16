@@ -2,6 +2,9 @@
 //!
 //! Business code talks to [`ObjectStorage`]; [`gcs::GcsBucket`] is the production
 //! implementation. `memory::InMemoryStorage` backs the test-suite only (`test-utils` feature).
+//!
+//! One bucket holds public and private files. Its access control is fine-grained: each upload
+//! is signed with its ACL ([`ObjectAcl`]), so the client cannot choose another one.
 
 pub mod gcs;
 #[cfg(any(test, feature = "test-utils"))]
@@ -18,7 +21,7 @@ use serde::Serialize;
 #[async_trait]
 pub trait ObjectStorage: Send + Sync + 'static {
     /// Pre-signed request the client uses to upload bytes directly to the bucket.
-    /// The signature pins content type, exact size and cache headers.
+    /// The signature pins content type, exact size, cache headers and the object's ACL.
     async fn signed_upload(
         &self,
         key: &str,
@@ -42,7 +45,7 @@ pub trait ObjectStorage: Send + Sync + 'static {
     /// Idempotent: deleting a missing object succeeds.
     async fn delete(&self, key: &str) -> Result<(), StorageError>;
 
-    /// Stable public URL (only meaningful for publicly readable buckets).
+    /// Stable public URL (only meaningful for `public-read` objects).
     fn public_url(&self, key: &str) -> String;
 
     /// Bucket name, as stored in `media_assets.bucket`.
@@ -52,16 +55,32 @@ pub trait ObjectStorage: Send + Sync + 'static {
     async fn check(&self) -> Result<(), StorageError>;
 }
 
-/// The buckets available to the application.
-#[derive(Clone)]
-pub struct Buckets {
-    pub public: Arc<dyn ObjectStorage>,
-    pub private: Option<Arc<dyn ObjectStorage>>,
+/// The application's bucket.
+pub type SharedStorage = Arc<dyn ObjectStorage>;
+
+/// Access of one object, set when it is created (GCS predefined ACLs).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObjectAcl {
+    /// Anyone can read it at its public URL (site photos). The project keeps full control.
+    PublicRead,
+    /// Only the project (owner, IAM grants) can read it; others get a signed URL.
+    Private,
+}
+
+impl ObjectAcl {
+    /// Value of the `x-goog-acl` header.
+    pub fn header_value(self) -> &'static str {
+        match self {
+            Self::PublicRead => "public-read",
+            Self::Private => "private",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct UploadConstraints {
     pub content_type: String,
+    pub acl: ObjectAcl,
     pub size_bytes: u64,
     pub cache_control: Option<String>,
     pub ttl: Duration,
@@ -95,6 +114,8 @@ pub enum StorageError {
 pub(crate) fn upload_headers(c: &UploadConstraints) -> BTreeMap<String, String> {
     let mut headers = BTreeMap::new();
     headers.insert("content-type".to_string(), c.content_type.clone());
+    // Signed: GCS refuses the upload unless the client sends exactly this ACL.
+    headers.insert("x-goog-acl".to_string(), c.acl.header_value().to_string());
     // GCS rejects the upload unless its size is exactly the declared one.
     headers.insert(
         "x-goog-content-length-range".to_string(),

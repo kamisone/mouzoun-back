@@ -1589,7 +1589,7 @@ pub async fn section_types(
 ) -> AppResult<Vec<SectionTypeView>> {
     let rows = sqlx::query!(
         "SELECT s.code, s.is_active, s.is_system, s.preview_media_id, m.object_key AS \"object_key?\"
-         FROM section_types s LEFT JOIN media_assets m ON m.id = s.preview_media_id AND m.deleted_at IS NULL"
+         FROM section_types s LEFT JOIN media_assets m ON m.id = s.preview_media_id AND m.deleted_at IS NULL AND m.visibility = 'public'"
     )
     .fetch_all(db)
     .await?;

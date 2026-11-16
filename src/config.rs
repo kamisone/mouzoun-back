@@ -360,11 +360,10 @@ pub struct WorkerConfig {
 /// Google Cloud Storage settings.
 #[derive(Clone)]
 pub struct StorageConfig {
-    /// Bucket for publicly readable files (activity photos, ...). Must grant `allUsers` read.
-    pub public_bucket: String,
-    /// Optional bucket for private files (invoices, IDs, ...), only reachable via signed URLs.
-    /// Private uploads are rejected while this is not configured.
-    pub private_bucket: Option<String>,
+    /// The media bucket, with fine-grained access control: every object gets its own ACL at
+    /// upload, `public-read` (site photos) or `private` (files tied to a person, only reachable
+    /// through short-lived signed URLs).
+    pub bucket: String,
     /// Base URL used to build public file URLs (e.g. a CDN domain in front of the bucket).
     pub public_base_url: String,
     pub credentials: GcsCredentials,
@@ -393,8 +392,7 @@ impl fmt::Debug for StorageConfig {
             GcsCredentials::ApplicationDefault => "ApplicationDefault".into(),
         };
         f.debug_struct("StorageConfig")
-            .field("public_bucket", &self.public_bucket)
-            .field("private_bucket", &self.private_bucket)
+            .field("bucket", &self.bucket)
             .field("public_base_url", &self.public_base_url)
             .field("credentials", &creds)
             .finish()
@@ -526,9 +524,14 @@ impl Config {
 
 impl StorageConfig {
     fn from_env() -> Result<Self> {
-        let public_bucket = required("GCS_BUCKET_NAME")?;
+        let bucket = required("GCS_BUCKET_NAME")?;
+        if optional("GCS_PRIVATE_BUCKET_NAME").is_some() {
+            tracing::warn!(
+                "GCS_PRIVATE_BUCKET_NAME is no longer used: private files live in GCS_BUCKET_NAME with a private ACL"
+            );
+        }
         let public_base_url = optional("GCS_PUBLIC_BASE_URL")
-            .unwrap_or_else(|| format!("https://storage.googleapis.com/{public_bucket}"))
+            .unwrap_or_else(|| format!("https://storage.googleapis.com/{bucket}"))
             .trim_end_matches('/')
             .to_string();
 
@@ -544,8 +547,7 @@ impl StorageConfig {
         };
 
         Ok(Self {
-            public_bucket,
-            private_bucket: optional("GCS_PRIVATE_BUCKET_NAME"),
+            bucket,
             public_base_url,
             credentials,
         })
@@ -688,8 +690,7 @@ mod tests {
             admin_email: None,
             admin_password: None,
             storage: StorageConfig {
-                public_bucket: "b".into(),
-                private_bucket: None,
+                bucket: "b".into(),
                 public_base_url: "https://storage.googleapis.com/b".into(),
                 credentials: GcsCredentials::ApplicationDefault,
             },

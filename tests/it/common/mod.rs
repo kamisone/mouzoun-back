@@ -18,10 +18,7 @@ use mouzoun_api::{
         AppEnv, BookingConfig, Config, EmailConfig, EmailProvider, GcsCredentials, MediaConfig,
         StorageConfig, WorkerConfig,
     },
-    infra::{
-        cache::Cache,
-        storage::{Buckets, memory::InMemoryStorage},
-    },
+    infra::{cache::Cache, storage::memory::InMemoryStorage},
     state::AppState,
     web,
 };
@@ -58,8 +55,7 @@ pub fn test_config() -> Config {
         admin_email: None,
         admin_password: None,
         storage: StorageConfig {
-            public_bucket: "test-bucket".into(),
-            private_bucket: None,
+            bucket: "test-bucket".into(),
             public_base_url: "https://cdn.test".into(),
             credentials: GcsCredentials::ApplicationDefault,
         },
@@ -105,34 +101,26 @@ fn redis_url() -> String {
 
 impl TestApp {
     pub async fn new(db: PgPool) -> Self {
-        Self::with_private_bucket(db, false).await
-    }
-
-    pub async fn with_private_bucket(db: PgPool, private: bool) -> Self {
-        Self::build(db, private, test_config()).await
+        Self::build(db, test_config()).await
     }
 
     /// An app with the test configuration changed by `edit` (optional secrets, providers...).
     pub async fn with_config(db: PgPool, edit: impl FnOnce(&mut Config)) -> Self {
         let mut config = test_config();
         edit(&mut config);
-        Self::build(db, false, config).await
+        Self::build(db, config).await
     }
 
-    async fn build(db: PgPool, private: bool, config: Config) -> Self {
+    async fn build(db: PgPool, config: Config) -> Self {
         let cache = Cache::connect(&config.redis_url, format!("test:{}", Uuid::new_v4()))
             .await
             .expect("redis");
         let storage = Arc::new(InMemoryStorage::new());
-        let buckets = Buckets {
-            public: storage.clone(),
-            private: private.then(|| Arc::new(InMemoryStorage::named("memory-private")) as _),
-        };
 
         let admin_id = create_user(&db, "admin@test.ma", "x", true, Some("super_admin")).await;
         let admin_token = jwt::issue(JWT_SECRET, admin_id, true, 60).unwrap();
 
-        let state = AppState::new(config, db.clone(), cache, buckets);
+        let state = AppState::new(config, db.clone(), cache, storage.clone());
         state.sections.sync(&db).await.expect("section types");
         Self {
             router: web::router(state.clone()),

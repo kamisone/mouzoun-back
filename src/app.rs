@@ -33,7 +33,7 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     tracing::info!(storage = ?config.storage, "connecting object storage");
     let buckets = storage::gcs::connect(&config.storage).await?;
     // Network check is advisory: a transient GCS issue must not prevent the API from booting.
-    match buckets.public.check().await {
+    match buckets.check().await {
         Ok(()) => tracing::info!("object storage reachable"),
         Err(e) => tracing::error!(error = %e, "object storage check failed (uploads will fail)"),
     }

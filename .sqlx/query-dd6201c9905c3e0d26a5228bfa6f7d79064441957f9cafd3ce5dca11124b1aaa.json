@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT gi.media_id FROM gallery_items gi JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.visibility = 'public'\n                         WHERE gi.gallery_id = $1 ORDER BY gi.sort_order, gi.media_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "media_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dd6201c9905c3e0d26a5228bfa6f7d79064441957f9cafd3ce5dca11124b1aaa"
+}

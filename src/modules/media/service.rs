@@ -16,7 +16,7 @@ use crate::{
     error::{AppError, AppResult},
     infra::{
         cache::Cache,
-        storage::{Buckets, ObjectStorage, UploadConstraints},
+        storage::{ObjectAcl, SharedStorage, UploadConstraints},
     },
     web::pagination::{PageParams, Paginated},
 };
@@ -30,28 +30,29 @@ fn ticket_key(id: Uuid) -> String {
 #[derive(Clone)]
 pub struct MediaService {
     db: PgPool,
-    buckets: Buckets,
+    storage: SharedStorage,
     redis: Cache,
     config: MediaConfig,
 }
 
 impl MediaService {
-    pub fn new(db: PgPool, buckets: Buckets, redis: Cache, config: MediaConfig) -> Self {
+    pub fn new(db: PgPool, storage: SharedStorage, redis: Cache, config: MediaConfig) -> Self {
         Self {
             db,
-            buckets,
+            storage,
             redis,
             config,
         }
     }
 
-    /// Step 1: validate the request, reserve a storage key, hand out a signed upload URL and
-    /// remember the upload (Redis) until it is completed or abandoned.
-    /// Reaches the public bucket (readiness probe; network call to the storage provider).
+    /// Reaches the bucket (readiness probe; network call to the storage provider).
     pub async fn check_storage(&self) -> bool {
-        self.buckets.public.check().await.is_ok()
+        self.storage.check().await.is_ok()
     }
 
+    /// Step 1: validate the request, reserve a storage key, hand out a signed upload URL (its
+    /// signature fixes the object's ACL from the requested visibility) and remember the upload
+    /// (Redis) until it is completed or abandoned.
     pub async fn create_upload(
         &self,
         req: CreateUploadRequest,
@@ -70,18 +71,22 @@ impl MediaService {
                 self.config.max_upload_bytes
             )));
         }
-        let storage = self.bucket(req.visibility)?;
         let id = Uuid::now_v7();
         let now = Utc::now();
         let object_key = policy::object_key(id, kind, now);
-        let upload = storage
+        let (acl, cache_control) = match req.visibility {
+            MediaVisibility::Public => (ObjectAcl::PublicRead, policy::PUBLIC_CACHE_CONTROL),
+            MediaVisibility::Private => (ObjectAcl::Private, policy::PRIVATE_CACHE_CONTROL),
+        };
+        let upload = self
+            .storage
             .signed_upload(
                 &object_key,
                 &UploadConstraints {
                     content_type: kind.content_type.to_string(),
+                    acl,
                     size_bytes: u64::try_from(req.size_bytes).unwrap_or_default(),
-                    cache_control: (req.visibility == MediaVisibility::Public)
-                        .then(|| policy::PUBLIC_CACHE_CONTROL.to_string()),
+                    cache_control: Some(cache_control.to_string()),
                     ttl: self.config.upload_url_ttl,
                 },
             )
@@ -135,7 +140,7 @@ impl MediaService {
         let pending: PendingUpload = raw
             .and_then(|r| serde_json::from_str(&r).ok())
             .ok_or(AppError::NotFound)?;
-        let storage = self.bucket(pending.visibility)?;
+        let storage = self.storage.as_ref();
         let meta = storage
             .head(&pending.object_key)
             .await?
@@ -164,10 +169,10 @@ impl MediaService {
         let asset = sqlx::query_as!(
             MediaAssetRecord,
             r#"INSERT INTO media_assets (id, bucket, object_key, original_filename, mime_type, kind, size_bytes,
-                                       uploaded_by)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                       uploaded_by, visibility)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                ON CONFLICT (bucket, object_key) DO UPDATE SET updated_at = media_assets.updated_at
-               RETURNING id, folder_id, storage_provider, bucket, object_key, original_filename, mime_type,
+               RETURNING id, folder_id, storage_provider, bucket, visibility, object_key, original_filename, mime_type,
                          kind AS "kind: MediaKind", size_bytes, width, height, duration_seconds, checksum_sha256,
                          blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at"#,
             id,
@@ -177,7 +182,11 @@ impl MediaService {
             pending.content_type,
             MediaKind::from_mime(&pending.content_type).as_str(),
             pending.size_bytes,
-            pending.uploaded_by
+            pending.uploaded_by,
+            match pending.visibility {
+                MediaVisibility::Public => "public",
+                MediaVisibility::Private => "private",
+            }
         )
         .fetch_one(&self.db)
         .await?;
@@ -199,7 +208,7 @@ impl MediaService {
         let (rows, total) = tokio::try_join!(
             sqlx::query_as!(
                 MediaAssetRecord,
-                r#"SELECT id, folder_id, storage_provider, bucket, object_key, original_filename, mime_type,
+                r#"SELECT id, folder_id, storage_provider, bucket, visibility, object_key, original_filename, mime_type,
                           kind AS "kind: MediaKind", size_bytes, width, height, duration_seconds, checksum_sha256,
                           blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at
                    FROM media_assets
@@ -279,8 +288,7 @@ impl MediaService {
             let Ok(id) = id.parse::<Uuid>() else { continue };
             let raw: Option<String> = redis.get(self.redis.key(&ticket_key(id))).await?;
             if let Some(pending) = raw.and_then(|r| serde_json::from_str::<PendingUpload>(&r).ok())
-                && let Ok(storage) = self.bucket(pending.visibility)
-                && let Err(e) = storage.delete(&pending.object_key).await
+                && let Err(e) = self.storage.delete(&pending.object_key).await
             {
                 // Kept in the index: retried on the next run.
                 tracing::warn!(media_id = %id, error = %e, "cleanup: delete failed");
@@ -292,14 +300,15 @@ impl MediaService {
         Ok(purged)
     }
 
+    /// URL of a `public-read` object (never use it for private files).
     pub fn public_url(&self, object_key: &str) -> String {
-        self.buckets.public.public_url(object_key)
+        self.storage.public_url(object_key)
     }
 
     async fn find(&self, id: Uuid) -> AppResult<Option<MediaAssetRecord>> {
         Ok(sqlx::query_as!(
             MediaAssetRecord,
-            r#"SELECT id, folder_id, storage_provider, bucket, object_key, original_filename, mime_type,
+            r#"SELECT id, folder_id, storage_provider, bucket, visibility, object_key, original_filename, mime_type,
                       kind AS "kind: MediaKind", size_bytes, width, height, duration_seconds, checksum_sha256,
                       blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at
                FROM media_assets WHERE id = $1 AND deleted_at IS NULL"#,
@@ -318,35 +327,22 @@ impl MediaService {
         Ok(())
     }
 
-    fn bucket(&self, visibility: MediaVisibility) -> AppResult<&dyn ObjectStorage> {
-        match visibility {
-            MediaVisibility::Public => Ok(self.buckets.public.as_ref()),
-            MediaVisibility::Private => self
-                .buckets
-                .private
-                .as_deref()
-                .ok_or_else(|| AppError::BadRequest("private storage is not configured".into())),
-        }
-    }
-
+    /// Public files: their stable URL. Private files: a short-lived signed URL (downloaded
+    /// as an attachment under the original name), created for each response.
     async fn to_dto(&self, asset: MediaAssetRecord) -> AppResult<MediaDto> {
-        let private = self
-            .buckets
-            .private
-            .as_deref()
-            .filter(|p| p.bucket_name() == asset.bucket);
-        let (visibility, url) = match private {
-            Some(storage) => (
+        let (visibility, url) = if asset.visibility == "private" {
+            (
                 MediaVisibility::Private,
-                storage
+                self.storage
                     .signed_download_url(
                         &asset.object_key,
                         self.config.download_url_ttl,
                         Some(&asset.original_filename),
                     )
                     .await?,
-            ),
-            None => (MediaVisibility::Public, self.public_url(&asset.object_key)),
+            )
+        } else {
+            (MediaVisibility::Public, self.public_url(&asset.object_key))
         };
         Ok(MediaDto {
             id: asset.id,

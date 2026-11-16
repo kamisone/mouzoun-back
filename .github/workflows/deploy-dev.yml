@@ -127,7 +127,6 @@ jobs:
           GCS_PRIVATE_KEY_ID: ${{ secrets.GCS_PRIVATE_KEY_ID }}
           GCS_PRIVATE_KEY: ${{ secrets.GCS_PRIVATE_KEY }}
           # optional
-          GCS_PRIVATE_BUCKET_NAME: ${{ secrets.GCS_PRIVATE_BUCKET_NAME }}
           GCS_PUBLIC_BASE_URL: ${{ secrets.GCS_PUBLIC_BASE_URL }}
           # Transactional emails (optional: without SMTP_HOST emails are only logged)
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -221,7 +220,7 @@ jobs:
               "CORS_ORIGINS=https://$domain,https://www.$domain" \
               "ADMIN_EMAIL=$ADMIN_EMAIL" "ADMIN_PASSWORD=$ADMIN_PASSWORD"
             # Google Cloud Storage
-            printf '%s\n' "GCS_BUCKET_NAME=$GCS_BUCKET_NAME" "GCS_PRIVATE_BUCKET_NAME=$GCS_PRIVATE_BUCKET_NAME" \
+            printf '%s\n' "GCS_BUCKET_NAME=$GCS_BUCKET_NAME" \
               "GCS_PUBLIC_BASE_URL=$GCS_PUBLIC_BASE_URL" "GCS_PROJECT_ID=$GCS_PROJECT_ID" \
               "GCS_CLIENT_EMAIL=$GCS_CLIENT_EMAIL" "GCS_PRIVATE_KEY_ID=$GCS_PRIVATE_KEY_ID" \
               "GCS_PRIVATE_KEY=$gcs_key"

@@ -147,7 +147,7 @@ pub(crate) async fn cards(
            FROM products p
            LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $1
            LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)
-           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL
+           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL AND m.visibility = 'public'
            LEFT JOIN accommodation_types a ON a.product_id = p.id
            LEFT JOIN activities act ON act.product_id = p.id
            LEFT JOIN packages pk ON pk.product_id = p.id
@@ -309,7 +309,7 @@ pub async fn detail(
                    WHERE x.id = m.id) AS "alt?"
            FROM products p
            JOIN gallery_items gi ON gi.gallery_id = p.gallery_id
-           JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.kind = 'image'
+           JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.kind = 'image' AND m.visibility = 'public'
            WHERE p.id = $1 ORDER BY gi.sort_order, m.created_at"#,
         id,
         loc

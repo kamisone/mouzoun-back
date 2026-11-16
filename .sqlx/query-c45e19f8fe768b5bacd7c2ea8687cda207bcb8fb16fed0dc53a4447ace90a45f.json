@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.code, s.is_active, s.is_system, s.preview_media_id, m.object_key AS \"object_key?\"\n         FROM section_types s LEFT JOIN media_assets m ON m.id = s.preview_media_id AND m.deleted_at IS NULL",
+  "query": "SELECT s.code, s.is_active, s.is_system, s.preview_media_id, m.object_key AS \"object_key?\"\n         FROM section_types s LEFT JOIN media_assets m ON m.id = s.preview_media_id AND m.deleted_at IS NULL AND m.visibility = 'public'",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       true
     ]
   },
-  "hash": "53b2eb4f86f66d43d0e098c5564b767728e0f42d2942f3f2c8e70b10d72ff424"
+  "hash": "c45e19f8fe768b5bacd7c2ea8687cda207bcb8fb16fed0dc53a4447ace90a45f"
 }
