@@ -409,7 +409,7 @@ async fn the_basket_follows_the_guest_when_signing_in(db: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn guests_never_reach_the_back_office_and_staff_need_a_second_factor(db: PgPool) {
+async fn guests_never_reach_the_back_office_and_staff_choose_their_second_factor(db: PgPool) {
     let app = TestApp::new(db.clone()).await;
     let (_, jar) = sign_in(&app, "guest@example.com", None).await;
     let (status, _, _) = app
@@ -426,48 +426,129 @@ async fn guests_never_reach_the_back_office_and_staff_need_a_second_factor(db: P
         .await
         .unwrap();
     create_user(&db, "staff@example.com", &hash, true, Some("reception")).await;
-    let (status, h, body) = app
-        .send(
+    let login = || {
+        app.send(
             Method::POST,
             "/v1/auth/login",
             Some(json!({ "email": "staff@example.com", "password": "Staff-password-1" })),
             &[],
         )
+    };
+    let has_session = |h: &HeaderMap| {
+        cookies(h)
+            .iter()
+            .any(|(k, _)| k == "__Host-mouzoun_session")
+    };
+
+    // Off by default: the password alone opens the back office.
+    let (status, h, body) = login().await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.get("mfa_token").is_none());
+    assert!(has_session(&h));
+    let session = [("cookie", cookie_header(&cookies(&h)))];
+    let (_, _, state) = app
+        .send(Method::GET, "/v1/admin/account/2fa", None, &session)
+        .await;
+    assert_eq!(state["enabled"], false);
+
+    // Each code works once: enable, sign-in and disable use three different time steps. Stay
+    // clear of a step boundary so the three stay inside the accepted window.
+    let now = chrono::Utc::now().timestamp();
+    if now % 30 > 24 {
+        tokio::time::sleep(std::time::Duration::from_secs((31 - now % 30) as u64)).await;
+    }
+    let step = (chrono::Utc::now().timestamp() / 30) as u64;
+
+    // Turned on in the settings: a new secret, confirmed by a first code.
+    let (status, _, setup) = app
+        .send(Method::POST, "/v1/admin/account/2fa/setup", None, &session)
         .await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(body["mfa_enrollment_required"], true);
     assert!(
-        cookies(&h).is_empty(),
-        "no session before the second factor"
+        setup["otpauth_uri"]
+            .as_str()
+            .unwrap()
+            .starts_with("otpauth://totp/")
     );
-    let secret = totp::base32_decode(body["secret"].as_str().unwrap()).unwrap();
-    let wrong = app
+    let secret = totp::base32_decode(setup["secret"].as_str().unwrap()).unwrap();
+    let (status, _, _) = app
         .send(
             Method::POST,
-            "/v1/auth/mfa",
-            Some(json!({ "mfa_token": body["mfa_token"], "code": "000000" })),
-            &[],
+            "/v1/admin/account/2fa/enable",
+            Some(json!({ "code": "000000" })),
+            &session,
         )
         .await;
-    assert_eq!(wrong.0, StatusCode::UNPROCESSABLE_ENTITY);
-    let code = (0..1_000_000)
-        .map(|n| format!("{n:06}"))
-        .find(|c| totp::verify(&secret, c, chrono::Utc::now().timestamp()).is_some())
-        .unwrap();
-    let (status, h, _) = app
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    let (status, _, state) = app
         .send(
+            Method::POST,
+            "/v1/admin/account/2fa/enable",
+            Some(json!({ "code": totp::code_at(&secret, step - 1) })),
+            &session,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{state}");
+    assert_eq!(state["enabled"], true);
+    let (status, _, _) = app
+        .send(Method::POST, "/v1/admin/account/2fa/setup", None, &session)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "already on");
+
+    // Now the sign-in asks for a code, and gives no session before it.
+    let (status, h, body) = login().await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["mfa_required"], true);
+    assert!(!has_session(&h), "no session before the second factor");
+    let mfa = |code: String| {
+        app.send(
             Method::POST,
             "/v1/auth/mfa",
             Some(json!({ "mfa_token": body["mfa_token"], "code": code })),
             &[],
         )
+    };
+    let replayed = mfa(totp::code_at(&secret, step - 1)).await;
+    assert_eq!(
+        replayed.0,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "codes work once"
+    );
+    let (status, h, _) = mfa(totp::code_at(&secret, step)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(has_session(&h));
+
+    // Turning it off needs a current code.
+    let (status, _, _) = app
+        .send(
+            Method::POST,
+            "/v1/admin/account/2fa/disable",
+            Some(json!({ "code": "000000" })),
+            &session,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    let (status, _, state) = app
+        .send(
+            Method::POST,
+            "/v1/admin/account/2fa/disable",
+            Some(json!({ "code": totp::code_at(&secret, step + 1) })),
+            &session,
+        )
         .await;
     assert_eq!(status, StatusCode::OK);
-    assert!(
-        cookies(&h)
-            .iter()
-            .any(|(k, _)| k == "__Host-mouzoun_session")
-    );
+    assert_eq!(state["enabled"], false);
+    let (_, h, body) = login().await;
+    assert!(body.get("mfa_token").is_none());
+    assert!(has_session(&h));
+    let audited: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM audit_logs WHERE action IN ('auth.totp_enabled', 'auth.totp_disabled')",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(audited, 2);
+
     // A guest password cannot open the back office either.
     let (status, _, _) = app
         .send(

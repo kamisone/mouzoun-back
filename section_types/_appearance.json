@@ -1,0 +1,89 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "color_scheme": {
+      "type": "string",
+      "enum": [
+        "light",
+        "dark",
+        "sand",
+        "night",
+        "brand"
+      ],
+      "default": "light",
+      "x-widget": "color_scheme",
+      "title": "Colour scheme"
+    },
+    "background_media_id": {
+      "$ref": "#/$defs/media_id",
+      "title": "Background image"
+    },
+    "padding_top": {
+      "type": "string",
+      "enum": [
+        "none",
+        "sm",
+        "md",
+        "lg",
+        "xl"
+      ],
+      "default": "lg",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Space above"
+    },
+    "padding_bottom": {
+      "type": "string",
+      "enum": [
+        "none",
+        "sm",
+        "md",
+        "lg",
+        "xl"
+      ],
+      "default": "lg",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Space below"
+    },
+    "width": {
+      "type": "string",
+      "enum": [
+        "contained",
+        "full"
+      ],
+      "default": "contained",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Width"
+    },
+    "divider_top": {
+      "type": "string",
+      "enum": [
+        "none",
+        "wave",
+        "dunes",
+        "slant"
+      ],
+      "default": "none",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Divider above"
+    },
+    "divider_bottom": {
+      "type": "string",
+      "enum": [
+        "none",
+        "wave",
+        "dunes",
+        "slant"
+      ],
+      "default": "none",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Divider below"
+    }
+  },
+  "$comment": "Shared look of every section (content_blocks.appearance)."
+}

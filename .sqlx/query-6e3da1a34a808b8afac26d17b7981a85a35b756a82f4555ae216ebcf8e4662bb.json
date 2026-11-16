@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind, COALESCE(t.slug, d.slug) AS \"slug?\"\n               FROM products p\n               LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n               LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = $3\n               WHERE p.id = ANY($1) AND p.status = 'published' AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "6e3da1a34a808b8afac26d17b7981a85a35b756a82f4555ae216ebcf8e4662bb"
+}

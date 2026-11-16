@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT revision_number FROM page_revisions WHERE page_id = $1 AND status = 'published'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision_number",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cec2e488f7f3a65d79ebfb452e4a3981e6d4fe9ff7351782071f5081ed207067"
+}

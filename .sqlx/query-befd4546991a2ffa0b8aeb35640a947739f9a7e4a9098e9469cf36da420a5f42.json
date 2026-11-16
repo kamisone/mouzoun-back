@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT revision_number FROM page_revisions WHERE id = $1 AND status = 'scheduled' AND publish_at <= $2\n             FOR UPDATE SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision_number",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "befd4546991a2ffa0b8aeb35640a947739f9a7e4a9098e9469cf36da420a5f42"
+}

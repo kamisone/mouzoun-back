@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, page_type, status, cover_media_id, draft_version, has_unpublished_changes\n         FROM pages WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "page_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "draft_version",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "has_unpublished_changes",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3b4366a9256c48418a0dcb73d7061e2ab21d7e55ea6e213b078f013da70db479"
+}

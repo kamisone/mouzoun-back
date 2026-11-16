@@ -189,6 +189,12 @@ pub enum Event {
     PageUpdated {
         page_id: Uuid,
     },
+    /// Something a page section can show changed (media, review, FAQ, promotion, category,
+    /// place, crop, amenity, gallery): cached pages that use it are invalidated.
+    ContentChanged {
+        ref_type: String,
+        ref_id: Uuid,
+    },
 }
 
 /// Payload of every `booking.*` event.
@@ -291,6 +297,7 @@ pub mod types {
     pub const SETTINGS_UPDATED: &str = "settings.updated";
     pub const MENU_UPDATED: &str = "menu.updated";
     pub const PAGE_UPDATED: &str = "page.updated";
+    pub const CONTENT_CHANGED: &str = "content.changed";
 }
 
 impl Event {
@@ -337,6 +344,7 @@ impl Event {
             Self::SettingsUpdated { .. } => SETTINGS_UPDATED,
             Self::MenuUpdated { .. } => MENU_UPDATED,
             Self::PageUpdated { .. } => PAGE_UPDATED,
+            Self::ContentChanged { .. } => CONTENT_CHANGED,
         }
     }
 
@@ -534,6 +542,11 @@ impl Event {
             Self::PageUpdated { page_id } => {
                 ("page", page_id.to_string(), json!({ "page_id": page_id }))
             }
+            Self::ContentChanged { ref_type, ref_id } => (
+                "content",
+                format!("{ref_type}:{ref_id}"),
+                json!({ "ref_type": ref_type, "ref_id": ref_id }),
+            ),
         }
     }
 }

@@ -1,0 +1,240 @@
+{
+  "code": "product_carousel",
+  "name": "Products",
+  "description": "Product cards picked by hand or by a rule.",
+  "icon": "i-lucide-tent",
+  "category": "listing",
+  "schema_version": 1,
+  "sort_order": 40,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "object",
+        "title": "Source",
+        "x-group": "source",
+        "x-widget": "source",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "default": "rule",
+            "title": "Mode"
+          },
+          "ids": {
+            "type": "array",
+            "maxItems": 24,
+            "uniqueItems": true,
+            "default": [],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-widget": "product_picker",
+            "x-ref": "product",
+            "title": "Hand-picked"
+          },
+          "rule": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accommodation",
+                  "activity",
+                  "extra",
+                  "package"
+                ],
+                "title": "Kind"
+              },
+              "category_id": {
+                "type": "string",
+                "format": "uuid",
+                "x-widget": "category_picker",
+                "x-ref": "category",
+                "title": "Category"
+              },
+              "featured_only": {
+                "type": "boolean",
+                "default": false,
+                "title": "Featured only"
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "sort_order",
+                  "newest",
+                  "price_asc",
+                  "rating"
+                ],
+                "default": "sort_order",
+                "title": "Sort"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 24,
+                "default": 6,
+                "title": "How many"
+              }
+            },
+            "required": [
+              "kind",
+              "limit"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "manual"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "ids": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "ids"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "rule"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule"
+              ]
+            }
+          }
+        ]
+      },
+      "card_style": {
+        "type": "string",
+        "enum": [
+          "photo",
+          "compact"
+        ],
+        "default": "photo",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Card style"
+      },
+      "show_price_from": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show “from” price"
+      },
+      "show_rating": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show rating"
+      },
+      "show_duration": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show duration"
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "carousel",
+          "grid_3",
+          "grid_4"
+        ],
+        "default": "carousel",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      }
+    },
+    "required": [
+      "source"
+    ]
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "cta_primary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Primary button label"
+      },
+      "cta_secondary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Secondary button label"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": {
+        "mode": "rule",
+        "ids": [],
+        "rule": {
+          "kind": "accommodation",
+          "sort": "sort_order",
+          "limit": 6
+        }
+      },
+      "card_style": "photo",
+      "show_price_from": true,
+      "show_rating": true,
+      "show_duration": true,
+      "layout": "carousel"
+    },
+    "content": {
+      "fr": {
+        "title": "Nos hébergements"
+      },
+      "en": {
+        "title": "Our accommodation"
+      },
+      "ar": {
+        "title": "أماكن الإقامة"
+      }
+    }
+  }
+}

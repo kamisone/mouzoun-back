@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, author_name, author_country, rating, title, body, experience_date, locale\n                 FROM reviews\n                 WHERE status = 'approved' AND rating >= $1 AND (NOT $2 OR is_featured)\n                   AND ($3::uuid IS NULL OR product_id = $3)\n                 ORDER BY created_at DESC LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "author_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "author_country",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "rating",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "experience_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "locale",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Bool",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "993f48c36f09bdced19a2fbbce8b463a38c395f14f3c96a07fe5e358fd3c6b02"
+}

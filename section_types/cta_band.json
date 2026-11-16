@@ -1,0 +1,96 @@
+{
+  "code": "cta_band",
+  "name": "Call to action",
+  "description": "A band with a title and up to two buttons.",
+  "icon": "i-lucide-megaphone",
+  "category": "conversion",
+  "schema_version": 1,
+  "sort_order": 180,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "background_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Background image",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "cta_primary": {
+        "$ref": "#/$defs/cta",
+        "title": "Primary button",
+        "x-group": "content"
+      },
+      "cta_secondary": {
+        "$ref": "#/$defs/cta",
+        "title": "Secondary button",
+        "x-group": "content"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "maxLength": 400,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      },
+      "cta_primary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Primary button label"
+      },
+      "cta_secondary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Secondary button label"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "cta_primary": {
+        "link": {
+          "type": "route",
+          "route": "/stays",
+          "new_tab": false
+        },
+        "style": "primary"
+      }
+    },
+    "content": {
+      "fr": {
+        "title": "Prêt à venir ?",
+        "cta_primary_label": "Réserver"
+      },
+      "en": {
+        "title": "Ready to come?",
+        "cta_primary_label": "Book now"
+      },
+      "ar": {
+        "title": "مستعد للقدوم؟",
+        "cta_primary_label": "احجز الآن"
+      }
+    }
+  }
+}

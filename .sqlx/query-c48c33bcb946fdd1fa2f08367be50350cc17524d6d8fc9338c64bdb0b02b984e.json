@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, t.name AS \"label?\", COALESCE(p.code::text, 'automatic') AS hint FROM promotions p\n               LEFT JOIN promotion_translations t ON t.promotion_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3) END)\n               ORDER BY p.created_at DESC LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c48c33bcb946fdd1fa2f08367be50350cc17524d6d8fc9338c64bdb0b02b984e"
+}

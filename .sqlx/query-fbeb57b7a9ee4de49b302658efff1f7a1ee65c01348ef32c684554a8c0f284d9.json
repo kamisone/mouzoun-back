@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind, p.latitude::float8 AS \"lat?\", p.longitude::float8 AS \"lng?\",\n                          p.distance_km::float8 AS \"distance_km?\", p.cover_media_id,\n                          COALESCE(NULLIF(t.name, ''), d.name) AS \"name?\",\n                          COALESCE(t.short_description, d.short_description) AS \"description?\"\n                   FROM places p\n                   LEFT JOIN place_translations t ON t.place_id = p.id AND t.locale = $2\n                   LEFT JOIN place_translations d ON d.place_id = p.id AND d.locale = $3\n                   WHERE p.id = ANY($1) AND p.is_published AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "lat?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "lng?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "distance_km?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "fbeb57b7a9ee4de49b302658efff1f7a1ee65c01348ef32c684554a8c0f284d9"
+}

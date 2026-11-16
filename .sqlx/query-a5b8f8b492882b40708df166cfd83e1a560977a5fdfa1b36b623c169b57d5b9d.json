@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE page_revisions SET status = 'superseded' WHERE page_id = $1 AND status = 'published'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5b8f8b492882b40708df166cfd83e1a560977a5fdfa1b36b623c169b57d5b9d"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id FROM content_block_items i\n             JOIN unnest($1::uuid[], $2::uuid[]) AS x (item_id, block_id) ON x.item_id = i.id\n             WHERE i.block_id <> x.block_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "55d3a0c29b0f41f2b4dc37dcbae2a58c634d37302318374232e6f07da2079640"
+}

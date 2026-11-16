@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.placement, b.style, b.link_url, b.media_id,\n                  COALESCE(NULLIF(t.message, ''), d.message) AS \"message?\", COALESCE(t.cta_label, d.cta_label) AS \"cta_label?\"\n           FROM banners b\n           LEFT JOIN banner_translations t ON t.banner_id = b.id AND t.locale = $1\n           LEFT JOIN banner_translations d ON d.banner_id = b.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE b.is_active AND (b.active_period IS NULL OR b.active_period @> $2::timestamptz)\n             AND ($3::text IS NULL OR b.placement = $3)\n           ORDER BY b.sort_order, b.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "placement",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "style",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "link_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "message?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "cta_label?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "d9fc8cf755d74962744b02334c0111191f6390a245157dea3b470bb108b11ff8"
+}

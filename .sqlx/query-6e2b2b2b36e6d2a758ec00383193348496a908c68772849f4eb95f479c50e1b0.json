@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO page_translations (page_id, locale, title, slug, excerpt, seo_title, seo_description,\n                                            og_media_id, noindex)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n             ON CONFLICT (page_id, locale) DO UPDATE SET title = EXCLUDED.title, slug = EXCLUDED.slug,\n                 excerpt = EXCLUDED.excerpt, seo_title = EXCLUDED.seo_title,\n                 seo_description = EXCLUDED.seo_description, og_media_id = EXCLUDED.og_media_id,\n                 noindex = EXCLUDED.noindex\n             WHERE (page_translations.title, page_translations.slug, page_translations.excerpt,\n                    page_translations.seo_title, page_translations.seo_description, page_translations.og_media_id,\n                    page_translations.noindex)\n                   IS DISTINCT FROM\n                   (EXCLUDED.title, EXCLUDED.slug, EXCLUDED.excerpt, EXCLUDED.seo_title, EXCLUDED.seo_description,\n                    EXCLUDED.og_media_id, EXCLUDED.noindex)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6e2b2b2b36e6d2a758ec00383193348496a908c68772849f4eb95f479c50e1b0"
+}

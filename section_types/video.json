@@ -1,0 +1,96 @@
+{
+  "code": "video",
+  "name": "Video",
+  "description": "An uploaded video or a YouTube / Vimeo link.",
+  "icon": "i-lucide-clapperboard",
+  "category": "media",
+  "schema_version": 1,
+  "sort_order": 120,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "provider": {
+        "type": "string",
+        "enum": [
+          "file",
+          "youtube",
+          "vimeo"
+        ],
+        "default": "file",
+        "x-widget": "select",
+        "x-group": "content",
+        "title": "Provider"
+      },
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Video file",
+        "x-media-kinds": [
+          "video"
+        ]
+      },
+      "url": {
+        "type": "string",
+        "pattern": "^https://(www\\.)?(youtube\\.com|youtu\\.be|vimeo\\.com|player\\.vimeo\\.com)/",
+        "maxLength": 300,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "YouTube or Vimeo URL"
+      },
+      "poster_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Poster",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "autoplay_muted": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Autoplay (muted)"
+      },
+      "loop": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Loop"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "caption": {
+        "type": "string",
+        "maxLength": 300,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Caption"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "provider": "file",
+      "autoplay_muted": false,
+      "loop": false
+    },
+    "content": {}
+  }
+}

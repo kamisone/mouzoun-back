@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, block_type, name, anchor_id, is_visible, active_period AS \"active_period: TsRange\",\n                  visible_on AS \"visible_on: VisibleOn\", hidden_locales, appearance, analytics_label,\n                  settings, shared_block_id\n           FROM content_blocks WHERE id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "block_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "anchor_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_visible",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "active_period: TsRange",
+        "type_info": "TstzRange"
+      },
+      {
+        "ordinal": 6,
+        "name": "visible_on: VisibleOn",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "hidden_locales",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "appearance",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "analytics_label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "settings",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 11,
+        "name": "shared_block_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "8a37672d8529c5f6a51995648bbcc7e75cbe720196bd6f0698e5bad5a94f83c0"
+}

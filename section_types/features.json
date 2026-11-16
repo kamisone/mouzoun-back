@@ -1,0 +1,145 @@
+{
+  "code": "features",
+  "name": "Features",
+  "description": "Icons or photos with a short text: facilities, reasons to come.",
+  "icon": "i-lucide-layout-grid",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 70,
+  "min_items": 0,
+  "max_items": 12,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "columns": {
+        "type": "integer",
+        "minimum": 2,
+        "maximum": 6,
+        "default": 3,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Columns"
+      },
+      "icon_style": {
+        "type": "string",
+        "enum": [
+          "line",
+          "filled"
+        ],
+        "default": "line",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Icon style"
+      },
+      "source": {
+        "type": "string",
+        "enum": [
+          "manual",
+          "amenities"
+        ],
+        "default": "manual",
+        "x-widget": "select",
+        "x-group": "source",
+        "title": "Source"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "icon": {
+        "type": "string",
+        "pattern": "^i-[a-z0-9-]+$",
+        "maxLength": 80,
+        "x-widget": "icon",
+        "x-group": "content",
+        "title": "Icon"
+      },
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Photo (instead of the icon)",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "link": {
+        "$ref": "#/$defs/link",
+        "title": "Link",
+        "x-group": "content"
+      }
+    }
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 120,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Title"
+      },
+      "text": {
+        "type": "string",
+        "maxLength": 400,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
+  "preset": {
+    "settings": {
+      "columns": 3,
+      "icon_style": "line",
+      "source": "manual"
+    },
+    "content": {
+      "fr": {
+        "title": "Sur place"
+      },
+      "en": {
+        "title": "On site"
+      },
+      "ar": {
+        "title": "في المخيم"
+      }
+    },
+    "items": [
+      {
+        "settings": {
+          "icon": "i-lucide-coffee"
+        },
+        "content": {
+          "fr": {
+            "title": "Café"
+          },
+          "en": {
+            "title": "Café"
+          },
+          "ar": {
+            "title": "مقهى"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "code": "logos",
+  "name": "Logos",
+  "description": "Partner, press or label logos.",
+  "icon": "i-lucide-award",
+  "category": "social_proof",
+  "schema_version": 1,
+  "sort_order": 150,
+  "min_items": 0,
+  "max_items": 16,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "grayscale": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Grayscale"
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "row",
+          "carousel"
+        ],
+        "default": "row",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Logo",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "link": {
+        "$ref": "#/$defs/link",
+        "title": "Link",
+        "x-group": "content"
+      }
+    },
+    "required": [
+      "media_id"
+    ]
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 120,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Name (used as the image description)"
+      }
+    },
+    "required": [
+      "name"
+    ]
+  },
+  "preset": {
+    "settings": {
+      "grayscale": true,
+      "layout": "row"
+    },
+    "content": {
+      "fr": {
+        "title": "Ils parlent de nous"
+      },
+      "en": {
+        "title": "As seen in"
+      },
+      "ar": {
+        "title": "تحدثوا عنا"
+      }
+    }
+  }
+}

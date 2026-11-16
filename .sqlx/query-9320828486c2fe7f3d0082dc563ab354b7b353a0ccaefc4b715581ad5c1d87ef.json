@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE section_types SET is_active = COALESCE($2, is_active),\n             preview_media_id = CASE WHEN $3 THEN $4 ELSE preview_media_id END\n         WHERE code = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9320828486c2fe7f3d0082dc563ab354b7b353a0ccaefc4b715581ad5c1d87ef"
+}

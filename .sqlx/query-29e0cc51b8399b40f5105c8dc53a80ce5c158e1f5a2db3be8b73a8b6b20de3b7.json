@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO banner_translations (banner_id, locale, message, cta_label) VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "29e0cc51b8399b40f5105c8dc53a80ce5c158e1f5a2db3be8b73a8b6b20de3b7"
+}

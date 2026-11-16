@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE page_revisions SET status = 'cancelled' WHERE id = $1 AND status = 'scheduled'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "659edda2874d6c8a334346edff2f591e339acf231890d1364455fee500f22da4"
+}

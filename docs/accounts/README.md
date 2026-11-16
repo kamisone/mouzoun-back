@@ -88,8 +88,10 @@ Bookings belong to `customers`; an account (`users`, `is_staff = false`) owns on
   confirmation on this session within 10 minutes (`403 reauthentication_required` → the front
   asks for a code, the password or a passkey, then retries).
 - Guests never reach `/v1/admin` (guest tokens are refused by the staff extractor; staff login
-  refuses non-staff). Staff need a password **and** TOTP (RFC 6238, ±30 s, replay-protected;
-  enrolment with a QR code on first login; setting `auth.staff_2fa_required`).
+  refuses non-staff). Staff sign in with a password, plus a TOTP code (RFC 6238, ±30 s,
+  replay-protected) when they turned two-factor sign-in on themselves in the back-office settings
+  (`/admin/settings`, API `/v1/admin/account/2fa`: setup → QR code, enable with a first code,
+  disable with a current code; audited `auth.totp_enabled` / `auth.totp_disabled`).
 
 ## Security emails and events
 

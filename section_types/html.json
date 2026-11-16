@@ -1,0 +1,52 @@
+{
+  "code": "html",
+  "name": "HTML",
+  "description": "Raw HTML (sanitised: no scripts). Super admins only.",
+  "icon": "i-lucide-code",
+  "category": "utility",
+  "schema_version": 1,
+  "sort_order": 230,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": "content.html",
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "html": {
+        "type": "string",
+        "maxLength": 50000,
+        "x-widget": "html",
+        "x-group": "content",
+        "title": "HTML"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {},
+    "content": {
+      "fr": {
+        "html": "<p></p>"
+      },
+      "en": {
+        "html": "<p></p>"
+      },
+      "ar": {
+        "html": "<p></p>"
+      }
+    }
+  },
+  "base_fields": false
+}

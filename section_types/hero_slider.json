@@ -1,0 +1,185 @@
+{
+  "code": "hero_slider",
+  "name": "Hero slider",
+  "description": "Several full-width slides; the first title is the H1.",
+  "icon": "i-lucide-gallery-horizontal",
+  "category": "hero",
+  "schema_version": 1,
+  "sort_order": 20,
+  "min_items": 1,
+  "max_items": 8,
+  "max_per_page": 1,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "autoplay": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Autoplay"
+      },
+      "interval_seconds": {
+        "type": "integer",
+        "minimum": 3,
+        "maximum": 15,
+        "default": 6,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Seconds per slide"
+      },
+      "transition": {
+        "type": "string",
+        "enum": [
+          "fade",
+          "slide"
+        ],
+        "default": "fade",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Transition"
+      },
+      "show_arrows": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Arrows"
+      },
+      "show_dots": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Dots"
+      },
+      "height": {
+        "type": "string",
+        "enum": [
+          "screen",
+          "large",
+          "medium"
+        ],
+        "default": "large",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Height"
+      },
+      "show_booking_search": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Show booking search"
+      }
+    },
+    "x-renders-h1": true
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Image",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "mobile_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Mobile image",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "overlay_opacity": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 80,
+        "default": 35,
+        "x-widget": "number",
+        "x-group": "content",
+        "title": "Overlay darkness (%)"
+      },
+      "cta": {
+        "$ref": "#/$defs/cta",
+        "title": "Button",
+        "x-group": "content"
+      }
+    }
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 160,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Title"
+      },
+      "text": {
+        "type": "string",
+        "maxLength": 400,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      },
+      "cta_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Button label"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
+  "preset": {
+    "settings": {
+      "autoplay": true,
+      "interval_seconds": 6,
+      "transition": "fade",
+      "show_arrows": true,
+      "show_dots": true,
+      "height": "large",
+      "show_booking_search": false
+    },
+    "content": {},
+    "items": [
+      {
+        "settings": {
+          "overlay_opacity": 35
+        },
+        "content": {
+          "fr": {
+            "title": "Première diapositive"
+          },
+          "en": {
+            "title": "First slide"
+          },
+          "ar": {
+            "title": "الشريحة الأولى"
+          }
+        }
+      }
+    ]
+  }
+}

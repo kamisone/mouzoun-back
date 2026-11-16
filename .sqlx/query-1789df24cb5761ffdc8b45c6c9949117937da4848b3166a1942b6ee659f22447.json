@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO content_block_items (id, block_id, settings, sort_order, is_visible, active_period)\n             VALUES ($1, $2, $3, $4, $5, $6)\n             ON CONFLICT (id) DO UPDATE SET settings = EXCLUDED.settings, sort_order = EXCLUDED.sort_order,\n                 is_visible = EXCLUDED.is_visible, active_period = EXCLUDED.active_period\n             WHERE (content_block_items.settings, content_block_items.sort_order, content_block_items.is_visible,\n                    content_block_items.active_period)\n                   IS DISTINCT FROM\n                   (EXCLUDED.settings, EXCLUDED.sort_order, EXCLUDED.is_visible, EXCLUDED.active_period)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Jsonb",
+        "Int4",
+        "Bool",
+        "TstzRange"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1789df24cb5761ffdc8b45c6c9949117937da4848b3166a1942b6ee659f22447"
+}

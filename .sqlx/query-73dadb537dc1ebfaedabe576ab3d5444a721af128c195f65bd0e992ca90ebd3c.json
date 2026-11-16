@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO section_types (code, name, description, icon, category, settings_schema, content_schema,\n                     item_settings_schema, item_content_schema, min_items, max_items, allowed_owners,\n                     allowed_page_types, max_per_page, preset, required_permission, schema_version,\n                     is_system, sort_order)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, true, $18)\n                 ON CONFLICT (code) DO UPDATE SET\n                     name = EXCLUDED.name, description = EXCLUDED.description, icon = EXCLUDED.icon,\n                     category = EXCLUDED.category, settings_schema = EXCLUDED.settings_schema,\n                     content_schema = EXCLUDED.content_schema,\n                     item_settings_schema = EXCLUDED.item_settings_schema,\n                     item_content_schema = EXCLUDED.item_content_schema,\n                     min_items = EXCLUDED.min_items, max_items = EXCLUDED.max_items,\n                     allowed_owners = EXCLUDED.allowed_owners, allowed_page_types = EXCLUDED.allowed_page_types,\n                     max_per_page = EXCLUDED.max_per_page, preset = EXCLUDED.preset,\n                     required_permission = EXCLUDED.required_permission,\n                     schema_version = EXCLUDED.schema_version, is_system = true, sort_order = EXCLUDED.sort_order\n                 WHERE (section_types.name, section_types.description, section_types.icon, section_types.category,\n                        section_types.settings_schema, section_types.content_schema,\n                        section_types.item_settings_schema, section_types.item_content_schema,\n                        section_types.min_items, section_types.max_items, section_types.allowed_owners,\n                        section_types.allowed_page_types, section_types.max_per_page, section_types.preset,\n                        section_types.required_permission, section_types.schema_version, section_types.is_system,\n                        section_types.sort_order)\n                       IS DISTINCT FROM\n                       (EXCLUDED.name, EXCLUDED.description, EXCLUDED.icon, EXCLUDED.category,\n                        EXCLUDED.settings_schema, EXCLUDED.content_schema, EXCLUDED.item_settings_schema,\n                        EXCLUDED.item_content_schema, EXCLUDED.min_items, EXCLUDED.max_items,\n                        EXCLUDED.allowed_owners, EXCLUDED.allowed_page_types, EXCLUDED.max_per_page,\n                        EXCLUDED.preset, EXCLUDED.required_permission, EXCLUDED.schema_version, true,\n                        EXCLUDED.sort_order)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Int4",
+        "Int4",
+        "TextArray",
+        "TextArray",
+        "Int4",
+        "Jsonb",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "73dadb537dc1ebfaedabe576ab3d5444a721af128c195f65bd0e992ca90ebd3c"
+}

@@ -1,0 +1,114 @@
+{
+  "code": "gallery",
+  "name": "Gallery",
+  "description": "Photos from a gallery or picked one by one.",
+  "icon": "i-lucide-images",
+  "category": "media",
+  "schema_version": 1,
+  "sort_order": 110,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "string",
+        "enum": [
+          "media_list",
+          "gallery"
+        ],
+        "default": "media_list",
+        "x-widget": "select",
+        "x-group": "source",
+        "title": "Source"
+      },
+      "gallery_id": {
+        "type": "string",
+        "format": "uuid",
+        "x-widget": "gallery_picker",
+        "x-ref": "gallery",
+        "x-group": "source",
+        "title": "Gallery"
+      },
+      "media_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "maxItems": 60,
+        "uniqueItems": true,
+        "default": [],
+        "x-widget": "media_list",
+        "x-ref": "media",
+        "x-group": "source",
+        "title": "Photos",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "masonry",
+          "grid",
+          "carousel"
+        ],
+        "default": "grid",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      },
+      "lightbox": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Open photos full screen"
+      },
+      "max_photos": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 12,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Photos shown"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": "media_list",
+      "media_ids": [],
+      "layout": "grid",
+      "lightbox": true,
+      "max_photos": 12
+    },
+    "content": {
+      "fr": {
+        "title": "En images"
+      },
+      "en": {
+        "title": "In pictures"
+      },
+      "ar": {
+        "title": "بالصور"
+      }
+    }
+  }
+}

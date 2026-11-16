@@ -6,17 +6,9 @@ use sqlx::PgPool;
 
 const COOKIE: &str = "__Host-mouzoun_session";
 
-/// These tests check the password step: the second factor (on by default, tested in
-/// tests/accounts.rs) is switched off.
-async fn without_2fa(app: &TestApp) {
-    sqlx::query("UPDATE settings SET value = 'false' WHERE key = 'auth.staff_2fa_required'")
-        .execute(&app.db)
-        .await
-        .unwrap();
-}
-
+/// These tests check the password step (the optional second factor is tested in
+/// tests/it/accounts.rs).
 async fn create_user(app: &TestApp, email: &str, pass: &str, staff: bool) -> uuid::Uuid {
-    without_2fa(app).await;
     let hash = password::hash(pass.to_string()).await.unwrap();
     crate::common::create_user(&app.db, email, &hash, staff, staff.then_some("manager")).await
 }

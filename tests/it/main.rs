@@ -22,6 +22,7 @@ mod migrations;
 mod numbering;
 mod oidc;
 mod outbox;
+mod pages;
 mod passkeys;
 mod schema;
 mod stripe;

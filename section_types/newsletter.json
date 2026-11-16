@@ -1,0 +1,94 @@
+{
+  "code": "newsletter",
+  "name": "Newsletter",
+  "description": "Email sign-up (news, opening, pre-booking).",
+  "icon": "i-lucide-mail",
+  "category": "conversion",
+  "schema_version": 1,
+  "sort_order": 190,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "list_code": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "maxLength": 40,
+        "default": "news",
+        "x-widget": "text",
+        "x-group": "advanced",
+        "title": "List code"
+      },
+      "show_consent": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Ask for consent"
+      }
+    },
+    "required": [
+      "list_code"
+    ]
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "consent_text": {
+        "type": "string",
+        "maxLength": 400,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Consent text"
+      },
+      "button_label": {
+        "type": "string",
+        "maxLength": 40,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Button label"
+      },
+      "success_text": {
+        "type": "string",
+        "maxLength": 200,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Thank-you message"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "list_code": "news",
+      "show_consent": true
+    },
+    "content": {
+      "fr": {
+        "title": "Restez informé",
+        "button_label": "S'inscrire",
+        "consent_text": "J'accepte de recevoir les nouvelles du camp. Désinscription en un clic."
+      },
+      "en": {
+        "title": "Stay in touch",
+        "button_label": "Sign up",
+        "consent_text": "I agree to receive news from the camp. Unsubscribe in one click."
+      },
+      "ar": {
+        "title": "ابق على اطلاع",
+        "button_label": "اشترك",
+        "consent_text": "أوافق على تلقي أخبار المخيم. يمكن إلغاء الاشتراك بنقرة واحدة."
+      }
+    }
+  }
+}

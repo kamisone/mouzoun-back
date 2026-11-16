@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET has_unpublished_changes = false WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e0b7884f8851c134f6ec389c86daf325eada2c1cbe0de87bcd029b9700c3bff"
+}

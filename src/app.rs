@@ -49,6 +49,8 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     tracing::info!(email = ?config.email, "email configured");
     let worker_config = config.worker.clone();
     let state = AppState::new(config, pool, cache, buckets);
+    // Section types: the repository files are the source of truth, the table mirrors them.
+    state.sections.sync(&state.db).await?;
 
     let shutdown = CancellationToken::new();
     let mut workers = jobs::spawn_all(&state, shutdown.clone());

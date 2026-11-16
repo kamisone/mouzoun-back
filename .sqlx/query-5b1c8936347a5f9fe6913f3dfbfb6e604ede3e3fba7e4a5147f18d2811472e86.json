@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM pages WHERE page_type = 'home' AND deleted_at IS NULL\n         ORDER BY (status = 'published') DESC, created_at LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5b1c8936347a5f9fe6913f3dfbfb6e604ede3e3fba7e4a5147f18d2811472e86"
+}

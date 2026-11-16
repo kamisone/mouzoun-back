@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.code::text AS \"code!\", a.icon, COALESCE(NULLIF(t.name, ''), d.name) AS \"name?\",\n                          COALESCE(t.description, d.description) AS \"description?\"\n                   FROM amenities a\n                   LEFT JOIN amenity_translations t ON t.amenity_id = a.id AND t.locale = $1\n                   LEFT JOIN amenity_translations d ON d.amenity_id = a.id AND d.locale = $2\n                   WHERE a.is_site_wide ORDER BY a.sort_order, a.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "b82b7975bb45b3225f6cbfaaa3f9ad895a266c66b15e0dda1264480e050ec9b9"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM content_block_translations WHERE content_block_id = $1 AND locale <> ALL($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "edaea2c641f975d349950470da04c7f895b4dc766d1a213f919e9e72f9104fed"
+}

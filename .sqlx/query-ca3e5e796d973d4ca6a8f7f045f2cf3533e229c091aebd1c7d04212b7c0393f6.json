@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.discount_type, p.discount_percent::float8 AS \"discount_percent?\", p.discount_amount_minor,\n                  p.discount_free_nights, p.currency,\n                  upper(p.booking_window) AS ends_at, p.stay_window::text AS stay_window,\n                  COALESCE(NULLIF(t.name, ''), d.name) AS \"name?\", COALESCE(t.description, d.description) AS \"description?\"\n           FROM promotions p\n           LEFT JOIN promotion_translations t ON t.promotion_id = p.id AND t.locale = $1\n           LEFT JOIN promotion_translations d ON d.promotion_id = p.id AND d.locale = $2\n           WHERE p.is_active AND p.code IS NULL AND (p.booking_window IS NULL OR p.booking_window @> $3::timestamptz)\n             AND (cardinality($4::uuid[]) = 0 OR p.id = ANY($4))\n           ORDER BY ends_at NULLS LAST, p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "discount_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "discount_percent?",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "discount_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "discount_free_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "ends_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "stay_window",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "ca3e5e796d973d4ca6a8f7f045f2cf3533e229c091aebd1c7d04212b7c0393f6"
+}

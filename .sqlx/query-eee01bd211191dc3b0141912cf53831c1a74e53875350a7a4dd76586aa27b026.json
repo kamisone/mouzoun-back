@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT b.page_id, b.id AS block_id, b.block_type, b.is_shared AS shared,\n                  (SELECT t.title FROM page_translations t JOIN locales l ON l.code = t.locale\n                   WHERE t.page_id = b.page_id ORDER BY l.is_default DESC LIMIT 1) AS page_title,\n                  EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = b.page_id AND r.status = 'published'\n                          AND r.snapshot -> 'refs' @> $3) AS \"live!\"\n           FROM content_block_refs x JOIN content_blocks b ON b.id = x.block_id\n           WHERE x.ref_type = $1 AND x.ref_id = $2 AND b.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "block_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "block_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "shared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "page_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "live!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "eee01bd211191dc3b0141912cf53831c1a74e53875350a7a4dd76586aa27b026"
+}

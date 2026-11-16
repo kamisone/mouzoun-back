@@ -1,0 +1,110 @@
+{
+  "code": "map",
+  "name": "Map",
+  "description": "Map of the camp and nearby places, with distances.",
+  "icon": "i-lucide-map-pinned",
+  "category": "utility",
+  "schema_version": 1,
+  "sort_order": 160,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "center_lat": {
+        "type": "number",
+        "minimum": -90,
+        "maximum": 90,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Centre latitude"
+      },
+      "center_lng": {
+        "type": "number",
+        "minimum": -180,
+        "maximum": 180,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Centre longitude"
+      },
+      "zoom": {
+        "type": "integer",
+        "minimum": 3,
+        "maximum": 18,
+        "default": 9,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Zoom"
+      },
+      "place_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "maxItems": 20,
+        "uniqueItems": true,
+        "default": [],
+        "x-widget": "place_picker",
+        "x-ref": "place",
+        "x-group": "source",
+        "title": "Places"
+      },
+      "show_directions": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Directions link"
+      },
+      "show_distance_table": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Distance table"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "maxLength": 600,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "zoom": 9,
+      "place_ids": [],
+      "show_directions": true,
+      "show_distance_table": true
+    },
+    "content": {
+      "fr": {
+        "title": "Nous trouver"
+      },
+      "en": {
+        "title": "Find us"
+      },
+      "ar": {
+        "title": "موقعنا"
+      }
+    }
+  }
+}

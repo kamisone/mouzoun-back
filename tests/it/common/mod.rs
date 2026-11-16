@@ -133,6 +133,7 @@ impl TestApp {
         let admin_token = jwt::issue(JWT_SECRET, admin_id, true, 60).unwrap();
 
         let state = AppState::new(config, db.clone(), cache, buckets);
+        state.sections.sync(&db).await.expect("section types");
         Self {
             router: web::router(state.clone()),
             db,

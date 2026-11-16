@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET value = to_jsonb($1::text) WHERE key = 'site.opening_date'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b937d3612945d76c1b304dc92d78400f2b7f6029a4275d91dbb16176a52203a3"
+}

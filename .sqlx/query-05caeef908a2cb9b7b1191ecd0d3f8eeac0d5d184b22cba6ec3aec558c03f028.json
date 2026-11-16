@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, t.title AS \"label?\", p.page_type AS hint FROM pages p\n               LEFT JOIN page_translations t ON t.page_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE p.deleted_at IS NULL AND (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.title ILIKE $3) END)\n               ORDER BY p.page_type = 'home' DESC, t.title LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "05caeef908a2cb9b7b1191ecd0d3f8eeac0d5d184b22cba6ec3aec558c03f028"
+}

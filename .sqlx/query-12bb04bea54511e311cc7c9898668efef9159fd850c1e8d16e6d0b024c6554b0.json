@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.page_id FROM page_translations t JOIN pages p ON p.id = t.page_id AND p.deleted_at IS NULL\n         WHERE t.slug = $1 ORDER BY (t.locale = $2) DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "12bb04bea54511e311cc7c9898668efef9159fd850c1e8d16e6d0b024c6554b0"
+}

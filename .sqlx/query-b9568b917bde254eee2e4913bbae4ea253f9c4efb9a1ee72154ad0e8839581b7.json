@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.code::text AS \"code!\", c.icon, c.cover_media_id, c.harvest_months,\n                          COALESCE(NULLIF(t.name, ''), d.name) AS \"name?\", COALESCE(t.description, d.description) AS \"description?\"\n                   FROM farm_crops c\n                   LEFT JOIN farm_crop_translations t ON t.farm_crop_id = c.id AND t.locale = $1\n                   LEFT JOIN farm_crop_translations d ON d.farm_crop_id = c.id AND d.locale = $2\n                   WHERE c.is_published ORDER BY c.sort_order, c.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "harvest_months",
+        "type_info": "Int2Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "b9568b917bde254eee2e4913bbae4ea253f9c4efb9a1ee72154ad0e8839581b7"
+}

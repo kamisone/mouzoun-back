@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.page_type, p.status, p.has_unpublished_changes, p.updated_at,\n                  t.title AS \"title?\", t.slug AS \"slug?\",\n                  (SELECT r.revision_number FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published') AS published_revision,\n                  (SELECT min(r.publish_at) FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'scheduled') AS scheduled_at\n           FROM pages p\n           LEFT JOIN page_translations t ON t.page_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE p.deleted_at IS NULL\n           ORDER BY p.page_type = 'home' DESC, p.sort_order, t.title",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "page_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "has_unpublished_changes",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "slug?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "published_revision",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "scheduled_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "be89b22df29cb57624721a9475befe369851eccabf1eb01b30f8977a0847fa19"
+}

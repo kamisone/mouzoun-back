@@ -1,0 +1,75 @@
+{
+  "code": "posts_feed",
+  "name": "Posts",
+  "description": "Latest posts, or the posts of one category.",
+  "icon": "i-lucide-newspaper",
+  "category": "listing",
+  "schema_version": 1,
+  "sort_order": 210,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "string",
+        "enum": [
+          "latest",
+          "category"
+        ],
+        "default": "latest",
+        "x-widget": "select",
+        "x-group": "source",
+        "title": "Source"
+      },
+      "category_id": {
+        "type": "string",
+        "format": "uuid",
+        "x-widget": "category_picker",
+        "x-ref": "category",
+        "title": "Category",
+        "x-group": "source"
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 3,
+        "maximum": 9,
+        "default": 3,
+        "x-widget": "number",
+        "x-group": "source",
+        "title": "How many"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": "latest",
+      "count": 3
+    },
+    "content": {
+      "fr": {
+        "title": "Le journal du camp"
+      },
+      "en": {
+        "title": "Camp journal"
+      },
+      "ar": {
+        "title": "يوميات المخيم"
+      }
+    }
+  }
+}

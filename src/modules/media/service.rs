@@ -225,7 +225,30 @@ impl MediaService {
     }
 
     /// Soft delete (`deleted_at`): the file stays in the bucket and can be restored.
+    /// Refused while a published (or scheduled) page shows it: `409 media_in_use` with the pages.
     pub async fn delete(&self, id: Uuid) -> AppResult<()> {
+        let mut conn = self.db.acquire().await?;
+        if crate::modules::pages::service::used_by_live_page(
+            &mut conn,
+            crate::modules::pages::model::RefType::Media,
+            id,
+        )
+        .await?
+        {
+            let usages = crate::modules::pages::service::entity_usages(
+                &self.db,
+                crate::modules::pages::model::RefType::Media,
+                id,
+            )
+            .await?;
+            return Err(AppError::domain(
+                axum::http::StatusCode::CONFLICT,
+                "media_in_use",
+                "this file is shown on a published page: replace it there and publish first",
+            )
+            .with_details(serde_json::json!({ "usages": usages })));
+        }
+        drop(conn);
         let deleted = sqlx::query!(
             "UPDATE media_assets SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
             id

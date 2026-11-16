@@ -35,6 +35,8 @@ pub fn router(state: AppState) -> Router {
     let admin = Router::new()
         .nest("/media", modules::media::admin_routes())
         .merge(modules::booking_admin::admin_routes())
+        .merge(modules::pages::admin_routes())
+        .merge(auth::mfa::admin_routes())
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_staff,
@@ -44,6 +46,7 @@ pub fn router(state: AppState) -> Router {
     // session transparently). The back office keeps its own cookie and guard.
     let public = Router::new()
         .merge(modules::booking::public_routes())
+        .merge(modules::pages::public_routes())
         .nest("/account", modules::account::routes())
         .layer(middleware::from_fn_with_state(
             state.clone(),
@@ -99,12 +102,13 @@ fn cors(state: &AppState) -> CorsLayer {
             header::CONTENT_TYPE,
             header::AUTHORIZATION,
             header::ACCEPT_LANGUAGE,
+            header::IF_MATCH,
             HeaderName::from_static("idempotency-key"),
             HeaderName::from_static("x-booking-token"),
         ])
         // The session cookie is sent cross-origin in local development (front :3001 → API :8080).
         // Safe because the allowed origins are an explicit list, never `*`.
         .allow_credentials(true)
-        .expose_headers([REQUEST_ID])
+        .expose_headers([REQUEST_ID, header::ETAG])
         .max_age(Duration::from_secs(3600))
 }

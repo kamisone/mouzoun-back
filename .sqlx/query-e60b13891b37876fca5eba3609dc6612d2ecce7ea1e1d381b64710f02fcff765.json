@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, t.name AS \"label?\", p.kind || ' · ' || p.status AS hint FROM products p\n               LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE p.deleted_at IS NULL AND (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR p.sku ILIKE $3) END)\n               ORDER BY p.kind, p.sort_order, t.name LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e60b13891b37876fca5eba3609dc6612d2ecce7ea1e1d381b64710f02fcff765"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.block_type, b.name, b.updated_at,\n                  (SELECT count(*) FROM content_blocks p WHERE p.shared_block_id = b.id AND p.deleted_at IS NULL) AS \"usages!\"\n           FROM content_blocks b WHERE b.is_shared AND b.deleted_at IS NULL ORDER BY b.updated_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "block_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "usages!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "8c50e7c506422a7555f9f4838a372647d1a8e381398829468b0b94b4e48a7185"
+}

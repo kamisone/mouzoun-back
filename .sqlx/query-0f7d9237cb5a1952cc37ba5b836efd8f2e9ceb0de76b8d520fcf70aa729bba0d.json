@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO content_blocks (id, page_id, is_shared, block_type, name, anchor_id, is_visible, active_period,\n                                     visible_on, hidden_locales, appearance, analytics_label, settings,\n                                     shared_block_id, sort_order, created_by, updated_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)\n         ON CONFLICT (id) DO UPDATE SET\n             block_type = EXCLUDED.block_type, name = EXCLUDED.name, anchor_id = EXCLUDED.anchor_id,\n             is_visible = EXCLUDED.is_visible, active_period = EXCLUDED.active_period,\n             visible_on = EXCLUDED.visible_on, hidden_locales = EXCLUDED.hidden_locales,\n             appearance = EXCLUDED.appearance, analytics_label = EXCLUDED.analytics_label,\n             settings = EXCLUDED.settings, shared_block_id = EXCLUDED.shared_block_id,\n             sort_order = EXCLUDED.sort_order, deleted_at = NULL, updated_by = EXCLUDED.updated_by\n         WHERE (content_blocks.block_type, content_blocks.name, content_blocks.anchor_id, content_blocks.is_visible,\n                content_blocks.active_period, content_blocks.visible_on, content_blocks.hidden_locales,\n                content_blocks.appearance, content_blocks.analytics_label, content_blocks.settings,\n                content_blocks.shared_block_id, content_blocks.sort_order, content_blocks.deleted_at)\n               IS DISTINCT FROM\n               (EXCLUDED.block_type, EXCLUDED.name, EXCLUDED.anchor_id, EXCLUDED.is_visible, EXCLUDED.active_period,\n                EXCLUDED.visible_on, EXCLUDED.hidden_locales, EXCLUDED.appearance, EXCLUDED.analytics_label,\n                EXCLUDED.settings, EXCLUDED.shared_block_id, EXCLUDED.sort_order, NULL::timestamptz)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "TstzRange",
+        "Text",
+        "TextArray",
+        "Jsonb",
+        "Text",
+        "Jsonb",
+        "Uuid",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f7d9237cb5a1952cc37ba5b836efd8f2e9ceb0de76b8d520fcf70aa729bba0d"
+}

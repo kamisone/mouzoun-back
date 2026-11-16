@@ -1,0 +1,64 @@
+{
+  "code": "seasonal_calendar",
+  "name": "Seasonal calendar",
+  "description": "Harvest months of the farm crops.",
+  "icon": "i-lucide-calendar-range",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 100,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "string",
+        "enum": [
+          "farm_crops"
+        ],
+        "default": "farm_crops",
+        "x-widget": "select",
+        "x-group": "source",
+        "title": "Source"
+      },
+      "highlight_current_month": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Highlight the current month"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": "farm_crops",
+      "highlight_current_month": true
+    },
+    "content": {
+      "fr": {
+        "title": "Au fil des saisons"
+      },
+      "en": {
+        "title": "Through the seasons"
+      },
+      "ar": {
+        "title": "على مدار الفصول"
+      }
+    }
+  }
+}

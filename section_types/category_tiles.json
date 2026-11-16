@@ -1,0 +1,160 @@
+{
+  "code": "category_tiles",
+  "name": "Categories",
+  "description": "Product categories as chips or photo tiles.",
+  "icon": "i-lucide-shapes",
+  "category": "listing",
+  "schema_version": 1,
+  "sort_order": 50,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "object",
+        "title": "Source",
+        "x-group": "source",
+        "x-widget": "source",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "default": "rule",
+            "title": "Mode"
+          },
+          "ids": {
+            "type": "array",
+            "maxItems": 24,
+            "uniqueItems": true,
+            "default": [],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-widget": "category_picker",
+            "x-ref": "category",
+            "title": "Hand-picked"
+          },
+          "rule": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 24,
+                "default": 6,
+                "title": "How many"
+              }
+            },
+            "required": [
+              "limit"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "manual"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "ids": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "ids"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "rule"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule"
+              ]
+            }
+          }
+        ]
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "chips",
+          "tiles"
+        ],
+        "default": "tiles",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      },
+      "show_icons": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show icons"
+      }
+    },
+    "required": [
+      "source"
+    ]
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": {
+        "mode": "rule",
+        "ids": [],
+        "rule": {
+          "limit": 6
+        }
+      },
+      "layout": "tiles",
+      "show_icons": true
+    },
+    "content": {
+      "fr": {
+        "title": "Explorer"
+      },
+      "en": {
+        "title": "Explore"
+      },
+      "ar": {
+        "title": "استكشف"
+      }
+    }
+  }
+}

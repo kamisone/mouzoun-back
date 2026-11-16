@@ -1,0 +1,163 @@
+{
+  "code": "hero",
+  "name": "Hero",
+  "description": "Full-width photo or video with the page title (H1).",
+  "icon": "i-lucide-image",
+  "category": "hero",
+  "schema_version": 1,
+  "sort_order": 10,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": 1,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "media_type": {
+        "type": "string",
+        "enum": [
+          "image",
+          "video"
+        ],
+        "default": "image",
+        "x-widget": "select",
+        "x-group": "content",
+        "title": "Media type"
+      },
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Image or video",
+        "x-media-kinds": [
+          "image",
+          "video"
+        ]
+      },
+      "mobile_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Mobile image",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "poster_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Video poster",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "overlay_opacity": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 80,
+        "default": 35,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Overlay darkness (%)"
+      },
+      "height": {
+        "type": "string",
+        "enum": [
+          "screen",
+          "large",
+          "medium"
+        ],
+        "default": "large",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Height"
+      },
+      "content_position": {
+        "type": "string",
+        "enum": [
+          "center",
+          "center_start",
+          "bottom_start",
+          "bottom_center"
+        ],
+        "default": "bottom_start",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Text position"
+      },
+      "show_booking_search": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Show booking search"
+      },
+      "cta_primary": {
+        "$ref": "#/$defs/cta",
+        "title": "Primary button",
+        "x-group": "content"
+      },
+      "cta_secondary": {
+        "$ref": "#/$defs/cta",
+        "title": "Secondary button",
+        "x-group": "content"
+      }
+    },
+    "x-renders-h1": true
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "maxLength": 400,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      },
+      "cta_primary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Primary button label"
+      },
+      "cta_secondary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Secondary button label"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "media_type": "image",
+      "overlay_opacity": 35,
+      "height": "large",
+      "content_position": "bottom_start",
+      "show_booking_search": false
+    },
+    "content": {
+      "fr": {
+        "title": "Titre de la page"
+      },
+      "en": {
+        "title": "Page title"
+      },
+      "ar": {
+        "title": "عنوان الصفحة"
+      }
+    }
+  }
+}

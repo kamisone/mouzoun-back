@@ -1,0 +1,117 @@
+{
+  "code": "offers",
+  "name": "Offers",
+  "description": "Promotions active now, or hand-picked products.",
+  "icon": "i-lucide-badge-percent",
+  "category": "conversion",
+  "schema_version": 1,
+  "sort_order": 130,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "string",
+        "enum": [
+          "promotions",
+          "products"
+        ],
+        "default": "promotions",
+        "x-widget": "select",
+        "x-group": "source",
+        "title": "Source"
+      },
+      "promotion_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "maxItems": 12,
+        "uniqueItems": true,
+        "default": [],
+        "x-widget": "promotion_picker",
+        "x-ref": "promotion",
+        "x-group": "source",
+        "title": "Only these promotions (empty = all active)"
+      },
+      "product_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "maxItems": 12,
+        "uniqueItems": true,
+        "default": [],
+        "x-widget": "product_picker",
+        "x-ref": "product",
+        "x-group": "source",
+        "title": "Products"
+      },
+      "show_countdown": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show the countdown"
+      },
+      "badge": {
+        "type": "string",
+        "maxLength": 30,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Badge (e.g. -20 %)"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "cta_primary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Primary button label"
+      },
+      "cta_secondary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Secondary button label"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": "promotions",
+      "promotion_ids": [],
+      "product_ids": [],
+      "show_countdown": true
+    },
+    "content": {
+      "fr": {
+        "title": "Offres du moment"
+      },
+      "en": {
+        "title": "Current offers"
+      },
+      "ar": {
+        "title": "العروض الحالية"
+      }
+    }
+  }
+}

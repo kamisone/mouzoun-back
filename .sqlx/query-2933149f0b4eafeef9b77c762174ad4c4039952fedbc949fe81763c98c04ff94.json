@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET has_unpublished_changes = true\n         WHERE id IN (SELECT page_id FROM content_blocks WHERE shared_block_id = $1 AND deleted_at IS NULL)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2933149f0b4eafeef9b77c762174ad4c4039952fedbc949fe81763c98c04ff94"
+}

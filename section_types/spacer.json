@@ -1,0 +1,63 @@
+{
+  "code": "spacer",
+  "name": "Spacer",
+  "description": "Empty space, optionally with a divider.",
+  "icon": "i-lucide-separator-horizontal",
+  "category": "layout",
+  "schema_version": 1,
+  "sort_order": 240,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "size": {
+        "type": "string",
+        "enum": [
+          "sm",
+          "md",
+          "lg",
+          "xl"
+        ],
+        "default": "md",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Size"
+      },
+      "divider": {
+        "type": "string",
+        "enum": [
+          "none",
+          "line",
+          "dunes"
+        ],
+        "default": "none",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Divider"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "size": "md",
+      "divider": "none"
+    },
+    "content": {}
+  },
+  "base_fields": false
+}

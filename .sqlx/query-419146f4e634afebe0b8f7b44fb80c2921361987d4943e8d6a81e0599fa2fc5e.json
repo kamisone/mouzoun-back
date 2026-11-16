@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE page_revisions SET status = 'published', published_at = $2, published_by = created_by WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "419146f4e634afebe0b8f7b44fb80c2921361987d4943e8d6a81e0599fa2fc5e"
+}

@@ -10,3 +10,4 @@ pub mod account;
 pub mod booking;
 pub mod booking_admin;
 pub mod media;
+pub mod pages;

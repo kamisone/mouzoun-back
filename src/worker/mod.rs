@@ -35,6 +35,9 @@ pub fn registry(pool: &PgPool, cache: &Cache, mailer: &Mailer) -> Registry {
     Registry::new()
         .register(Arc::new(EmailHandler::new(pool.clone(), mailer.clone())))
         .register(Arc::new(CacheInvalidationHandler::new(cache.clone())))
+        .register(Arc::new(
+            crate::modules::pages::cache::PageCacheHandler::new(pool.clone(), cache.clone()),
+        ))
 }
 
 /// Starts the dispatcher and the scheduler; both stop when `shutdown` is cancelled.

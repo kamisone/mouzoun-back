@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page_id, snapshot, revision_number FROM page_revisions WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 2,
+        "name": "revision_number",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9c3d043460f0f4d686290a1f38feed89b11f62958360eea3d3ec095186b8b21b"
+}

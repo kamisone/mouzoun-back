@@ -1,0 +1,117 @@
+{
+  "code": "timeline",
+  "name": "Timeline",
+  "description": "Steps of a day or of the camp's story.",
+  "icon": "i-lucide-milestone",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 90,
+  "min_items": 0,
+  "max_items": 12,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "orientation": {
+        "type": "string",
+        "enum": [
+          "vertical",
+          "horizontal"
+        ],
+        "default": "vertical",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Orientation"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "time_label": {
+        "type": "string",
+        "maxLength": 40,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Time or step"
+      },
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Photo",
+        "x-media-kinds": [
+          "image"
+        ]
+      }
+    }
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 120,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Title"
+      },
+      "text": {
+        "type": "string",
+        "maxLength": 600,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
+  "preset": {
+    "settings": {
+      "orientation": "vertical"
+    },
+    "content": {
+      "fr": {
+        "title": "Une journée au camp"
+      },
+      "en": {
+        "title": "A day at the camp"
+      },
+      "ar": {
+        "title": "يوم في المخيم"
+      }
+    },
+    "items": [
+      {
+        "settings": {
+          "time_label": "08:00"
+        },
+        "content": {
+          "fr": {
+            "title": "Petit-déjeuner"
+          },
+          "en": {
+            "title": "Breakfast"
+          },
+          "ar": {
+            "title": "الفطور"
+          }
+        }
+      }
+    ]
+  }
+}

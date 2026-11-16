@@ -19,6 +19,9 @@ The schema lives in `migrations/` as reversible sqlx migrations; the Rust models
 | `0010_operations` | inquiries, newsletter, email templates & log, outbox, audit log |
 | `0011_updated_at_triggers` | one `<table>_set_updated_at` trigger per table that has `updated_at` |
 | `0012_seed` | reference data: locales, currencies, guest categories, permissions, roles, settings |
+| `0013`–`0022` | emails, booking system, accounts, corrections (see each file's header) |
+| `0023_page_builder` | section types, sections (extended `content_blocks`), items, refs, page revisions — see [`docs/page-builder/README.md`](../page-builder/README.md) |
+| `0024_staff_2fa_optional` | removes `auth.staff_2fa_required`: staff turn two-factor sign-in on themselves (back-office settings) |
 
 ## Running migrations
 
@@ -154,3 +157,4 @@ dispatcher, the handlers and the emails is in [`docs/email/README.md`](../email/
 | email scheduler | 5 min | plans pre-arrival and review-request emails |
 | `inventory` | 24 h | extends the inventory calendar to 18 months and activity slots to `booking.max_days_ahead`; never overwrites existing rows (manual overrides are kept) |
 | `media_cleanup` | `MEDIA_CLEANUP_INTERVAL_SECS` | deletes objects of uploads never completed |
+| `page_publishing` | 60 s | publishes scheduled page revisions whose `publish_at` has passed |

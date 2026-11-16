@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, g.name AS \"label?\", (SELECT count(*) FROM gallery_items i WHERE i.gallery_id = g.id)::text AS hint\n               FROM galleries g WHERE (CASE WHEN $1 THEN g.id = ANY($2) ELSE ($3::text IS NULL OR g.name ILIKE $3) END)\n               ORDER BY g.name LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b89978b6251fbc5225f4d6eafdd78e3398987d27b81f779a6916c55c096dd787"
+}

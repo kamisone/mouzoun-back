@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO content_block_refs (block_id, item_id, ref_type, ref_id)\n         SELECT $1, x.item_id, x.ref_type, x.ref_id\n         FROM unnest($2::uuid[], $3::text[], $4::uuid[]) AS x (item_id, ref_type, ref_id)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "TextArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8aeff6afa780fd95141f363833347e0123b8fbda4f059f722dec1fd9472fa134"
+}

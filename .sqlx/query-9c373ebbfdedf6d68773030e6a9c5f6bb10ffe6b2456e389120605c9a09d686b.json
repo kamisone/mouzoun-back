@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET revision_counter = revision_counter + 1 WHERE id = $1 RETURNING revision_counter",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision_counter",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c373ebbfdedf6d68773030e6a9c5f6bb10ffe6b2456e389120605c9a09d686b"
+}

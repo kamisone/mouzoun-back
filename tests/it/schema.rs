@@ -5,6 +5,7 @@ use mouzoun_api::db::{
     bookings::*, catalog::*, content::*, identity::*, inventory::*, media::*, operations::*,
     pricing::*, taxonomy::*,
 };
+use mouzoun_api::modules::pages::model::{RefType, RevisionStatus, SectionCategory, VisibleOn};
 use sqlx::PgPool;
 
 async fn table_count(db: &PgPool) -> i64 {
@@ -172,8 +173,12 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "newsletter_subscribers"."status" => SubscriberStatus,
         "email_log"."status" => EmailStatus,
         "audit_logs"."actor_type" => ActorType,
+        "content_blocks"."visible_on" => VisibleOn,
+        "section_types"."category" => SectionCategory,
+        "page_revisions"."status" => RevisionStatus,
+        "content_block_refs"."ref_type" => RefType,
     );
-    assert_eq!(checked, 63);
+    assert_eq!(checked, 67);
 }
 
 #[sqlx::test(migrations = "./migrations")]

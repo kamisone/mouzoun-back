@@ -64,6 +64,11 @@ pub fn verify(secret: &[u8], code: &str, unix_seconds: i64) -> Option<i64> {
     (step - 1..=step + 1).find(|s| *s >= 0 && hotp(secret, *s as u64) == code)
 }
 
+/// The code of a given 30-second step (what the authenticator app shows then).
+pub fn code_at(secret: &[u8], step: u64) -> String {
+    format!("{:06}", hotp(secret, step))
+}
+
 pub fn otpauth_uri(secret: &[u8], account: &str, issuer: &str) -> String {
     let enc = |s: &str| {
         s.replace('%', "%25")

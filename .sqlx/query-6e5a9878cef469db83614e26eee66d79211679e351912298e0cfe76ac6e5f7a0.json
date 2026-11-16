@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO content_block_translations (content_block_id, locale, content) VALUES ($1, $2, $3)\n             ON CONFLICT (content_block_id, locale) DO UPDATE SET content = EXCLUDED.content\n             WHERE content_block_translations.content IS DISTINCT FROM EXCLUDED.content",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6e5a9878cef469db83614e26eee66d79211679e351912298e0cfe76ac6e5f7a0"
+}

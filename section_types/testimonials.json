@@ -1,0 +1,101 @@
+{
+  "code": "testimonials",
+  "name": "Testimonials",
+  "description": "Approved reviews with the average rating.",
+  "icon": "i-lucide-quote",
+  "category": "social_proof",
+  "schema_version": 1,
+  "sort_order": 140,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "featured_only": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "source",
+        "title": "Featured reviews only"
+      },
+      "min_rating": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5,
+        "default": 4,
+        "x-widget": "number",
+        "x-group": "source",
+        "title": "Minimum rating"
+      },
+      "product_id": {
+        "type": "string",
+        "format": "uuid",
+        "x-widget": "product_picker",
+        "x-ref": "product",
+        "x-group": "source",
+        "title": "Only reviews of this product"
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 24,
+        "default": 6,
+        "x-widget": "number",
+        "x-group": "source",
+        "title": "How many"
+      },
+      "show_summary": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Show average and count"
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "carousel",
+          "grid"
+        ],
+        "default": "carousel",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "featured_only": true,
+      "min_rating": 4,
+      "limit": 6,
+      "show_summary": true,
+      "layout": "carousel"
+    },
+    "content": {
+      "fr": {
+        "title": "Ils sont venus"
+      },
+      "en": {
+        "title": "They stayed with us"
+      },
+      "ar": {
+        "title": "قالوا عنا"
+      }
+    }
+  }
+}

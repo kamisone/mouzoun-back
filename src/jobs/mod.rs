@@ -6,6 +6,7 @@ mod booking_holds;
 pub mod booking_ops;
 mod inventory;
 mod media_cleanup;
+mod page_publishing;
 
 use std::{future::Future, time::Duration};
 
@@ -50,6 +51,15 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
             let db = state.db.clone();
             move || accounts::run_once(db.clone())
         }),
+        every(
+            "page publishing",
+            Duration::from_secs(60),
+            shutdown.clone(),
+            {
+                let (db, clock) = (state.db.clone(), state.clock.clone());
+                move || page_publishing::run_once(db.clone(), clock.clone())
+            },
+        ),
         every("inventory", Duration::from_secs(24 * 3600), shutdown, {
             let db = state.db.clone();
             move || inventory::run_once(db.clone())

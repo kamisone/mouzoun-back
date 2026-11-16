@@ -1,0 +1,163 @@
+{
+  "code": "faq",
+  "name": "FAQ",
+  "description": "Questions and answers, with FAQPage structured data.",
+  "icon": "i-lucide-circle-help",
+  "category": "utility",
+  "schema_version": 1,
+  "sort_order": 170,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "object",
+        "title": "Source",
+        "x-group": "source",
+        "x-widget": "source",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "default": "rule",
+            "title": "Mode"
+          },
+          "ids": {
+            "type": "array",
+            "maxItems": 24,
+            "uniqueItems": true,
+            "default": [],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-widget": "faq_picker",
+            "x-ref": "faq",
+            "title": "Hand-picked"
+          },
+          "rule": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "category_id": {
+                "type": "string",
+                "format": "uuid",
+                "x-widget": "category_picker",
+                "x-ref": "category",
+                "title": "Category"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 24,
+                "default": 10,
+                "title": "How many"
+              }
+            },
+            "required": [
+              "limit"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "manual"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "ids": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "ids"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "rule"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule"
+              ]
+            }
+          }
+        ]
+      },
+      "first_open": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "First question open"
+      },
+      "emit_schema": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "advanced",
+        "title": "Structured data for search engines"
+      }
+    },
+    "required": [
+      "source"
+    ]
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": {
+        "mode": "rule",
+        "ids": [],
+        "rule": {
+          "limit": 10
+        }
+      },
+      "first_open": false,
+      "emit_schema": true
+    },
+    "content": {
+      "fr": {
+        "title": "Questions fréquentes"
+      },
+      "en": {
+        "title": "Frequently asked questions"
+      },
+      "ar": {
+        "title": "أسئلة شائعة"
+      }
+    }
+  }
+}

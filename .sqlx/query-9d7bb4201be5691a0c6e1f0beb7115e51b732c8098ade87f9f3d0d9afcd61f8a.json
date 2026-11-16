@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inquiries (id, kind, name, email, phone, locale, subject, message, preferred_dates, group_size, ip_address)\n         VALUES ($1, 'contact', $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "DateRange",
+        "Int4",
+        "Inet"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d7bb4201be5691a0c6e1f0beb7115e51b732c8098ade87f9f3d0d9afcd61f8a"
+}

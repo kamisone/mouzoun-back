@@ -1,0 +1,188 @@
+{
+  "$comment": "Shared definitions merged into every section schema as $defs (see docs/page-builder/README.md).",
+  "$defs": {
+    "media_id": {
+      "type": "string",
+      "format": "uuid",
+      "x-widget": "media",
+      "x-ref": "media"
+    },
+    "link": {
+      "type": "object",
+      "x-widget": "link",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "page",
+            "product",
+            "category",
+            "place",
+            "route",
+            "url",
+            "anchor"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^/[a-z0-9\\-/]*$",
+          "maxLength": 200
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^(https://|mailto:|tel:)",
+          "maxLength": 2000
+        },
+        "anchor": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "new_tab": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "page",
+                  "product",
+                  "category",
+                  "place"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "route"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "route"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "url"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "anchor"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "anchor"
+            ]
+          }
+        }
+      ]
+    },
+    "cta": {
+      "type": "object",
+      "x-widget": "cta",
+      "additionalProperties": false,
+      "properties": {
+        "link": {
+          "$ref": "#/$defs/link"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "ghost",
+            "link"
+          ],
+          "default": "primary"
+        }
+      },
+      "required": [
+        "link"
+      ]
+    }
+  },
+  "base_settings": {
+    "heading_align": {
+      "type": "string",
+      "enum": [
+        "start",
+        "center"
+      ],
+      "default": "start",
+      "x-widget": "select",
+      "x-group": "layout",
+      "title": "Heading alignment"
+    },
+    "title_level": {
+      "type": "string",
+      "enum": [
+        "h2",
+        "h3"
+      ],
+      "default": "h2",
+      "x-widget": "select",
+      "x-group": "advanced",
+      "title": "Title level"
+    }
+  },
+  "base_content": {
+    "eyebrow": {
+      "type": "string",
+      "maxLength": 60,
+      "x-widget": "text",
+      "x-group": "content",
+      "title": "Eyebrow"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 160,
+      "x-widget": "text",
+      "x-group": "content",
+      "title": "Title"
+    },
+    "subtitle": {
+      "type": "string",
+      "maxLength": 400,
+      "x-widget": "textarea",
+      "x-group": "content",
+      "title": "Subtitle"
+    }
+  }
+}

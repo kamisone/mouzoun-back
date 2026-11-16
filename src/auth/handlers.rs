@@ -31,9 +31,9 @@ pub struct SessionResponse {
     pub expires_in: i64,
 }
 
-/// POST /v1/auth/login — back office only (staff). With two-factor required (default), answers
-/// `{mfa_required, mfa_token}` (or `{mfa_enrollment_required, mfa_token, otpauth_uri, secret}`
-/// the first time) and sets the session cookie only after `POST /v1/auth/mfa`.
+/// POST /v1/auth/login — back office only (staff). When the account has two-factor sign-in on
+/// (back-office settings), answers `{mfa_required, mfa_token}` and sets the session cookie only
+/// after `POST /v1/auth/mfa`.
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -75,11 +75,8 @@ pub async fn login(
     if !user.is_staff {
         return Err(AppError::Unauthorized);
     }
-    if super::mfa::required(&state).await? {
-        return Ok((
-            jar,
-            Json(super::mfa::challenge(&state, user.id, &user.email).await?),
-        ));
+    if let Some(challenge) = super::mfa::challenge(&state, user.id).await? {
+        return Ok((jar, Json(challenge)));
     }
     let (jar, session) = open_staff_session(&state, jar, user).await?;
     Ok((jar, Json(serde_json::to_value(session).unwrap_or_default())))

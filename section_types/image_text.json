@@ -1,0 +1,121 @@
+{
+  "code": "image_text",
+  "name": "Image and text",
+  "description": "A photo beside a title, text and buttons.",
+  "icon": "i-lucide-panels-top-left",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 60,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Image",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "media_side": {
+        "type": "string",
+        "enum": [
+          "start",
+          "end"
+        ],
+        "default": "start",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Image side"
+      },
+      "media_ratio": {
+        "type": "string",
+        "enum": [
+          "square",
+          "4:3",
+          "16:9",
+          "portrait"
+        ],
+        "default": "4:3",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Image ratio"
+      },
+      "cta_primary": {
+        "$ref": "#/$defs/cta",
+        "title": "Primary button",
+        "x-group": "content"
+      },
+      "cta_secondary": {
+        "$ref": "#/$defs/cta",
+        "title": "Secondary button",
+        "x-group": "content"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "type": "string",
+        "maxLength": 20000,
+        "x-widget": "richtext",
+        "x-group": "content",
+        "title": "Body"
+      },
+      "media_alt": {
+        "type": "string",
+        "maxLength": 200,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Image description (overrides the library)"
+      },
+      "cta_primary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Primary button label"
+      },
+      "cta_secondary_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Secondary button label"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "media_side": "start",
+      "media_ratio": "4:3"
+    },
+    "content": {
+      "fr": {
+        "title": "Titre",
+        "body": "<p>Votre texte.</p>"
+      },
+      "en": {
+        "title": "Title",
+        "body": "<p>Your text.</p>"
+      },
+      "ar": {
+        "title": "العنوان",
+        "body": "<p>نصك هنا.</p>"
+      }
+    }
+  }
+}

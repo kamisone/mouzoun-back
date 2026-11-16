@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE content_blocks SET anchor_id = NULL WHERE page_id = $1 AND deleted_at IS NULL AND anchor_id IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b7d53acd76f0c6eb2f47c168babb64590f4cac0d444807cbba4fa3840c40cbc"
+}

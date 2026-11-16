@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.revision_number, r.status AS \"status: RevisionStatus\", r.publish_at, r.published_at, r.note,\n                  r.created_at, r.published_by, pu.full_name AS \"published_by_name?\", r.created_by,\n                  cu.full_name AS \"created_by_name?\"\n           FROM page_revisions r\n           LEFT JOIN users pu ON pu.id = r.published_by\n           LEFT JOIN users cu ON cu.id = r.created_by\n           WHERE ($1::uuid IS NULL OR r.page_id = $1) AND ($2::uuid IS NULL OR r.id = $2)\n           ORDER BY r.revision_number DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "revision_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: RevisionStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "publish_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "published_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "published_by_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_by_name?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "3cacd669b9df29cbcbebd8c9e9ddf1d0230d473347542ff419ca35a35cff6129"
+}

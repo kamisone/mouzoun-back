@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page_id FROM page_revisions\n         WHERE status = 'published' AND (snapshot -> 'refs' @> $1 OR snapshot -> 'rule_sources' ? $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "87883bbd351ed0bc2c4725fe53f3b586f9b295d2a797c6166de9b615a1c0de51"
+}

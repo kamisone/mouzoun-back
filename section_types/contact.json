@@ -1,0 +1,116 @@
+{
+  "code": "contact",
+  "name": "Contact",
+  "description": "Phone, WhatsApp, email and a contact form.",
+  "icon": "i-lucide-message-circle",
+  "category": "conversion",
+  "schema_version": 1,
+  "sort_order": 200,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "show_phone": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Phone"
+      },
+      "show_whatsapp": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "WhatsApp"
+      },
+      "show_email": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Email"
+      },
+      "show_form": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Contact form"
+      },
+      "form_fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "phone",
+            "dates",
+            "group_size",
+            "subject"
+          ]
+        },
+        "uniqueItems": true,
+        "default": [
+          "phone",
+          "dates"
+        ],
+        "x-widget": "select",
+        "x-group": "content",
+        "title": "Extra form fields"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "maxLength": 600,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Text"
+      },
+      "success_text": {
+        "type": "string",
+        "maxLength": 200,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Thank-you message"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "show_phone": true,
+      "show_whatsapp": true,
+      "show_email": true,
+      "show_form": true,
+      "form_fields": [
+        "phone",
+        "dates"
+      ]
+    },
+    "content": {
+      "fr": {
+        "title": "Nous écrire"
+      },
+      "en": {
+        "title": "Contact us"
+      },
+      "ar": {
+        "title": "راسلنا"
+      }
+    }
+  }
+}

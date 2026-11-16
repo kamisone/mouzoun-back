@@ -1,0 +1,66 @@
+{
+  "code": "rich_text",
+  "name": "Rich text",
+  "description": "Formatted text: paragraphs, lists, links.",
+  "icon": "i-lucide-text",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 220,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "max_width": {
+        "type": "string",
+        "enum": [
+          "narrow",
+          "normal",
+          "wide"
+        ],
+        "default": "normal",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Width"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "type": "string",
+        "maxLength": 20000,
+        "x-widget": "richtext",
+        "x-group": "content",
+        "title": "Body"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "max_width": "normal"
+    },
+    "content": {
+      "fr": {
+        "body": "<p>Votre texte.</p>"
+      },
+      "en": {
+        "body": "<p>Your text.</p>"
+      },
+      "ar": {
+        "body": "<p>نصك هنا.</p>"
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT f.id, t.question AS \"label?\", CASE WHEN f.is_published THEN 'published' ELSE 'draft' END AS hint FROM faqs f\n               LEFT JOIN faq_translations t ON t.faq_id = f.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE (CASE WHEN $1 THEN f.id = ANY($2) ELSE ($3::text IS NULL OR t.question ILIKE $3) END)\n               ORDER BY f.sort_order LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e72352e14411dae30d27c185d3de9b9aeca2866c53b960018b6711339d467ef7"
+}

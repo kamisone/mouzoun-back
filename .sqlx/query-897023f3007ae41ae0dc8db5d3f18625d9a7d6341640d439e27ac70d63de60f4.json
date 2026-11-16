@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.icon, c.cover_media_id,\n                          COALESCE(NULLIF(t.name, ''), d.name) AS \"name?\", COALESCE(t.slug, d.slug) AS \"slug?\",\n                          COALESCE(t.description, d.description) AS \"description?\"\n                   FROM categories c\n                   LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $1\n                   LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $2\n                   WHERE c.scope = 'product' AND c.is_active AND (NOT $3 OR c.id = ANY($4))\n                   ORDER BY c.sort_order, c.id LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "slug?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool",
+        "UuidArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "897023f3007ae41ae0dc8db5d3f18625d9a7d6341640d439e27ac70d63de60f4"
+}

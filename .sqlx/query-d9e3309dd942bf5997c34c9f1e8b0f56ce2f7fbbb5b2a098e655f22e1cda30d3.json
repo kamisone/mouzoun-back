@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE content_blocks SET deleted_at = now(), updated_by = $3\n         WHERE page_id = $1 AND deleted_at IS NULL AND id <> ALL($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d9e3309dd942bf5997c34c9f1e8b0f56ce2f7fbbb5b2a098e655f22e1cda30d3"
+}

@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM products p\n         WHERE p.status = 'published' AND p.deleted_at IS NULL AND ($1::text IS NULL OR p.kind = $1)\n           AND (NOT $2 OR p.is_featured)\n           AND ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = $3))\n         ORDER BY CASE WHEN $4 = 'newest' THEN p.created_at END DESC NULLS LAST, p.sort_order, p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "50f16827744f87dc3c660768b73c7dae41a579b23ca6dade5cb81e4a20259023"
+}

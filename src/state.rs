@@ -5,8 +5,8 @@ use sqlx::PgPool;
 
 use crate::{
     config::Config,
-    infra::{cache::Cache, storage::Buckets},
-    modules::media::MediaService,
+    infra::{cache::Cache, clock::Clock, storage::Buckets},
+    modules::{media::MediaService, pages::SectionRegistry},
     services::payments::Payments,
 };
 
@@ -24,6 +24,10 @@ pub struct AppState {
     pub http: reqwest::Client,
     /// Last object-storage probe of the readiness endpoint (at most one call every 5 minutes).
     pub storage_probe: Arc<tokio::sync::Mutex<Option<(std::time::Instant, bool)>>>,
+    /// Page builder section types (compiled once, from `section_types/*.json`).
+    pub sections: Arc<SectionRegistry>,
+    /// "Now" for time-dependent content (tests pin it).
+    pub clock: Clock,
 }
 
 impl AppState {
@@ -45,6 +49,8 @@ impl AppState {
             payments,
             http,
             storage_probe: Arc::default(),
+            sections: Arc::new(SectionRegistry::load()),
+            clock: Clock::default(),
         }
     }
 }

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT content_block_id, locale, content FROM content_block_translations WHERE content_block_id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "content_block_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "content",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a8fa898e1f73c0c47e32accca13566a19d123abf73dde69e878124cb31677e5b"
+}

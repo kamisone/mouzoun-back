@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO newsletter_subscribers (id, email, locale, status, source) VALUES ($1, $2, $3, 'pending', $4)\n         ON CONFLICT (email) DO UPDATE SET\n             status = CASE WHEN newsletter_subscribers.status = 'unsubscribed' THEN 'pending' ELSE newsletter_subscribers.status END,\n             unsubscribed_at = NULL, locale = EXCLUDED.locale",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "69af585749f29eef8ca18beee0768e28e869229c4dd2d707e8914b7ee308be20"
+}

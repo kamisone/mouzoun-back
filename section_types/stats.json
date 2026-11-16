@@ -1,0 +1,110 @@
+{
+  "code": "stats",
+  "name": "Key figures",
+  "description": "A few numbers with a label.",
+  "icon": "i-lucide-chart-no-axes-column",
+  "category": "content",
+  "schema_version": 1,
+  "sort_order": 80,
+  "min_items": 0,
+  "max_items": 6,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "columns": {
+        "type": "integer",
+        "minimum": 2,
+        "maximum": 6,
+        "default": 4,
+        "x-widget": "number",
+        "x-group": "layout",
+        "title": "Columns"
+      },
+      "animate": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Count up when visible"
+      }
+    }
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "number": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1000000000.0,
+        "x-widget": "number",
+        "x-group": "content",
+        "title": "Number"
+      },
+      "suffix": {
+        "type": "string",
+        "maxLength": 12,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Suffix (km, %, +)"
+      }
+    },
+    "required": [
+      "number"
+    ]
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "label": {
+        "type": "string",
+        "maxLength": 80,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Label"
+      }
+    },
+    "required": [
+      "label"
+    ]
+  },
+  "preset": {
+    "settings": {
+      "columns": 4,
+      "animate": true
+    },
+    "content": {},
+    "items": [
+      {
+        "settings": {
+          "number": 45,
+          "suffix": "km"
+        },
+        "content": {
+          "fr": {
+            "label": "de Rissani"
+          },
+          "en": {
+            "label": "from Rissani"
+          },
+          "ar": {
+            "label": "من الريصاني"
+          }
+        }
+      }
+    ]
+  }
+}

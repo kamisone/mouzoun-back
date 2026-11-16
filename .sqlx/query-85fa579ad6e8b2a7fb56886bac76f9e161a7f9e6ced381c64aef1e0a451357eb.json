@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page_id AS \"page_id!\" FROM content_blocks WHERE id = $1 AND page_id IS NOT NULL AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "85fa579ad6e8b2a7fb56886bac76f9e161a7f9e6ced381c64aef1e0a451357eb"
+}
