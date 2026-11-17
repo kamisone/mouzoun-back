@@ -1,0 +1,178 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.status, p.is_featured, p.sort_order, p.cover_media_id, p.gallery_id, p.place_id, p.published_at,\n                  p.created_at, p.updated_at, sp.product_type, sp.shipping_profile_id, sp.origin_place_id, sp.farm_crop_id,\n                  sp.is_perishable, sp.withdrawal_exemption, sp.tax_class_code::text AS \"tax_class_code!\", sp.bundle_vat_split,\n                  sp.track_lots, sp.shelf_life_days, sp.allergens, sp.nutrition, sp.option_count, sp.max_per_order, lower(sp.available_period) AS available_from, upper(sp.available_period) AS available_until,\n                  m.object_key AS \"cover_key?\"\n           FROM products p JOIN shop_products sp ON sp.product_id = p.id\n           LEFT JOIN media_assets m ON m.id = p.cover_media_id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_featured",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "gallery_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "place_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "product_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "shipping_profile_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "origin_place_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "farm_crop_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_perishable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "withdrawal_exemption",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "tax_class_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "bundle_vat_split",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 18,
+        "name": "track_lots",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 19,
+        "name": "shelf_life_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "allergens",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 21,
+        "name": "nutrition",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 22,
+        "name": "option_count",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 23,
+        "name": "max_per_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "available_from",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "available_until",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "cover_key?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "645b326d81d123f7289ed18c47909bb93001ebf496b0cb8c29a477edf39c10c5"
+}

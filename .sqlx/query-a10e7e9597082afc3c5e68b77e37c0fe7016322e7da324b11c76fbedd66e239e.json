@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id FROM carts c\n           WHERE c.status = 'active' AND c.email IS NOT NULL AND c.abandoned_email_sent_at IS NULL\n             AND c.last_activity_at <= $1 AND c.last_activity_at > $1 - interval '7 days'\n             AND EXISTS (SELECT 1 FROM cart_items WHERE cart_id = c.id)\n             AND (NOT $2 OR EXISTS (SELECT 1 FROM customers cu WHERE cu.email = c.email AND cu.marketing_consent)\n                  OR EXISTS (SELECT 1 FROM newsletter_subscribers n WHERE n.email = c.email AND n.status = 'subscribed'))\n           ORDER BY c.last_activity_at LIMIT 100 FOR UPDATE SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a10e7e9597082afc3c5e68b77e37c0fe7016322e7da324b11c76fbedd66e239e"
+}

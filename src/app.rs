@@ -55,7 +55,12 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
     let shutdown = CancellationToken::new();
     let mut workers = jobs::spawn_all(&state, shutdown.clone());
     if worker_config.in_api {
-        let registry = worker::registry(&state.db, &state.cache, &mailer);
+        let registry = worker::registry(
+            &state.db,
+            &state.cache,
+            &mailer,
+            Some(state.media.storage()),
+        );
         workers.extend(worker::spawn(
             state.db.clone(),
             registry,

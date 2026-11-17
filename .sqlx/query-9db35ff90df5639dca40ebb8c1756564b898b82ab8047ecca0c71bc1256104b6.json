@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO variation_values (id, attribute_id, code, swatch_color, swatch_media_id, price_adjustment_minor, sort_order, is_active)\n                     VALUES ($1, $2, $3::text::citext, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9db35ff90df5639dca40ebb8c1756564b898b82ab8047ecca0c71bc1256104b6"
+}

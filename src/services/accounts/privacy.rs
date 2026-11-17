@@ -95,6 +95,34 @@ pub async fn export(pool: &PgPool, user_id: Uuid) -> AppResult<Value> {
     )
     .fetch_all(pool)
     .await?;
+    // Shop: orders with their lines, addresses, consents and documents; back-in-stock requests.
+    let shop_orders = sqlx::query_scalar!(
+        r#"SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                 'number', o.number, 'status', o.status, 'placed_at', o.placed_at, 'email', o.email, 'phone', o.phone,
+                 'shipping_address', o.shipping_address, 'billing_address', o.billing_address, 'relay_point', o.relay_point,
+                 'total_minor', o.total_minor, 'currency', o.currency, 'terms_accepted_at', o.terms_accepted_at,
+                 'marketing_consent', o.marketing_consent_snapshot, 'customer_note', o.customer_note,
+                 'items', (SELECT jsonb_agg(jsonb_build_object('sku', i.sku, 'name', i.product_snapshot->>'name', 'quantity', i.quantity,
+                                                               'total_minor', i.total_minor)) FROM order_items i WHERE i.order_id = o.id),
+                 'invoices', (SELECT jsonb_agg(jsonb_build_object('number', v.number, 'kind', v.kind, 'total_minor', v.total_minor,
+                                                                  'issued_at', v.issued_at)) FROM invoices v WHERE v.order_id = o.id),
+                 'returns', (SELECT jsonb_agg(jsonb_build_object('number', r.number, 'reason', r.reason, 'status', r.status,
+                                                                 'requested_at', r.requested_at)) FROM order_returns r WHERE r.order_id = o.id)
+               ) ORDER BY o.placed_at), '[]') AS "x!"
+           FROM orders o WHERE o.customer_id = $1 AND o.status <> 'draft'"#,
+        customer_id
+    )
+    .fetch_one(pool)
+    .await?;
+    let stock_requests = sqlx::query_scalar!(
+        r#"SELECT COALESCE(jsonb_agg(jsonb_build_object('sku', v.sku, 'created_at', n.created_at, 'notified_at', n.notified_at)), '[]') AS "x!"
+           FROM stock_notifications n JOIN product_variants v ON v.id = n.variant_id
+           WHERE n.customer_id = $1 OR n.email = (SELECT email FROM users WHERE id = $2)"#,
+        customer_id,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
     let sessions = sqlx::query!(
         "SELECT user_agent, created_at, last_used_at, revoked_at FROM user_sessions WHERE user_id = $1 ORDER BY created_at",
         user_id
@@ -120,6 +148,8 @@ pub async fn export(pool: &PgPool, user_id: Uuid) -> AppResult<Value> {
             "paid_minor": b.amount_paid_minor, "currency": b.currency, "special_requests": b.special_requests,
             "created_at": b.created_at, "guests": b.guests, "payments": b.payments, "invoices": b.invoices,
         })).collect::<Vec<_>>(),
+        "shop_orders": shop_orders,
+        "back_in_stock_requests": stock_requests,
         "reviews": reviews.into_iter().map(|r| json!({
             "rating": r.rating, "title": r.title, "body": r.body, "status": r.status, "created_at": r.created_at,
         })).collect::<Vec<_>>(),
@@ -246,7 +276,9 @@ pub async fn deletion_blockers(
                        AND COALESCE(b.departure_date, b.arrival_date, $2) >= $2) AS "upcoming!",
              EXISTS (SELECT 1 FROM bookings b JOIN customers c ON c.id = b.customer_id
                      WHERE c.user_id = $1 AND b.status IN ('confirmed', 'checked_in', 'completed', 'no_show')
-                       AND b.total_minor > b.amount_paid_minor) AS "unpaid!""#,
+                       AND b.total_minor > b.amount_paid_minor) AS "unpaid!",
+             EXISTS (SELECT 1 FROM orders o JOIN customers c ON c.id = o.customer_id
+                     WHERE c.user_id = $1 AND o.status IN ('pending', 'open')) AS "open_order!""#,
         user_id,
         today
     )
@@ -258,6 +290,9 @@ pub async fn deletion_blockers(
     }
     if b.unpaid {
         out.push("unpaid_balance");
+    }
+    if b.open_order {
+        out.push("open_shop_order");
     }
     Ok(out)
 }
@@ -439,6 +474,30 @@ pub async fn anonymize(
          WHERE id = ANY($1)",
         &customers,
         now
+    )
+    .execute(&mut *conn)
+    .await?;
+    // Shop: orders and invoices stay (10-year accounting duty) but lose what is not needed for
+    // it: contact details, delivery address, notes, IP and browser; the invoice keeps the billing
+    // address it was issued with (immutable document). Carts and back-in-stock requests go.
+    sqlx::query!(
+        "UPDATE orders SET email = ('deleted-' || id || '@deleted.invalid')::citext, phone = NULL, shipping_address = NULL,
+                customer_note = NULL, ip_address = NULL, user_agent = NULL, relay_point = NULL
+         WHERE customer_id = ANY($1) AND status NOT IN ('pending', 'open')",
+        &customers
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "DELETE FROM carts WHERE customer_id = ANY($1) AND status = 'active'",
+        &customers
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "DELETE FROM stock_notifications WHERE customer_id = ANY($1) OR email = $2::text::citext",
+        &customers,
+        u.email
     )
     .execute(&mut *conn)
     .await?;

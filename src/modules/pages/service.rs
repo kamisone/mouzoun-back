@@ -79,6 +79,38 @@ pub async fn locales(conn: &mut PgConnection) -> sqlx::Result<(String, Vec<Strin
     Ok((default, all.into_iter().map(|l| l.code.0).collect()))
 }
 
+/// Legal pages are published with their French text complete (Toubon law; the French version
+/// is the contractual one): a French title and French content in every visible section.
+fn french_complete(snapshot: &Snapshot) -> AppResult<()> {
+    let title_ok = snapshot
+        .page
+        .translations
+        .get("fr")
+        .is_some_and(|t| !t.title.trim().is_empty());
+    let missing: Vec<String> = snapshot
+        .blocks
+        .iter()
+        .filter(|b| b.is_visible)
+        .filter(|b| {
+            let fr = b.content.get("fr");
+            fr.is_none_or(|c| c.is_null() || c.as_object().is_some_and(serde_json::Map::is_empty))
+                && b.content
+                    .values()
+                    .any(|c| c.as_object().is_some_and(|o| !o.is_empty()))
+        })
+        .map(|b| b.id.to_string())
+        .collect();
+    if title_ok && missing.is_empty() {
+        return Ok(());
+    }
+    Err(AppError::domain(
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "french_required",
+        "a legal page needs its French title and French text in every section",
+    )
+    .with_details(json!({ "title": title_ok, "sections": missing })))
+}
+
 fn invalid(errors: Vec<FieldError>) -> AppError {
     AppError::domain(
         StatusCode::UNPROCESSABLE_ENTITY,
@@ -814,6 +846,9 @@ pub async fn publish(
     let (snapshot, errors) = draft_snapshot(&mut tx, reg, &page).await?;
     if !errors.is_empty() {
         return Err(invalid(errors));
+    }
+    if page.page_type == "legal" {
+        french_complete(&snapshot)?;
     }
     let number = next_revision_number(&mut tx, page_id).await?;
     let scheduled = req.publish_at.filter(|at| *at > now);

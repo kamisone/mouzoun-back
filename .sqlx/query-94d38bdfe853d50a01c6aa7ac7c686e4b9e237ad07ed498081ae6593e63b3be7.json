@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments SET status = 'succeeded', provider_payment_id = COALESCE($2, provider_payment_id),\n                amount_minor = $3, paid_at = $4, failure_reason = NULL\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "94d38bdfe853d50a01c6aa7ac7c686e4b9e237ad07ed498081ae6593e63b3be7"
+}

@@ -601,6 +601,18 @@ async fn link_targets(
         }
     }
     let products = of("product");
+    // Shop products live under the shop prefix of each language (`shop.route_prefix`).
+    let shop_prefix = if products.is_empty() {
+        String::new()
+    } else {
+        let prefixes =
+            sqlx::query_scalar!("SELECT value FROM settings WHERE key = 'shop.route_prefix'")
+                .fetch_optional(&state.db)
+                .await?
+                .unwrap_or_default();
+        let p = crate::services::shop::settings::ShopSettings::localized(&prefixes, lang.locale);
+        if p.is_empty() { "shop".to_string() } else { p }
+    };
     if !products.is_empty() {
         for r in sqlx::query!(
             r#"SELECT p.id, p.kind, COALESCE(t.slug, d.slug) AS "slug?"
@@ -615,10 +627,12 @@ async fn link_targets(
         .fetch_all(&state.db)
         .await?
         {
+            let shop_base = format!("{shop_prefix}/p");
             let base = match r.kind.as_str() {
                 "accommodation" => "stays",
                 "activity" => "activities",
                 "package" => "packages",
+                "shop_product" => shop_base.as_str(),
                 _ => continue,
             };
             if let Some(slug) = r.slug {

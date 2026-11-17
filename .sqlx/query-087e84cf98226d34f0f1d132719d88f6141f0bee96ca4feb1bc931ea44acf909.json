@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE order_items oi SET fulfilled_quantity = oi.fulfilled_quantity - fi.quantity\n             FROM fulfillment_items fi WHERE fi.fulfillment_id = $1 AND fi.order_item_id = oi.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "087e84cf98226d34f0f1d132719d88f6141f0bee96ca4feb1bc931ea44acf909"
+}

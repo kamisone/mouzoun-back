@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.sku::text AS \"sku!\", COALESCE(t.name, v.sku::text) AS \"name!\",\n                          COALESCE(st.name, s.code::text) AS \"location!\",\n                          (l.on_hand - l.reserved) AS \"available!\",\n                          COALESCE(v.low_stock_threshold, $3) AS \"threshold!\"\n                   FROM product_variants v\n                   JOIN inventory_levels l ON l.variant_id = v.id AND l.location_id = $2\n                   JOIN stock_locations s ON s.id = l.location_id\n                   LEFT JOIN stock_location_translations st ON st.location_id = s.id AND st.locale = (SELECT code FROM locales WHERE is_default)\n                   LEFT JOIN product_translations t ON t.product_id = v.product_id AND t.locale = (SELECT code FROM locales WHERE is_default)\n                   WHERE v.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "available!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "threshold!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "25bb270c88a7a53a08611f5395f5bead5273d738f45c47a757099e739d241788"
+}

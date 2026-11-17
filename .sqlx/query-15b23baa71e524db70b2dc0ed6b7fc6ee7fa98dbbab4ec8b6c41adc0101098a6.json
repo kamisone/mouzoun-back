@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.provider_payment_id, p.paid_at, p.amount_minor, p.fee_minor, p.net_minor, p.payout_id, p.settled_at, o.number AS \"order_number?\"\n           FROM payments p LEFT JOIN orders o ON o.id = p.order_id\n           WHERE p.provider = 'stripe' AND p.paid_at IS NOT NULL AND (p.paid_at AT TIME ZONE 'Europe/Paris')::date BETWEEN $1 AND $2\n           ORDER BY p.paid_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "fee_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "net_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "payout_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "settled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "order_number?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "15b23baa71e524db70b2dc0ed6b7fc6ee7fa98dbbab4ec8b6c41adc0101098a6"
+}

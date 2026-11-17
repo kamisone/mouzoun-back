@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT location_id FROM inventory_reservations WHERE order_id = $1\n                 UNION ALL (SELECT id FROM stock_locations s WHERE is_active AND fulfills_online_orders AND (s.legal_entity_id IS NULL OR s.legal_entity_id = shop_entity_id()) ORDER BY sort_order LIMIT 1)\n                 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "location_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "65ae580ab940cc20d2967de77f8d390552b177fb0d4753624b9e07f7b80c2430"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_lots SET quantity = quantity + $2\n             WHERE id = $1 AND variant_id = $3 AND location_id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eda64f1215db0b96ede993febdd87e5dd509e407cbcf7e4240f8d03f254c09a4"
+}

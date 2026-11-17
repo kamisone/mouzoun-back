@@ -25,4 +25,6 @@ mod outbox;
 mod pages;
 mod passkeys;
 mod schema;
+mod shop;
 mod stripe;
+mod translations;

@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, variant_id, product_id, sku, quantity, unit_price_minor, compare_at_price_minor, subtotal_minor, discount_minor,\n                  tax_minor, total_minor, tax_lines, discount_allocations, product_snapshot, fulfilled_quantity, returned_quantity,\n                  refunded_quantity,\n                  (SELECT COALESCE(sum(quantity), 0) FROM inventory_reservations r WHERE r.order_item_id = oi.id\n                   AND released_at IS NULL AND consumed_at IS NULL)::bigint AS \"reserved!\"\n           FROM order_items oi WHERE order_id = $1 ORDER BY sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "sku",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "unit_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "tax_lines",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "discount_allocations",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "product_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "fulfilled_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "returned_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "refunded_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "reserved!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "8805a2c59deb1c1e4edaf975e33864c501d21ac2eee5b711a17e7c87b7af648f"
+}

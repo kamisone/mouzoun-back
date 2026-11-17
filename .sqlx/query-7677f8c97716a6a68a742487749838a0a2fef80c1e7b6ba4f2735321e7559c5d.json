@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, (SELECT count(*) FROM product_variant_option_values WHERE variant_id = v.id) AS \"valued!\",\n                  (SELECT count(*) FROM product_options WHERE product_id = $1) AS \"options!\"\n           FROM product_variants v WHERE v.product_id = $1 AND v.status = 'active' AND v.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "valued!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "options!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "7677f8c97716a6a68a742487749838a0a2fef80c1e7b6ba4f2735321e7559c5d"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(jsonb_agg(jsonb_build_object('sku', sku, 'quantity', quantity, 'total_minor', total_minor)), '[]') AS \"x!\"\n           FROM order_items WHERE order_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f8c963243fc0dd054310a90d3483b7f445af96e78c8c2da85aa835ea84fa2179"
+}

@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.label, a.first_name, a.last_name, a.company, a.line1, a.line2, a.city, a.region, a.postal_code,\n                  a.country_code::text AS \"country_code!\", a.phone, a.delivery_notes,\n                  (c.default_shipping_address_id = a.id) AS \"is_default?\"\n           FROM customer_addresses a JOIN customers c ON c.id = a.customer_id\n           WHERE a.customer_id = $1 AND a.deleted_at IS NULL ORDER BY a.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "company",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "line1",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "line2",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "region",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "postal_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "country_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "delivery_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "is_default?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      null,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "28826e6ddc4325c51e76cbdcdb3b82c9a8140df601cb2e5862f83e003915a1eb"
+}

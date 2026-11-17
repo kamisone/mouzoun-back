@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE carts SET status = 'expired' WHERE status = 'active' AND expires_at <= $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f27011a695e6d580e6e8abed5ee445163c809d49a0dbbe97fefda499ce01318"
+}

@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.product_id, v.price_minor, v.compare_at_price_minor, v.is_taxable, v.weight_grams,\n                  v.requires_shipping, sp.shipping_profile_id, sp.max_per_order,\n                  (p.status = 'published' AND p.deleted_at IS NULL AND v.status = 'active' AND v.deleted_at IS NULL\n                   AND (sp.available_period IS NULL OR sp.available_period @> $2::timestamptz)) AS \"purchasable!\",\n                  COALESCE((SELECT array_agg(category_id) FROM product_categories pc WHERE pc.product_id = p.id), '{}') AS \"category_ids!\",\n                  sp.tax_class_code::text AS \"tax_class!\", sp.bundle_vat_split\n           FROM product_variants v\n           JOIN shop_products sp ON sp.product_id = v.product_id\n           JOIN products p ON p.id = v.product_id\n           WHERE v.id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_taxable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "requires_shipping",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "shipping_profile_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_per_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "purchasable!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "category_ids!",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 11,
+        "name": "tax_class!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "bundle_vat_split",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "181262dcd39060e0373e3c51f82e49102b2b7c9cab42c385f88db6f6aeca49a9"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments SET fee_minor = $2, net_minor = $3, payout_id = $4, settled_at = to_timestamp($5)\n             WHERE provider = 'stripe' AND provider_payment_id = $1\n               AND (payout_id IS DISTINCT FROM $4 OR fee_minor IS DISTINCT FROM $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5f84026ace20bc7ceef91969b7b92616cab2687e6c7dbf1494be7bb8f6e21ed"
+}

@@ -17,6 +17,15 @@ use crate::{
     state::AppState,
 };
 
+/// `POST /webhooks/stripe` (the URL given to Stripe): same as `/payments/webhooks/stripe`.
+pub async fn receive_stripe(
+    state: State<AppState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<(StatusCode, Json<Value>)> {
+    receive(state, Path("stripe".to_string()), headers, body).await
+}
+
 pub async fn receive(
     State(state): State<AppState>,
     Path(provider): Path<String>,
@@ -28,6 +37,12 @@ pub async fn receive(
         tracing::warn!(provider = name, error = %e, "webhook refused");
         AppError::BadRequest("invalid webhook".into())
     })?;
+    // One Stripe endpoint for both: shop order events are stored, queued and answered at once.
+    if name == "stripe"
+        && crate::modules::shop::public::receive_stripe_shop_event(&state, &event.payload).await?
+    {
+        return Ok((StatusCode::OK, Json(json!({ "received": true }))));
+    }
     // Processing errors answer 500: the provider retries, and the stored event is reprocessed.
     payments::handle_webhook(&state.db, &state.payments, name, &event, Utc::now()).await?;
     Ok((StatusCode::OK, Json(json!({ "received": true }))))

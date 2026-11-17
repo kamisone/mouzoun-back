@@ -1,0 +1,143 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, m.variant_id, m.location_id, m.lot_id, m.delta, m.on_hand_after, m.reason, m.order_id, m.fulfillment_id,\n                  m.return_id, m.transfer_id, m.unit_cost_minor, m.note, m.created_at, v.sku::text AS \"sku!\", s.code::text AS \"location!\",\n                  u.full_name AS \"user?\", o.number AS \"order_number?\", l.lot_code::text AS \"lot_code?\",\n                  count(*) OVER () AS \"total!\"\n           FROM inventory_movements m JOIN product_variants v ON v.id = m.variant_id JOIN stock_locations s ON s.id = m.location_id\n           LEFT JOIN users u ON u.id = m.created_by LEFT JOIN orders o ON o.id = m.order_id LEFT JOIN inventory_lots l ON l.id = m.lot_id\n           WHERE ($1::uuid IS NULL OR m.variant_id = $1) AND ($2::uuid IS NULL OR m.location_id = $2) AND ($3::text IS NULL OR m.reason = $3)\n             AND ($4::uuid IS NULL OR m.order_id = $4)\n             AND ($5::date IS NULL OR m.created_at >= ($5::date::timestamp AT TIME ZONE 'Africa/Casablanca'))\n             AND ($6::date IS NULL OR m.created_at < (($6::date + 1)::timestamp AT TIME ZONE 'Africa/Casablanca'))\n           ORDER BY m.id DESC LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "lot_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "delta",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "on_hand_after",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "order_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "fulfillment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "return_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "transfer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "unit_cost_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "user?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "order_number?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "lot_code?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Date",
+        "Date",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      null,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "3f7a7e8c15cc2fa32f4b4cb68653e9466f861bc7376af23eb1e46276996bae16"
+}

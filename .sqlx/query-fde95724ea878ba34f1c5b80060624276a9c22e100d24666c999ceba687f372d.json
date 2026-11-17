@@ -1,0 +1,429 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.*, o.currency::text AS \"currency_code!\", o.email::text AS \"email_text!\",\n                  c.first_name, c.last_name, c.email::text AS customer_email, c.phone AS customer_phone, c.user_id,\n                  (SELECT count(*) FROM orders x WHERE x.customer_id = o.customer_id AND x.status IN ('open', 'completed')) AS \"customer_orders!\",\n                  b.reference AS \"booking_reference?\", u.full_name AS \"confirmed_by_name?\"\n           FROM orders o JOIN customers c ON c.id = o.customer_id\n           LEFT JOIN bookings b ON b.id = o.booking_id LEFT JOIN users u ON u.id = o.confirmed_by\n           WHERE o.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "customer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "cart_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "channel",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "payment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "requires_confirmation",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "confirmed_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "email",
+        "type_info": {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 17,
+        "name": "fulfillment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "shipping_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 19,
+        "name": "billing_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 20,
+        "name": "pickup_location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 21,
+        "name": "shipping_lines",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 22,
+        "name": "promotion_codes",
+        "type_info": {
+          "Custom": {
+            "name": "citext[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "citext",
+                  "kind": "Simple"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 24,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 25,
+        "name": "shipping_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 26,
+        "name": "shipping_discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 27,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 28,
+        "name": "cod_fee_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 29,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 30,
+        "name": "taxes_included",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 31,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 32,
+        "name": "amount_refunded_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 33,
+        "name": "customer_note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 34,
+        "name": "internal_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 35,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 36,
+        "name": "risk_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 37,
+        "name": "checkout_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 38,
+        "name": "terms_accepted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 39,
+        "name": "placed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 40,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 41,
+        "name": "completed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 42,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 43,
+        "name": "cancel_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 44,
+        "name": "cancelled_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 45,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 46,
+        "name": "ip_address",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 47,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 48,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 49,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 50,
+        "name": "legal_entity_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 51,
+        "name": "terms_page_revision_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 52,
+        "name": "withdrawal_deadline",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 53,
+        "name": "marketing_consent_snapshot",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 54,
+        "name": "vat_breakdown",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 55,
+        "name": "relay_point",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 56,
+        "name": "currency_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 57,
+        "name": "email_text!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 58,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 59,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 60,
+        "name": "customer_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 61,
+        "name": "customer_phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 62,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 63,
+        "name": "customer_orders!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 64,
+        "name": "booking_reference?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 65,
+        "name": "confirmed_by_name?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null,
+      false,
+      true,
+      null,
+      true,
+      true,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "fde95724ea878ba34f1c5b80060624276a9c22e100d24666c999ceba687f372d"
+}

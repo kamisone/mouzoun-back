@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sku::text AS sku, compare_at_price_minor, variant_reference_price(id) AS reference FROM product_variants WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sku",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "reference",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      null
+    ]
+  },
+  "hash": "68f062abaab8be509d2b9684faf44e2bdf80e200d2bab13dc0ba53396ae86c18"
+}

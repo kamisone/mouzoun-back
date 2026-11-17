@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_option_values pv SET swatch_color = vv.swatch_color, price_adjustment_minor = vv.price_adjustment_minor\n         FROM variation_values vv WHERE pv.variation_value_id = vv.id AND vv.attribute_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "06e1d2ba89e46ea0f78dbfae595ccbbb123a755d9632db5ad36a81991669ae9c"
+}

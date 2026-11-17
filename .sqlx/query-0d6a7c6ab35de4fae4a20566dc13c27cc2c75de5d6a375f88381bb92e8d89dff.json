@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_translations WHERE product_id = $1 AND locale = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d6a7c6ab35de4fae4a20566dc13c27cc2c75de5d6a375f88381bb92e8d89dff"
+}

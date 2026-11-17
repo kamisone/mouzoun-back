@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kind, to_status, created_at FROM order_events WHERE order_id = $1\n         AND kind IN ('placed', 'payment_succeeded', 'confirmed', 'fulfillment_created', 'fulfillment_updated', 'cancelled',\n                      'refund_created', 'return_requested', 'return_updated')\n         ORDER BY created_at, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "45b96bbeda05f441e39aeef8223cc31f87737276f6851837315124fdb6ccfa1e"
+}

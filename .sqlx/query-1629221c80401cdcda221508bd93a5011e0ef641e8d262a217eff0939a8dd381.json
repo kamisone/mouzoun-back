@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT f.id, f.location_id, f.method, f.status, f.carrier, f.tracking_number, f.tracking_url, f.packed_at, f.shipped_at,\n                  f.delivered_at, f.created_at, s.code::text AS \"location!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('order_item_id', fi.order_item_id, 'quantity', fi.quantity, 'lots', fi.lots))\n                            FROM fulfillment_items fi WHERE fi.fulfillment_id = f.id), '[]') AS \"items!\"\n           FROM fulfillments f JOIN stock_locations s ON s.id = f.location_id WHERE f.order_id = $1 ORDER BY f.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "carrier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "tracking_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tracking_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "packed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "shipped_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "delivered_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "items!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "1629221c80401cdcda221508bd93a5011e0ef641e8d262a217eff0939a8dd381"
+}

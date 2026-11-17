@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\", pl.is_published\n               FROM places pl\n               LEFT JOIN place_translations t ON t.place_id = pl.id AND t.locale = $2\n               LEFT JOIN place_translations d ON d.place_id = pl.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE pl.id = $1 AND pl.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_published",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "13110509aa3a8df33fe12cf8fd6cf48b96aa26d9ac204a8bc4b6a6e342b6d761"
+}

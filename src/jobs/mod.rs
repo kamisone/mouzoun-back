@@ -37,6 +37,62 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
                 move || booking_ops::run_once(db.clone(), payments.clone())
             },
         ),
+        every("shop holds", Duration::from_secs(60), shutdown.clone(), {
+            let (db, payments) = (state.db.clone(), state.shop_payments.clone());
+            move || {
+                let (db, payments) = (db.clone(), payments.clone());
+                async move {
+                    crate::services::shop::jobs::expire_holds(&db, &payments, chrono::Utc::now())
+                        .await?;
+                    Ok(())
+                }
+            }
+        }),
+        every("shop carts", Duration::from_secs(3600), shutdown.clone(), {
+            let db = state.db.clone();
+            move || {
+                let db = db.clone();
+                async move {
+                    crate::services::shop::jobs::carts(&db, chrono::Utc::now()).await?;
+                    Ok(())
+                }
+            }
+        }),
+        every(
+            "stripe settlements",
+            Duration::from_secs(24 * 3600),
+            shutdown.clone(),
+            {
+                let (db, payments) = (state.db.clone(), state.shop_payments.clone());
+                move || {
+                    let (db, payments) = (db.clone(), payments.clone());
+                    async move {
+                        crate::services::shop::jobs::import_settlements(
+                            &db,
+                            &payments,
+                            chrono::Utc::now(),
+                        )
+                        .await?;
+                        Ok(())
+                    }
+                }
+            },
+        ),
+        every(
+            "shop retention",
+            Duration::from_secs(24 * 3600),
+            shutdown.clone(),
+            {
+                let db = state.db.clone();
+                move || {
+                    let db = db.clone();
+                    async move {
+                        crate::services::shop::jobs::retention(&db, chrono::Utc::now()).await?;
+                        Ok(())
+                    }
+                }
+            },
+        ),
         every("accounts", Duration::from_secs(900), shutdown.clone(), {
             let db = state.db.clone();
             move || accounts::run_once(db.clone())

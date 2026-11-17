@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.code::text AS \"code!\", COALESCE(ot.name, od.name, o.code::text) AS \"name!\", o.display_type,\n                  (SELECT code::text FROM product_option_values WHERE id = o.default_value_id) AS default_value,\n                  COALESCE(jsonb_agg(jsonb_build_object('code', v.code::text, 'label', COALESCE(vt.label, vd.label, v.code::text),\n                                    'swatch_url', COALESCE(sm.object_key, lm.object_key), 'swatch_color', v.swatch_color)\n                                    ORDER BY v.sort_order, v.code)\n                           FILTER (WHERE v.id IS NOT NULL), '[]') AS \"values!\"\n           FROM product_options o\n           LEFT JOIN product_option_translations ot ON ot.option_id = o.id AND ot.locale = $2\n           LEFT JOIN product_option_translations od ON od.option_id = o.id AND od.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN product_option_values v ON v.option_id = o.id\n           LEFT JOIN product_option_value_translations vt ON vt.option_value_id = v.id AND vt.locale = $2\n           LEFT JOIN product_option_value_translations vd ON vd.option_value_id = v.id AND vd.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN media_assets sm ON sm.id = v.swatch_media_id AND sm.deleted_at IS NULL\n           -- A library value's picture when the product has none of its own.\n           LEFT JOIN variation_values lv ON lv.id = v.variation_value_id\n           LEFT JOIN media_assets lm ON lm.id = lv.swatch_media_id AND lm.deleted_at IS NULL\n           WHERE o.product_id = $1 GROUP BY o.id, ot.name, od.name ORDER BY o.sort_order, o.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "default_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "values!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "59b0097d6ddf6f108d5473ad5e458a6fcb582f2c57e8a5230f7c6c80840ca2e6"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id FROM refunds r JOIN payments p ON p.id = r.payment_id WHERE p.order_id = $1 AND r.status = 'succeeded' ORDER BY r.created_at DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "56ef2b45475fc35630c56458b88b391f66f039f9e93d15f32141a0ba3b6b0c90"
+}

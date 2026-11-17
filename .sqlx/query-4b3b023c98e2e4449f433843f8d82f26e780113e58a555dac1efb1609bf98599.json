@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT option_id, option_value_id FROM product_variant_option_values WHERE variant_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "option_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "option_value_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4b3b023c98e2e4449f433843f8d82f26e780113e58a555dac1efb1609bf98599"
+}

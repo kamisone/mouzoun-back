@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, customer_id, email::text AS email, locale, currency::text AS \"currency!\",\n                  fulfillment_method AS \"fulfillment_method: FulfillmentMethod\", shipping_address, billing_address,\n                  shipping_rate_ids, pickup_location_id, booking_id, promotion_codes::text[] AS \"promotion_codes!\", relay_point\n           FROM carts WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "fulfillment_method: FulfillmentMethod",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "shipping_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "billing_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "shipping_rate_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "pickup_location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "promotion_codes!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 12,
+        "name": "relay_point",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null,
+      false,
+      null,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "26c7e5d8ff8379b7e8c0f2c4a036fabd6f9c422d870e5f9cbb42e836d9b3d6c9"
+}

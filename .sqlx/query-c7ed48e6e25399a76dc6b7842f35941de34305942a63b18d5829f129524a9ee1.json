@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.status, COALESCE((SELECT jsonb_object_agg(o.code::text, ov.code::text) FROM product_variant_option_values pvo\n                   JOIN product_options o ON o.id = pvo.option_id JOIN product_option_values ov ON ov.id = pvo.option_value_id\n                   WHERE pvo.variant_id = v.id), '{}') AS \"options!\"\n           FROM product_variants v WHERE v.product_id = $1 AND v.deleted_at IS NULL ORDER BY v.status, v.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "options!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c7ed48e6e25399a76dc6b7842f35941de34305942a63b18d5829f129524a9ee1"
+}

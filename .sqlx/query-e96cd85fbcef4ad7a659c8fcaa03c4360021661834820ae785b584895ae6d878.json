@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET price_minor = $2,\n                             compare_at_price_minor = CASE WHEN compare_at_price_minor > $2 THEN compare_at_price_minor END\n                         WHERE id = $1 AND price_minor <> $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e96cd85fbcef4ad7a659c8fcaa03c4360021661834820ae785b584895ae6d878"
+}

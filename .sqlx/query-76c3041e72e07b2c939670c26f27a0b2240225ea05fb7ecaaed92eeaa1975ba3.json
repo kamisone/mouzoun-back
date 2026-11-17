@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.variant_id, l.location_id, l.lot_code::text AS \"lot_code!\", l.produced_on, l.harvested_on, l.best_before,\n                  l.quantity, l.notes, v.sku::text AS \"sku!\", COALESCE(t.name, '') AS \"name!\", s.code::text AS \"location!\"\n           FROM inventory_lots l JOIN product_variants v ON v.id = l.variant_id JOIN stock_locations s ON s.id = l.location_id\n           LEFT JOIN product_translations t ON t.product_id = v.product_id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE ($1::uuid IS NULL OR l.variant_id = $1) AND ($2::date IS NULL OR (l.best_before <= $2 AND l.quantity > 0))\n           ORDER BY l.best_before NULLS LAST, l.lot_code LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "lot_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "produced_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "harvested_on",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "best_before",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "location!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "76c3041e72e07b2c939670c26f27a0b2240225ea05fb7ecaaed92eeaa1975ba3"
+}

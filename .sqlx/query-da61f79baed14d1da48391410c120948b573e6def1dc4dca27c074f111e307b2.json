@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE carts SET fulfillment_method = $2, shipping_address = $3, billing_address = $4, shipping_rate_ids = $5,\n                pickup_location_id = $6, booking_id = $7, email = $8::text::citext, relay_point = $9\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "da61f79baed14d1da48391410c120948b573e6def1dc4dca27c074f111e307b2"
+}

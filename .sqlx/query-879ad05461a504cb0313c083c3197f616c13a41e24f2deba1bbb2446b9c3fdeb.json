@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET status = 'published', published_at = COALESCE(published_at, now())\n                 WHERE id = $1 AND kind = 'shop_product' AND deleted_at IS NULL\n                   AND EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = $1 AND v.status = 'active' AND v.deleted_at IS NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "879ad05461a504cb0313c083c3197f616c13a41e24f2deba1bbb2446b9c3fdeb"
+}

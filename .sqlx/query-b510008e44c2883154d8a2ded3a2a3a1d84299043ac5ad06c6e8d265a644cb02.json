@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO promotions (id, code, scope, discount_type, discount_percent, discount_amount_minor, currency, min_subtotal_minor,\n                                 min_quantity, booking_window, applies_to_all, applies_to_shipping, is_stackable, is_active,\n                                 customer_eligibility, max_redemptions, max_per_customer)\n         VALUES ($1, $2::text::citext, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)\n         ON CONFLICT (id) DO UPDATE SET code = $2::text::citext, scope = $3, discount_type = $4, discount_percent = $5,\n             discount_amount_minor = $6, currency = $7, min_subtotal_minor = $8, min_quantity = $9, booking_window = $10,\n             applies_to_all = $11, applies_to_shipping = $12, is_stackable = $13, is_active = $14, customer_eligibility = $15,\n             max_redemptions = $16, max_per_customer = $17",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Numeric",
+        "Int8",
+        "Bpchar",
+        "Int8",
+        "Int4",
+        "TstzRange",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b510008e44c2883154d8a2ded3a2a3a1d84299043ac5ad06c6e8d265a644cb02"
+}

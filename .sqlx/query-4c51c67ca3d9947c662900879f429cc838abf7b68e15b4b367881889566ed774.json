@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO order_returns (id, order_id, number, status, reason, customer_note, staff_note, requested_at, created_by, refund_due_by)\n         VALUES ($1, $2, $3, 'requested', $4, $5, $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4c51c67ca3d9947c662900879f429cc838abf7b68e15b4b367881889566ed774"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shop_products (product_id, product_type, shipping_profile_id, origin_place_id, farm_crop_id, is_perishable,\n                                    withdrawal_exemption, tax_class_code, bundle_vat_split, track_lots, shelf_life_days, allergens,\n                                    nutrition, option_count, max_per_order, available_period)\n         SELECT $2, product_type, shipping_profile_id, origin_place_id, farm_crop_id, is_perishable, withdrawal_exemption,\n                tax_class_code, bundle_vat_split, track_lots, shelf_life_days, allergens, nutrition, option_count, max_per_order,\n                available_period FROM shop_products WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "39dee528275a8837731505caff1bcec03327b001284024d7662735ff20108c29"
+}

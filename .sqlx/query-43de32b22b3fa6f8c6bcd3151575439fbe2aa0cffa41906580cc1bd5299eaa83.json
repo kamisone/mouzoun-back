@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM gallery_items WHERE gallery_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "43de32b22b3fa6f8c6bcd3151575439fbe2aa0cffa41906580cc1bd5299eaa83"
+}

@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, country_codes::text[] AS \"country_codes!\", region_codes, postal_code_patterns, is_export, sort_order\n           FROM shipping_zones WHERE is_active ORDER BY sort_order, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "country_codes!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "region_codes",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "postal_code_patterns",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_export",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "sort_order",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b81a357a14f0a5fe85757cf0a43e8f28429a8656666c26aff1f82cc863dc35c3"
+}

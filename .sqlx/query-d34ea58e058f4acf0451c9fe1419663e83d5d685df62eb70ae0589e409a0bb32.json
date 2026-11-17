@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.parent_id, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\",\n                  (SELECT count(DISTINCT pc.product_id) FROM product_categories pc JOIN products p ON p.id = pc.product_id\n                   WHERE pc.category_id = c.id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL) AS \"count!\"\n           FROM categories c\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $1\n           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE c.scope = 'shop' AND c.is_active ORDER BY c.sort_order, 3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d34ea58e058f4acf0451c9fe1419663e83d5d685df62eb70ae0589e409a0bb32"
+}

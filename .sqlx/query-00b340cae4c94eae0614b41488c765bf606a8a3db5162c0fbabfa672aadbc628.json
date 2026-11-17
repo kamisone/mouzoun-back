@@ -1,0 +1,148 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.number, o.status, o.payment_status, o.fulfillment_status, o.channel, o.payment_method, o.fulfillment_method,\n                  o.total_minor, o.currency::text AS \"currency!\", o.placed_at, o.created_at, o.tags, o.risk_level,\n                  o.requires_confirmation, o.confirmed_at, o.email::text AS \"email!\",\n                  (c.first_name || COALESCE(' ' || c.last_name, '')) AS \"customer!\",\n                  (SELECT COALESCE(sum(quantity), 0) FROM order_items WHERE order_id = o.id)::bigint AS \"items!\",\n                  count(*) OVER () AS \"total!\"\n           FROM orders o JOIN customers c ON c.id = o.customer_id\n           WHERE ($1::text IS NULL OR o.status = $1) AND ($2::text IS NULL OR o.payment_status = $2)\n             AND ($3::text IS NULL OR o.fulfillment_status = $3) AND ($4::text IS NULL OR o.channel = $4)\n             AND ($5::date IS NULL OR COALESCE(o.placed_at, o.created_at) >= ($5::date::timestamp AT TIME ZONE 'Africa/Casablanca'))\n             AND ($6::date IS NULL OR COALESCE(o.placed_at, o.created_at) < (($6::date + 1)::timestamp AT TIME ZONE 'Africa/Casablanca'))\n             AND ($7::text IS NULL OR $7 = ANY(o.tags)) AND ($8::text IS NULL OR o.risk_level = $8)\n             AND ($9::text IS NULL OR o.number ILIKE '%' || $9 || '%' OR o.email::text ILIKE '%' || $9 || '%'\n                  OR (c.first_name || ' ' || COALESCE(c.last_name, '')) ILIKE '%' || $9 || '%'\n                  OR regexp_replace(COALESCE(o.phone, ''), '\\D', '', 'g') LIKE '%' || regexp_replace($9, '\\D', '', 'g') || '%'\n                     AND length(regexp_replace($9, '\\D', '', 'g')) >= 4)\n             AND (CASE $10\n                    WHEN 'to_confirm' THEN o.requires_confirmation AND o.confirmed_at IS NULL AND o.status = 'pending'\n                    WHEN 'to_fulfil' THEN o.status = 'open' AND o.fulfillment_status IN ('unfulfilled', 'partially_fulfilled')\n                    WHEN 'ready_for_pickup' THEN EXISTS (SELECT 1 FROM fulfillments fu WHERE fu.order_id = o.id AND fu.status = 'ready_for_pickup')\n                    WHEN 'drafts' THEN o.status = 'draft'\n                    ELSE o.status <> 'draft' OR $1 = 'draft' END)\n           ORDER BY CASE WHEN $11 = 'placed_asc' THEN COALESCE(o.placed_at, o.created_at) END ASC,\n                    CASE WHEN $11 = 'total_desc' THEN o.total_minor END DESC,\n                    CASE WHEN $11 = 'total_asc' THEN o.total_minor END ASC,\n                    COALESCE(o.placed_at, o.created_at) DESC, o.id DESC\n           LIMIT $12 OFFSET $13",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "channel",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "payment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "fulfillment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "placed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "risk_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "requires_confirmation",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "customer!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "items!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "00b340cae4c94eae0614b41488c765bf606a8a3db5162c0fbabfa672aadbc628"
+}

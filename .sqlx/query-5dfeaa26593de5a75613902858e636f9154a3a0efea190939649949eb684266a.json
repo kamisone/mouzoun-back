@@ -1,0 +1,134 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.zone_id, r.profile_id, r.code::text AS \"code!\", r.kind, r.carrier, r.amount_minor, r.per_kg_minor,\n                  r.min_weight_grams, r.max_weight_grams, r.min_subtotal_minor, r.max_subtotal_minor, r.free_over_minor,\n                  r.delivery_days_min, r.delivery_days_max, r.allows_cash_on_delivery, r.cod_fee_minor, r.is_active, r.sort_order,\n                  COALESCE((SELECT jsonb_object_agg(locale, jsonb_build_object('name', name, 'description', description))\n                            FROM shipping_rate_translations WHERE rate_id = r.id), '{}') AS \"translations!\"\n           FROM shipping_rates r ORDER BY r.sort_order, r.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "zone_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "profile_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "carrier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "per_kg_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "max_weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "min_subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "max_subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "free_over_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "delivery_days_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "delivery_days_max",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "allows_cash_on_delivery",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "cod_fee_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 19,
+        "name": "translations!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "5dfeaa26593de5a75613902858e636f9154a3a0efea190939649949eb684266a"
+}

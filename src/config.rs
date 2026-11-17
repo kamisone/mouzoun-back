@@ -53,6 +53,38 @@ pub struct Config {
     pub email: EmailConfig,
     pub worker: WorkerConfig,
     pub booking: BookingConfig,
+    pub translate: TranslateConfig,
+}
+
+/// Machine translation of admin content (the "Générer" buttons). Uses Google Translate's free
+/// public endpoint (no key), like the vitecamio project: unofficial, may rate-limit.
+#[derive(Clone, Debug)]
+pub struct TranslateConfig {
+    /// `TRANSLATE_ENABLED` (default true).
+    pub enabled: bool,
+    /// `TRANSLATE_API_BASE` (default `https://translate.googleapis.com`; tests use a local mock).
+    pub api_base: String,
+}
+
+impl Default for TranslateConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            api_base: "https://translate.googleapis.com".into(),
+        }
+    }
+}
+
+impl TranslateConfig {
+    pub fn from_env() -> Result<Self> {
+        Ok(Self {
+            enabled: parse_or("TRANSLATE_ENABLED", true)?,
+            api_base: optional("TRANSLATE_API_BASE")
+                .unwrap_or_else(|| "https://translate.googleapis.com".into())
+                .trim_end_matches('/')
+                .to_string(),
+        })
+    }
 }
 
 /// Payments, bot protection and guest-data encryption (docs/booking/README.md).
@@ -473,6 +505,7 @@ impl Config {
             email: EmailConfig::from_env()?,
             worker: WorkerConfig::from_env()?,
             booking: BookingConfig::from_env()?,
+            translate: TranslateConfig::from_env()?,
         })
     }
 }
@@ -712,6 +745,7 @@ mod tests {
                 webauthn_origin: "https://mouzoun.com".into(),
                 ..BookingConfig::default()
             },
+            translate: TranslateConfig::default(),
         }
     }
 

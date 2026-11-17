@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT code::text AS \"code!\", legal_name, legal_form, share_capital_minor, currency::text AS \"currency!\", address,\n                  country_code::text AS \"country_code!\", registration, email::text AS email, phone, publication_director, host,\n                  COALESCE((SELECT jsonb_object_agg(locale, invoice_footer) FROM legal_entity_translations WHERE legal_entity_id = e.id), '{}') AS \"footer!\"\n           FROM legal_entities e WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "legal_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "legal_form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "share_capital_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "country_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "registration",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "publication_director",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "host",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "footer!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      true,
+      null,
+      false,
+      null,
+      false,
+      null,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "c6bdc6b7e17cb6fdb23b9165fa24da27cf4510d2a34c3774f68028de6c76261f"
+}

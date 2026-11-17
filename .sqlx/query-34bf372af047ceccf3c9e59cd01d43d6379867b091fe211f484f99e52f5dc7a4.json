@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, sku, quantity, unit_price_minor, subtotal_minor, discount_minor, total_minor, product_snapshot,\n                  fulfilled_quantity, returned_quantity, refunded_quantity\n           FROM order_items WHERE order_id = $1 ORDER BY sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sku",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "unit_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "product_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "fulfilled_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "returned_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "refunded_quantity",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "34bf372af047ceccf3c9e59cd01d43d6379867b091fe211f484f99e52f5dc7a4"
+}

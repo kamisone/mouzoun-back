@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET risk_level = 'review' WHERE id = $1 AND risk_level = 'normal'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "57443aae1004ae7d4486ad6c062443da8c2cb007ab9450cfae6e2823221f65df"
+}

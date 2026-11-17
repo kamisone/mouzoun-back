@@ -43,23 +43,36 @@ async fn booking_references_restart_every_year_and_never_repeat(db: PgPool) {
     );
 }
 
+async fn entity(db: &PgPool, code: &str) -> uuid::Uuid {
+    sqlx::query_scalar("SELECT id FROM legal_entities WHERE code = $1")
+        .bind(code)
+        .fetch_one(db)
+        .await
+        .unwrap()
+}
+
 #[sqlx::test(migrations = "./migrations")]
-async fn invoice_numbers_are_gap_free_per_year(db: PgPool) {
+async fn invoice_numbers_are_gap_free_per_entity_and_year(db: PgPool) {
+    let (fr, ma) = (
+        entity(&db, "mouzoun_fr").await,
+        entity(&db, "mouzoun_ma").await,
+    );
     // A rolled-back invoice gives its number back.
     let mut tx = db.begin().await.unwrap();
     assert_eq!(
-        next_invoice_number(&mut tx, 2027).await.unwrap(),
-        "2027-000001"
+        next_invoice_number(&mut tx, fr, 2027).await.unwrap(),
+        "F2027-000001"
     );
     tx.rollback().await.unwrap();
 
-    // Concurrent invoices get consecutive numbers, without holes or duplicates.
-    let tasks: Vec<_> = (0..10)
-        .map(|_| {
+    // Concurrent invoices of two entities: each entity gets consecutive numbers, no hole, no duplicate.
+    let tasks: Vec<_> = (0..20)
+        .map(|i| {
             let db = db.clone();
+            let entity = if i % 2 == 0 { fr } else { ma };
             tokio::spawn(async move {
                 let mut tx = db.begin().await.unwrap();
-                let number = next_invoice_number(&mut tx, 2027).await.unwrap();
+                let number = next_invoice_number(&mut tx, entity, 2027).await.unwrap();
                 tx.commit().await.unwrap();
                 number
             })
@@ -70,13 +83,14 @@ async fn invoice_numbers_are_gap_free_per_year(db: PgPool) {
         numbers.push(task.await.unwrap());
     }
     numbers.sort();
-    let expected: Vec<String> = (1..=10).map(|n| format!("2027-{n:06}")).collect();
+    let mut expected: Vec<String> = (1..=10).map(|n| format!("2027-{n:06}")).collect();
+    expected.extend((1..=10).map(|n| format!("F2027-{n:06}")));
     assert_eq!(numbers, expected);
 
     let mut tx = db.begin().await.unwrap();
     assert_eq!(
-        next_invoice_number(&mut tx, 2028).await.unwrap(),
-        "2028-000001",
+        next_invoice_number(&mut tx, fr, 2028).await.unwrap(),
+        "F2028-000001",
         "each year starts at 1"
     );
     tx.commit().await.unwrap();

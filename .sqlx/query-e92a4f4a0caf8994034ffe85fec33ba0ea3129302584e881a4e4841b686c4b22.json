@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max(received_at) FROM payment_webhook_events WHERE provider = 'stripe'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e92a4f4a0caf8994034ffe85fec33ba0ea3129302584e881a4e4841b686c4b22"
+}

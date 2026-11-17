@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max(COALESCE(delivered_at, shipped_at)) FROM fulfillments WHERE order_id = $1 AND status <> 'cancelled'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8c37cbb18e2ed4f4f9d1f8b916fbe395c81478f10741872e784dd0e337c33af8"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_option_translations (option_id, locale, name) SELECT $2, locale, name FROM product_option_translations WHERE option_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "707e751cf8a7a1d1828c68c31768abc59e38c6b70dd9e05ee1ef32d6e8dfb067"
+}

@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.number, i.kind, i.issued_at, i.delivery_date, i.seller_snapshot, i.billing_details, i.lines, i.vat_breakdown,\n                  i.total_minor, i.tax_minor, i.currency::text AS \"currency!\", e.code::text AS \"entity!\",\n                  (SELECT number FROM invoices c WHERE c.id = i.credit_note_for_invoice_id) AS corrected\n           FROM invoices i JOIN legal_entities e ON e.id = i.legal_entity_id WHERE i.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "issued_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "delivery_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "seller_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "billing_details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "lines",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "vat_breakdown",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "entity!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "corrected",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fe61307416757df57a80cc5be941cc0aa3b58160c85f2655a8421c821d83a02c"
+}

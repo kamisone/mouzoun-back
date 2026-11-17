@@ -126,9 +126,11 @@ pub(crate) async fn cards(
                    LEFT JOIN media_asset_translations md ON md.media_asset_id = x.id
                         AND md.locale = (SELECT code FROM locales WHERE is_default)
                    WHERE x.id = p.cover_media_id) AS "alt?",
-                  (SELECT pr.amount_minor FROM prices pr WHERE pr.product_id = p.id AND pr.is_active
+                  COALESCE((SELECT pr.amount_minor FROM prices pr WHERE pr.product_id = p.id AND pr.is_active
                      AND pr.currency = (SELECT code FROM currencies WHERE is_default) AND pr.amount_minor > 0
-                   ORDER BY pr.amount_minor LIMIT 1) AS "from_price?",
+                   ORDER BY pr.amount_minor LIMIT 1),
+                   (SELECT min(v.price_minor) FROM product_variants v
+                    WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL)) AS "from_price?",
                   (SELECT pr.pricing_unit FROM prices pr WHERE pr.product_id = p.id AND pr.is_active
                      AND pr.currency = (SELECT code FROM currencies WHERE is_default) AND pr.amount_minor > 0
                    ORDER BY pr.amount_minor LIMIT 1) AS "from_unit?",
@@ -152,6 +154,8 @@ pub(crate) async fn cards(
            LEFT JOIN activities act ON act.product_id = p.id
            LEFT JOIN packages pk ON pk.product_id = p.id
            WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.kind <> 'extra'
+             -- Shop products only when asked for (page builder carousels), not in the booking catalogue.
+             AND (p.kind <> 'shop_product' OR $2::text = 'shop_product' OR $4::uuid[] IS NOT NULL)
              AND ($2::text IS NULL OR p.kind = $2)
              AND (NOT $3 OR p.is_featured)
              AND ($4::uuid[] IS NULL OR p.id = ANY($4))

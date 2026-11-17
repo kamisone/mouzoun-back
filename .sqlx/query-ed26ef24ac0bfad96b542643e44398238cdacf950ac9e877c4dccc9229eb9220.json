@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM stock_notifications WHERE customer_id = ANY($1) OR email = $2::text::citext",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ed26ef24ac0bfad96b542643e44398238cdacf950ac9e877c4dccc9229eb9220"
+}

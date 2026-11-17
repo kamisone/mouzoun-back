@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.code::text AS \"code!\", COALESCE((SELECT jsonb_object_agg(locale, name) FROM tax_class_translations WHERE tax_class_code = c.code), '{}') AS \"names!\"\n           FROM tax_classes c ORDER BY c.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "names!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "809d6dd062d3153482044b654f8faa72ea53d738242b8d51dae6da4d2b607607"
+}

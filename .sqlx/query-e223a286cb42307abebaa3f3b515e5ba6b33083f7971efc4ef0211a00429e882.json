@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT z.id, z.code::text AS \"code!\", z.country_codes::text[] AS \"country_codes!\", z.region_codes, z.postal_code_patterns,\n                  z.is_export, z.is_active, z.sort_order,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM shipping_zone_translations WHERE zone_id = z.id), '{}') AS \"names!\"\n           FROM shipping_zones z ORDER BY z.sort_order, z.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "country_codes!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "region_codes",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "postal_code_patterns",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_export",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "names!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      true,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e223a286cb42307abebaa3f3b515e5ba6b33083f7971efc4ef0211a00429e882"
+}

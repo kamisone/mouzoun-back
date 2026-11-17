@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(sum(r.amount_minor), 0)::bigint AS \"x!\" FROM refunds r JOIN payments p ON p.id = r.payment_id\n               WHERE p.order_id = $1 AND r.status <> 'failed'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "016e0e22c2cd2cb077053d99ffc8bc6d5317d78e482f016d9bd3cc531d35d480"
+}

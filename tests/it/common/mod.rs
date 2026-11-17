@@ -88,6 +88,10 @@ pub fn test_config() -> Config {
             webauthn_origin: ALLOWED_ORIGIN.into(),
             ..BookingConfig::default()
         },
+        translate: mouzoun_api::config::TranslateConfig {
+            enabled: true,
+            api_base: "http://127.0.0.1:9".into(),
+        },
     }
 }
 

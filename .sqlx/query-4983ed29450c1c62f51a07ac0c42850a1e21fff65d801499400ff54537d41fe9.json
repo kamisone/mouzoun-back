@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.number, r.status, r.reason, r.customer_note, r.staff_note, r.requested_at, r.received_at,\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('order_item_id', ri.order_item_id, 'quantity', ri.quantity,\n                            'restock', ri.restock, 'condition', ri.condition)) FROM return_items ri WHERE ri.return_id = r.id), '[]') AS \"items!\"\n           FROM order_returns r WHERE r.order_id = $1 ORDER BY r.requested_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "customer_note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "staff_note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "requested_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "items!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "4983ed29450c1c62f51a07ac0c42850a1e21fff65d801499400ff54537d41fe9"
+}

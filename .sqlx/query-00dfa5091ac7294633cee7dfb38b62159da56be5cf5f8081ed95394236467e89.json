@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fulfillments SET carrier = COALESCE($2, carrier), tracking_number = COALESCE($3, tracking_number),\n                    tracking_url = COALESCE($4, tracking_url) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "00dfa5091ac7294633cee7dfb38b62159da56be5cf5f8081ed95394236467e89"
+}

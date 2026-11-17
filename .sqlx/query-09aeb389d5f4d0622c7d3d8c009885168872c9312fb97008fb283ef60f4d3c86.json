@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO legal_entity_translations (legal_entity_id, locale, invoice_footer) VALUES ($1, $2, $3)\n             ON CONFLICT (legal_entity_id, locale) DO UPDATE SET invoice_footer = EXCLUDED.invoice_footer",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "09aeb389d5f4d0622c7d3d8c009885168872c9312fb97008fb283ef60f4d3c86"
+}

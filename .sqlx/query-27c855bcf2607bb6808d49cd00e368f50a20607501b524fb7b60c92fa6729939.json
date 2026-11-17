@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shop_products SET product_type = $2, shipping_profile_id = $3, origin_place_id = $4, farm_crop_id = $5,\n                is_perishable = $6, withdrawal_exemption = $7, track_lots = $8, shelf_life_days = $9, allergens = $10, nutrition = $11,\n                max_per_order = $12, available_period = $13, tax_class_code = $14::text::citext, bundle_vat_split = $15\n         WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "TextArray",
+        "Jsonb",
+        "Int4",
+        "TstzRange",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "27c855bcf2607bb6808d49cd00e368f50a20607501b524fb7b60c92fa6729939"
+}

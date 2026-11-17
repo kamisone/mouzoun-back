@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.email::text AS \"email!\", o.phone, o.billing_address, o.shipping_address, o.subtotal_minor, o.discount_minor,\n                  o.shipping_minor, o.shipping_discount_minor, o.cod_fee_minor, o.tax_minor, o.total_minor,\n                  o.currency::text AS \"currency!\", o.number, o.shipping_lines, o.legal_entity_id, o.vat_breakdown, o.relay_point,\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('sku', sku, 'name', product_snapshot->>'name',\n                            'options', product_snapshot->>'options_label', 'quantity', quantity,\n                            'unit_price_minor', unit_price_minor, 'discount_minor', discount_minor,\n                            'tax_minor', tax_minor, 'total_minor', total_minor, 'tax_lines', tax_lines) ORDER BY sort_order)\n                            FROM order_items WHERE order_id = o.id), '[]') AS \"lines!\"\n           FROM orders o WHERE o.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "billing_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "shipping_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "shipping_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "shipping_discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "cod_fee_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "shipping_lines",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "legal_entity_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "vat_breakdown",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "relay_point",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "lines!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "6f347a0a4181442f8192b0ebf19d5210837a9da3cc9eee14b6cf94b344921fde"
+}

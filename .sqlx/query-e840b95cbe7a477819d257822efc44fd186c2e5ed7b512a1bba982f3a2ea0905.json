@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shop_product_translations (product_id, locale, ingredients, storage_instructions, usage_tips, origin_story,\n                                                    producer_name, legal_notice)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n             ON CONFLICT (product_id, locale) DO UPDATE SET ingredients = $3, storage_instructions = $4, usage_tips = $5,\n                 origin_story = $6, producer_name = $7, legal_notice = $8",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e840b95cbe7a477819d257822efc44fd186c2e5ed7b512a1bba982f3a2ea0905"
+}

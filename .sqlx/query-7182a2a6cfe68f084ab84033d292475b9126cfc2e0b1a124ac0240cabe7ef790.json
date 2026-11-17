@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_rate_translations (rate_id, locale, name, description) VALUES ($1, $2, $3, $4)\n             ON CONFLICT (rate_id, locale) DO UPDATE SET name = $3, description = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7182a2a6cfe68f084ab84033d292475b9126cfc2e0b1a124ac0240cabe7ef790"
+}

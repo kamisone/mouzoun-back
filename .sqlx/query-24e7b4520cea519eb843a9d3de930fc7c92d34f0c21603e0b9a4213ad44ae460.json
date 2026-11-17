@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_option_values (id, option_id, code, sort_order, swatch_media_id, swatch_color, price_adjustment_minor, variation_value_id)\n                 VALUES ($1, $2, $3::text::citext, $4, $5, $6, $7, $8)\n                 ON CONFLICT (option_id, code) DO UPDATE SET sort_order = $4, swatch_media_id = $5, swatch_color = $6,\n                     price_adjustment_minor = $7, variation_value_id = $8 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "24e7b4520cea519eb843a9d3de930fc7c92d34f0c21603e0b9a4213ad44ae460"
+}

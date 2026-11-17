@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fulfillments SET status = $2,\n                packed_at = CASE WHEN $2 = 'packed' THEN $3 ELSE packed_at END,\n                shipped_at = CASE WHEN $2 IN ('shipped', 'ready_for_pickup') THEN COALESCE(shipped_at, $3) ELSE shipped_at END,\n                delivered_at = CASE WHEN $2 IN ('delivered', 'picked_up') THEN $3 ELSE delivered_at END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eca2b34b9fd37fc83fda40d3e478ef6824db178a91ad3df51950457e58fa9bb0"
+}

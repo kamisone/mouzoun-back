@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, (p.amount_minor - COALESCE((SELECT sum(r.amount_minor) FROM refunds r\n                                                   WHERE r.payment_id = p.id AND r.status <> 'failed'), 0))::bigint AS \"left!\"\n           FROM payments p WHERE p.order_id = $1 AND p.status IN ('succeeded', 'partially_refunded')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "left!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "7a2955b4be0cff1d939e387fd46032626f971697dc00d3aaafdeddd2ec0fef6e"
+}

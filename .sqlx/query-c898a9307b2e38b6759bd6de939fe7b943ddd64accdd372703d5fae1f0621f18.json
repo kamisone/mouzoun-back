@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE order_returns SET status = $2, staff_note = COALESCE($3, staff_note),\n                received_at = CASE WHEN $2 = 'received' THEN $4 ELSE received_at END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c898a9307b2e38b6759bd6de939fe7b943ddd64accdd372703d5fae1f0621f18"
+}

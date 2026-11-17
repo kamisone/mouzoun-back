@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET country_of_origin = CASE WHEN $2 THEN $3 ELSE country_of_origin END,\n                        hs_code = CASE WHEN $4 THEN $5 ELSE hs_code END WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bpchar",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7df4525529ac2781069b01c5ec651ad37b6e978cff9fddd61bdc82f3e72b6375"
+}

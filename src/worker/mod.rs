@@ -31,12 +31,34 @@ use crate::{
 pub const CHANNEL: &str = "outbox_events";
 
 /// The production handlers.
-pub fn registry(pool: &PgPool, cache: &Cache, mailer: &Mailer) -> Registry {
+pub fn registry(
+    pool: &PgPool,
+    cache: &Cache,
+    mailer: &Mailer,
+    storage: Option<crate::infra::storage::SharedStorage>,
+) -> Registry {
     Registry::new()
         .register(Arc::new(EmailHandler::new(pool.clone(), mailer.clone())))
         .register(Arc::new(CacheInvalidationHandler::new(cache.clone())))
         .register(Arc::new(
             crate::modules::pages::cache::PageCacheHandler::new(pool.clone(), cache.clone()),
+        ))
+        .register(Arc::new(
+            crate::services::shop::emails::ShopEmailHandler::new(
+                pool.clone(),
+                mailer.clone(),
+                mailer.settings().link_secret.clone(),
+            ),
+        ))
+        .register(Arc::new(
+            crate::services::shop::emails::InvoiceHandler::new(pool.clone(), storage),
+        ))
+        // Stored provider events are parsed the Stripe way (the fake provider sends the same).
+        .register(Arc::new(
+            crate::services::shop::webhooks::WebhookHandler::new(
+                pool.clone(),
+                crate::services::shop::payments::ShopPayments::default(),
+            ),
         ))
 }
 

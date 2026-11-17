@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET is_default = (id = COALESCE($2, (SELECT id FROM product_variants WHERE product_id = $1 AND status = 'active'\n                AND deleted_at IS NULL ORDER BY is_default DESC, sort_order, created_at LIMIT 1)))\n         WHERE product_id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "604bad82d2ce0f6500be673010be365b1fff914e7f6951891eed27600c31f813"
+}

@@ -31,7 +31,7 @@ text_enum!(TaxCalcType {
     FixedPerBooking = "fixed_per_booking",
     FixedPerUnit = "fixed_per_unit",
 });
-text_enum!(DiscountType { Percent = "percent", FixedAmount = "fixed_amount", FreeNights = "free_nights" });
+text_enum!(DiscountType { Percent = "percent", FixedAmount = "fixed_amount", FreeNights = "free_nights", FreeShipping = "free_shipping" });
 
 /// A rate plan's deposit, decoded from its typed columns (`deposit_percent`,
 /// `deposit_amount_minor` + `deposit_currency`): business code never sees a bare number whose
@@ -90,6 +90,8 @@ impl Discount {
             DiscountType::FreeNights => Self::FreeNights {
                 nights: u32::try_from(free_nights?).ok()?,
             },
+            // Shop only (shipping offered): not a booking discount.
+            DiscountType::FreeShipping => return None,
         })
     }
 }

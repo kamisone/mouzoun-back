@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO categories (id, scope, parent_id, icon, cover_media_id, sort_order, is_active) VALUES ($1, 'shop', $2, $3, $4, $5, $6)\n         ON CONFLICT (id) DO UPDATE SET parent_id = $2, icon = $3, cover_media_id = $4, sort_order = $5, is_active = $6\n         WHERE categories.scope = 'shop'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9e5d5c6edae9342b318468c8290aaa8676ad2d36c18ae523c5c20361b0e80fc7"
+}

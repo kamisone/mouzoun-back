@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT order_id, status AS \"status: FulfillmentStatus\", method AS \"method: FulfillmentMethod\", pickup_code_hash\n           FROM fulfillments WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status: FulfillmentStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "method: FulfillmentMethod",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "pickup_code_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "96697862cec9f786aeab01654197fd23beec0192d1affaee98459389c7e311e0"
+}

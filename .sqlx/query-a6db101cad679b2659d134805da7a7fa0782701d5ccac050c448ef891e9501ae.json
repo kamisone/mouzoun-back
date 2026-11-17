@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_option_value_translations t USING product_option_values pv, variation_values vv\n         WHERE t.option_value_id = pv.id AND pv.variation_value_id = vv.id AND vv.attribute_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6db101cad679b2659d134805da7a7fa0782701d5ccac050c448ef891e9501ae"
+}

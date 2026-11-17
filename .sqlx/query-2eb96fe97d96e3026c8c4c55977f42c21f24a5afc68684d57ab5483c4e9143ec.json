@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stock_notifications (id, variant_id, email, locale, customer_id) VALUES ($1, $2, $3::text::citext, $4, $5)\n         ON CONFLICT (variant_id, email) WHERE notified_at IS NULL DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2eb96fe97d96e3026c8c4c55977f42c21f24a5afc68684d57ab5483c4e9143ec"
+}

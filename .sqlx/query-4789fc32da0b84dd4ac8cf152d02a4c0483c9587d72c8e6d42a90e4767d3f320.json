@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM variation_value_translations WHERE value_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4789fc32da0b84dd4ac8cf152d02a4c0483c9587d72c8e6d42a90e4767d3f320"
+}

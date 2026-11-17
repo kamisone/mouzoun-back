@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE refunds SET status = 'succeeded', processed_at = COALESCE(processed_at, $2) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5644404cdcb349b68a091c8be8601dc1aaba2e41863d6044a9ca6818711e3d04"
+}

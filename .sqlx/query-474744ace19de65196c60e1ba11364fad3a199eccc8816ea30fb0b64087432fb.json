@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(t.name, s.code::text) AS \"name!\", t.pickup_instructions FROM stock_locations s\n               LEFT JOIN stock_location_translations t ON t.location_id = s.id AND t.locale = $2 WHERE s.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "pickup_instructions",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      true
+    ]
+  },
+  "hash": "474744ace19de65196c60e1ba11364fad3a199eccc8816ea30fb0b64087432fb"
+}

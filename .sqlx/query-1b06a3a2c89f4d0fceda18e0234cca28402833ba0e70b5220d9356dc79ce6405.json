@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.track_inventory,\n                  COALESCE((SELECT sum(l.on_hand + l.backorder_limit - l.reserved)\n                            FROM inventory_levels l JOIN stock_locations s ON s.id = l.location_id\n                            WHERE l.variant_id = v.id AND s.is_active\n                              AND (s.legal_entity_id IS NULL OR s.legal_entity_id = shop_entity_id())\n                              AND (($2::uuid IS NULL AND s.fulfills_online_orders) OR s.id = $2)), 0)::bigint AS \"available!\"\n           FROM product_variants v WHERE v.id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "track_inventory",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "available!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1b06a3a2c89f4d0fceda18e0234cca28402833ba0e70b5220d9356dc79ce6405"
+}

@@ -1,0 +1,197 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.cover_media_id, p.gallery_id, p.is_featured,\n                  sp.product_type, sp.is_perishable, sp.withdrawal_exemption, sp.allergens, sp.nutrition, sp.shelf_life_days,\n                  sp.max_per_order, sp.option_count, sp.track_lots,\n                  lower(sp.available_period) AS available_from, upper(sp.available_period) AS available_until,\n                  COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\",\n                  COALESCE(t.subtitle, d.subtitle) AS subtitle, COALESCE(t.short_description, d.short_description) AS short_description,\n                  COALESCE(t.description, d.description) AS description, COALESCE(t.seo_title, d.seo_title) AS seo_title,\n                  COALESCE(t.seo_description, d.seo_description) AS seo_description,\n                  st.ingredients, st.storage_instructions, st.usage_tips, st.origin_story, st.producer_name, st.legal_notice,\n                  sp.origin_place_id, sp.farm_crop_id\n           FROM product_translations tt\n           JOIN products p ON p.id = tt.product_id\n           JOIN shop_products sp ON sp.product_id = p.id\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN LATERAL (SELECT * FROM shop_product_translations s WHERE s.product_id = p.id\n                              ORDER BY (s.locale = $2) DESC, (s.locale = (SELECT code FROM locales WHERE is_default)) DESC LIMIT 1) st ON true\n           WHERE tt.slug = $1 AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL\n           ORDER BY (tt.locale = $2) DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "gallery_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_featured",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "product_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_perishable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "withdrawal_exemption",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "allergens",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "nutrition",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "shelf_life_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "max_per_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "option_count",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 12,
+        "name": "track_lots",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "available_from",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "available_until",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "subtitle",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "short_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "seo_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "seo_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "ingredients",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "storage_instructions",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "usage_tips",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 25,
+        "name": "origin_story",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "producer_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "legal_notice",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 28,
+        "name": "origin_place_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 29,
+        "name": "farm_crop_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c26a4fea2021e43cd3bff50fb0e9f38dafac921ec62189dd655d604e3ccec020"
+}

@@ -77,4 +77,5 @@ test-utils = []
 # Integration tests (tests/) build this crate with its test helpers.
 mouzoun-api = { path = ".", features = ["test-utils"] }
 http-body-util = "0.1.5"
+proptest = "1"
 tower = { version = "0.5", features = ["util"] }

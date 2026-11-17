@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoices SET pdf_object_key = $2, pdf_sha256 = $3 WHERE id = $1 AND pdf_sha256 IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30e7acf25d05977b81d0407f814f95760d9a9381e3e2aae91fdd1022b4af9edd"
+}

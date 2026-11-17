@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shipping_profiles SET is_default = false WHERE id <> $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "150cc88846c55c3dc810beb325807b9bbce3b56bbecb255cdb0b7530209f0c55"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(sum(GREATEST(l.on_hand, 0) * COALESCE(v.cost_minor, 0)), 0)::bigint AS \"x!\"\n           FROM inventory_levels l JOIN product_variants v ON v.id = l.variant_id AND v.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4f96ffbe3854431bac2121ee2b396c30de53f3db2e239dad8c26dcfeff5feba0"
+}

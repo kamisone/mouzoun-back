@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stock_location_translations (location_id, locale, name, pickup_instructions) VALUES ($1, $2, $3, $4)\n             ON CONFLICT (location_id, locale) DO UPDATE SET name = $3, pickup_instructions = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db374ddc85876e0274e681b39e8f42d806511dbf0958a6328c4838d80498b519"
+}

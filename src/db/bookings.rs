@@ -50,6 +50,16 @@ text_enum!(PaymentProvider {
     BankTransfer = "bank_transfer",
     CardTerminal = "card_terminal",
     Other = "other",
+    CashOnDelivery = "cash_on_delivery",
+    PayAtPickup = "pay_at_pickup",
+});
+text_enum!(
+    /// `booking_items.product_kind`: what a booking can hold (shop products are sold through orders).
+    BookingItemKind {
+    Accommodation = "accommodation",
+    Activity = "activity",
+    Extra = "extra",
+    Package = "package",
 });
 text_enum!(PaymentPurpose { Deposit = "deposit", Balance = "balance", Full = "full", Extra = "extra" });
 text_enum!(PaymentStatus {

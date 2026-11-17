@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_options (id, product_id, code, sort_order, attribute_id, display_type) VALUES ($1, $2, $3::text::citext, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56039ac75e8f19e21dbb121affc769d4aec71d39bc6762a6f346d9ef3be8eb8e"
+}

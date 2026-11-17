@@ -25,6 +25,7 @@ text_enum!(NavLinkType {
     Place = "place",
     Url = "url",
     Route = "route",
+    Shop = "shop",
 });
 text_enum!(BannerPlacement {
     TopBar = "top_bar",

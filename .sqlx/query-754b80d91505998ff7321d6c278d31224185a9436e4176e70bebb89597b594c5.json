@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT shipping_address, pickup_location_id, promotion_codes::text[] AS \"codes!\", booking_id, email::text AS \"email!\",\n                  (SELECT COALESCE(array_agg((sl->>'rate_id')::uuid) FILTER (WHERE sl->>'rate_id' IS NOT NULL), '{}')\n                   FROM jsonb_array_elements(shipping_lines) sl) AS \"rates!\"\n           FROM orders WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "shipping_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 1,
+        "name": "pickup_location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "codes!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "rates!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      null,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "754b80d91505998ff7321d6c278d31224185a9436e4176e70bebb89597b594c5"
+}

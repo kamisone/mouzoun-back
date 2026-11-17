@@ -3,7 +3,7 @@
 
 use mouzoun_api::db::{
     bookings::*, catalog::*, content::*, identity::*, inventory::*, media::*, operations::*,
-    pricing::*, taxonomy::*,
+    pricing::*, shop::*, taxonomy::*,
 };
 use mouzoun_api::modules::pages::model::{RefType, RevisionStatus, SectionCategory, VisibleOn};
 use sqlx::PgPool;
@@ -148,7 +148,7 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "bookings"."source" => BookingSource,
         "bookings"."cancelled_by" => CancelledBy,
         "booking_items"."status" => BookingItemStatus,
-        "booking_items"."product_kind" => ProductKind,
+        "booking_items"."product_kind" => BookingItemKind,
         "booking_guests"."id_document_type" => IdDocumentType,
         "payments"."provider" => PaymentProvider,
         "payments"."purpose" => PaymentPurpose,
@@ -177,8 +177,34 @@ async fn rust_enums_mirror_the_check_constraints(db: PgPool) {
         "section_types"."category" => SectionCategory,
         "page_revisions"."status" => RevisionStatus,
         "content_block_refs"."ref_type" => RefType,
+        "shop_products"."product_type" => ShopProductType,
+        "product_variants"."status" => VariantStatus,
+        "product_variants"."net_unit" => NetUnit,
+        "carts"."status" => CartStatus,
+        "carts"."fulfillment_method" => FulfillmentMethod,
+        "orders"."fulfillment_method" => FulfillmentMethod,
+        "fulfillments"."method" => FulfillmentMethod,
+        "shipping_rates"."kind" => ShippingRateKind,
+        "orders"."channel" => OrderChannel,
+        "orders"."status" => OrderStatus,
+        "orders"."payment_status" => OrderPaymentStatus,
+        "orders"."fulfillment_status" => OrderFulfillmentStatus,
+        "orders"."payment_method" => ShopPaymentMethod,
+        "orders"."cancel_reason" => OrderCancelReason,
+        "orders"."cancelled_by" => CancelledBy,
+        "orders"."risk_level" => RiskLevel,
+        "order_events"."actor_type" => OrderActor,
+        "fulfillments"."status" => FulfillmentStatus,
+        "order_returns"."status" => ReturnStatus,
+        "order_returns"."reason" => ReturnReason,
+        "return_items"."condition" => ReturnCondition,
+        "inventory_movements"."reason" => MovementReason,
+        "promotions"."scope" => PromotionScope,
+        "promotions"."customer_eligibility" => CustomerEligibility,
+        "shipping_rates"."delivery_type" => DeliveryType,
+        "shop_products"."withdrawal_exemption" => WithdrawalExemption,
     );
-    assert_eq!(checked, 67);
+    assert_eq!(checked, 93);
 }
 
 #[sqlx::test(migrations = "./migrations")]

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM product_variants v JOIN products p ON p.id = v.product_id\n                          WHERE v.id = $1 AND v.status = 'active' AND v.deleted_at IS NULL\n                            AND p.status = 'published' AND p.deleted_at IS NULL) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5be577bf5fac0b251550e09f976804efa7752e187bc8b65c826feaeb7b0cbcbe"
+}

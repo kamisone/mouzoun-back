@@ -427,7 +427,8 @@ async fn dispute_opened(
 ) -> Result<(), PaymentError> {
     let mut tx = pool.begin().await?;
     let Some(payment) = sqlx::query!(
-        "SELECT id, booking_id FROM payments WHERE provider_payment_id = $1",
+        r#"SELECT id, booking_id AS "booking_id!" FROM payments
+           WHERE provider_payment_id = $1 AND booking_id IS NOT NULL"#,
         provider_payment_id
     )
     .fetch_optional(&mut *tx)
@@ -531,9 +532,9 @@ async fn payment_succeeded(
 ) -> Result<(), PaymentError> {
     let mut tx = pool.begin().await?;
     let Some(payment) = sqlx::query!(
-        r#"SELECT id, booking_id, status AS "status: PaymentStatus", purpose AS "purpose: PaymentPurpose",
+        r#"SELECT id, booking_id AS "booking_id!", status AS "status: PaymentStatus", purpose AS "purpose: PaymentPurpose",
                   amount_minor, provider
-           FROM payments WHERE provider_payment_id = $1 FOR UPDATE"#,
+           FROM payments WHERE provider_payment_id = $1 AND booking_id IS NOT NULL FOR UPDATE"#,
         provider_payment_id
     )
     .fetch_optional(&mut *tx)
@@ -650,8 +651,8 @@ async fn payment_failed(
     let mut tx = pool.begin().await?;
     let Some(payment) = sqlx::query!(
         r#"UPDATE payments SET status = 'failed', failure_reason = $2
-           WHERE provider_payment_id = $1 AND status IN ('pending', 'requires_action')
-           RETURNING id, booking_id, purpose AS "purpose: PaymentPurpose""#,
+           WHERE provider_payment_id = $1 AND status IN ('pending', 'requires_action') AND booking_id IS NOT NULL
+           RETURNING id, booking_id AS "booking_id!", purpose AS "purpose: PaymentPurpose""#,
         provider_payment_id,
         message
     )
@@ -751,11 +752,11 @@ pub async fn refund(
 ) -> Result<RefundOutcome, PaymentError> {
     let mut tx = pool.begin().await?;
     let payment = sqlx::query!(
-        r#"SELECT p.booking_id, p.provider, p.provider_payment_id, p.amount_minor,
+        r#"SELECT p.booking_id AS "booking_id!", p.provider, p.provider_payment_id, p.amount_minor,
                   p.currency AS "currency: CurrencyCode", p.status AS "status: PaymentStatus",
                   (p.amount_minor - COALESCE((SELECT sum(r.amount_minor) FROM refunds r
                                               WHERE r.payment_id = p.id AND r.status <> 'failed'), 0))::bigint AS "refundable!"
-           FROM payments p WHERE p.id = $1 FOR UPDATE"#,
+           FROM payments p WHERE p.id = $1 AND p.booking_id IS NOT NULL FOR UPDATE"#,
         payment_id
     )
     .fetch_optional(&mut *tx)
@@ -868,7 +869,7 @@ async fn after_refund(tx: &mut PgConnection, payment_id: Uuid) -> sqlx::Result<U
         "UPDATE payments p SET status = CASE
              WHEN (SELECT COALESCE(sum(amount_minor), 0) FROM refunds WHERE payment_id = p.id AND status = 'succeeded')
                   >= p.amount_minor THEN 'refunded' ELSE 'partially_refunded' END
-         WHERE p.id = $1 RETURNING p.booking_id",
+         WHERE p.id = $1 RETURNING p.booking_id AS \"booking_id!\"",
         payment_id
     )
     .fetch_one(&mut *tx)

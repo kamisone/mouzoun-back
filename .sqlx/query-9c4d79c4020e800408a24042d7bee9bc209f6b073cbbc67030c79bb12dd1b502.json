@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT quantity, refunded_quantity, total_minor FROM order_items WHERE id = $1 AND order_id = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "refunded_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9c4d79c4020e800408a24042d7bee9bc209f6b073cbbc67030c79bb12dd1b502"
+}

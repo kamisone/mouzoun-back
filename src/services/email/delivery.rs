@@ -50,6 +50,11 @@ pub enum Source {
     },
     /// Explicit variables (previews, tests).
     Data(Value),
+    /// Shop emails: explicit variables and attached files (terms of sale, withdrawal form).
+    Shop {
+        vars: Value,
+        attachments: Vec<super::sender::Attachment>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +136,10 @@ impl Mailer {
             html: rendered.html,
             text: rendered.text,
             reply_to: self.settings.reply_to.clone(),
+            attachments: match &job.source {
+                Source::Shop { attachments, .. } => attachments.clone(),
+                _ => vec![],
+            },
         };
         match self.sender.send(message).await {
             Ok(id) => {

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, price_minor, compare_at_price_minor FROM product_variants WHERE sku = $1::text::citext AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6b5a990b7d9fd356e1ce3dfe6ff4b905165e0014307a70627f0f911929ac8796"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT code::text AS \"code!\" FROM shipping_zones\n               WHERE is_active AND id <> $1 AND country_codes::text[] && $2::text[]\n                 AND COALESCE(cardinality(region_codes), 0) = 0 AND COALESCE(cardinality(postal_code_patterns), 0) = 0\n               LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "68cce1a167ac3ace954366719447c84e0446eb8b1970c9f2121cd81cf1e81c5b"
+}

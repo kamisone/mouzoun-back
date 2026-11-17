@@ -65,6 +65,7 @@ pub fn public_routes() -> Router<AppState> {
         )
         .route("/bookings/{reference}/calendar.ics", get(manage::ics))
         .route("/payments/webhooks/{provider}", post(webhooks::receive))
+        .route("/webhooks/stripe", post(webhooks::receive_stripe))
         .route(
             "/payments/fake/{payment_id}/{outcome}",
             post(webhooks::fake_outcome),

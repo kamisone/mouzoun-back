@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(jsonb_agg(jsonb_build_object('lot_id', l.id, 'lot_code', l.lot_code, 'best_before', l.best_before,\n                                                           'quantity', -m.delta) ORDER BY l.best_before NULLS LAST), '[]') AS \"lots!\"\n               FROM inventory_movements m JOIN inventory_lots l ON l.id = m.lot_id\n               WHERE m.order_id = $1 AND m.variant_id = $2 AND m.reason = 'sale'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lots!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "290090477bdcb4aaf062f951505868398fa415a036651811988e9d839ed9ada2"
+}

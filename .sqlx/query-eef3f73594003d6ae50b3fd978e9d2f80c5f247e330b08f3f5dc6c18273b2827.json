@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT code::text AS \"code!\", swatch_color, price_adjustment_minor FROM variation_values WHERE id = $1 AND attribute_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "swatch_color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "price_adjustment_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "eef3f73594003d6ae50b3fd978e9d2f80c5f247e330b08f3f5dc6c18273b2827"
+}

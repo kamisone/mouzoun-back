@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(jsonb_agg(jsonb_build_object(\n                 'number', o.number, 'status', o.status, 'placed_at', o.placed_at, 'email', o.email, 'phone', o.phone,\n                 'shipping_address', o.shipping_address, 'billing_address', o.billing_address, 'relay_point', o.relay_point,\n                 'total_minor', o.total_minor, 'currency', o.currency, 'terms_accepted_at', o.terms_accepted_at,\n                 'marketing_consent', o.marketing_consent_snapshot, 'customer_note', o.customer_note,\n                 'items', (SELECT jsonb_agg(jsonb_build_object('sku', i.sku, 'name', i.product_snapshot->>'name', 'quantity', i.quantity,\n                                                               'total_minor', i.total_minor)) FROM order_items i WHERE i.order_id = o.id),\n                 'invoices', (SELECT jsonb_agg(jsonb_build_object('number', v.number, 'kind', v.kind, 'total_minor', v.total_minor,\n                                                                  'issued_at', v.issued_at)) FROM invoices v WHERE v.order_id = o.id),\n                 'returns', (SELECT jsonb_agg(jsonb_build_object('number', r.number, 'reason', r.reason, 'status', r.status,\n                                                                 'requested_at', r.requested_at)) FROM order_returns r WHERE r.order_id = o.id)\n               ) ORDER BY o.placed_at), '[]') AS \"x!\"\n           FROM orders o WHERE o.customer_id = $1 AND o.status <> 'draft'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cfde959f218642c48c7538014d70e383f2c8f82c0da5155797bab8bc045d75bd"
+}

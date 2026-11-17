@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_zones (id, code, country_codes, region_codes, postal_code_patterns, is_export, is_active, sort_order)\n         VALUES ($1, $2::text::citext, $3::text[]::char(2)[], $4, $5, $6, $7, $8)\n         ON CONFLICT (id) DO UPDATE SET code = $2::text::citext, country_codes = $3::text[]::char(2)[], region_codes = $4,\n             postal_code_patterns = $5, is_export = $6, is_active = $7, sort_order = $8",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f7ab38fce664dbeed5a82b61adc8cce30906f8b55db9dc16ec655432e7e9329"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(jsonb_agg(jsonb_build_object('name', COALESCE(t.name, v.sku::text), 'quantity', ci.quantity)), '[]') AS \"x!\"\n               FROM cart_items ci JOIN product_variants v ON v.id = ci.variant_id\n               LEFT JOIN product_translations t ON t.product_id = v.product_id AND t.locale = $2\n               WHERE ci.cart_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "868f0fcce7bc65f8cdaf5cdbfb15f9ffbef97f9b030da6669c0c4e87c1b10c11"
+}

@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.number, r.status, r.reason, r.requested_at, o.id AS order_id, o.number AS order_number,\n                  (SELECT COALESCE(sum(quantity), 0) FROM return_items WHERE return_id = r.id)::bigint AS \"items!\", count(*) OVER () AS \"total!\"\n           FROM order_returns r JOIN orders o ON o.id = r.order_id\n           ORDER BY (r.status IN ('requested', 'approved')) DESC, r.requested_at DESC LIMIT $1 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "requested_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "order_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "order_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "items!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "6eb6fc58fc7c57159ec15b0ac58b7cc51184a419a3855eac1adda7bc3a94f75d"
+}

@@ -195,6 +195,8 @@ pub enum Event {
         ref_type: String,
         ref_id: Uuid,
     },
+    /// Shop events (orders, stock, carts, provider webhooks): see [`crate::services::shop::events`].
+    Shop(crate::services::shop::events::ShopEvent),
 }
 
 /// Payload of every `booking.*` event.
@@ -345,6 +347,7 @@ impl Event {
             Self::MenuUpdated { .. } => MENU_UPDATED,
             Self::PageUpdated { .. } => PAGE_UPDATED,
             Self::ContentChanged { .. } => CONTENT_CHANGED,
+            Self::Shop(e) => e.event_type(),
         }
     }
 
@@ -547,6 +550,7 @@ impl Event {
                 format!("{ref_type}:{ref_id}"),
                 json!({ "ref_type": ref_type, "ref_id": ref_id }),
             ),
+            Self::Shop(e) => e.parts(),
         }
     }
 }

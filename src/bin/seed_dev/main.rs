@@ -13,6 +13,7 @@
 //! account (development only; e.g. the full-stack tests' E2E_STAFF_EMAIL).
 
 mod pages;
+mod shop;
 
 use anyhow::{Context, bail};
 use chrono::{NaiveDate, Utc};
@@ -65,10 +66,24 @@ async fn main() -> anyhow::Result<()> {
     let pool = infra::db::connect(&database_url, 5).await?;
     infra::db::migrate(&pool).await?;
 
+    if args.as_slice() == ["shop"] {
+        // Adds the demo shop to a database seeded before the shop existed.
+        let present: bool = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM products WHERE kind = 'shop_product') AS "x!""#
+        )
+        .fetch_one(&pool)
+        .await?;
+        if present {
+            bail!("shop products already present");
+        }
+        shop::seed(&pool).await?;
+        println!("shop seeded (status catalog_only): 7 products, camp farm store, shipping zones");
+        return Ok(());
+    }
     if let [command, reference] = args.as_slice() {
         if command != "confirm" {
             bail!(
-                "usage: seed_dev [confirm <booking reference> | staff <email> <password> <role>]"
+                "usage: seed_dev [shop | confirm <booking reference> | staff <email> <password> <role>]"
             );
         }
         let id = sqlx::query_scalar!("SELECT id FROM bookings WHERE reference = $1", reference)
@@ -114,6 +129,8 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     pages::seed(&pool, &email).await?;
     println!("home and about pages published (revision 1)");
+    shop::seed(&pool).await?;
+    println!("shop seeded (status catalog_only): 7 products, camp farm store, shipping zones");
     let reference = demo_booking(&pool, today).await?;
     println!(
         "demo booking {reference} (pending): confirm it with `cargo run --bin seed_dev -- confirm {reference}`"

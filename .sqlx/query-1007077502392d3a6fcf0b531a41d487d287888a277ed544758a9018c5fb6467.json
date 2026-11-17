@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO newsletter_subscribers (id, email, locale, status, source, confirm_token_hash)\n         VALUES ($1, $2::text::citext, $3, 'pending', 'shop', $4)\n         ON CONFLICT (email) DO NOTHING RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1007077502392d3a6fcf0b531a41d487d287888a277ed544758a9018c5fb6467"
+}

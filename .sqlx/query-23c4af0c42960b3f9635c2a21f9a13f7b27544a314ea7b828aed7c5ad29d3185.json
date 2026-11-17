@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_option_value_translations WHERE option_value_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "23c4af0c42960b3f9635c2a21f9a13f7b27544a314ea7b828aed7c5ad29d3185"
+}

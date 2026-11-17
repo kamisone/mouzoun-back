@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.code::text AS \"code!\" FROM variation_values v\n           WHERE v.attribute_id = $1 AND NOT (v.id = ANY($2))\n             AND EXISTS (SELECT 1 FROM product_option_values pv WHERE pv.variation_value_id = v.id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "de9677efb808a0554e9315beabd971209ac4034f99475434b6f1593c9e761ce7"
+}

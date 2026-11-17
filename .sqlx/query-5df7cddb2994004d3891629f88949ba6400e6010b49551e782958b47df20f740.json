@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_translations (product_id, locale, name, slug, subtitle, short_description, description, seo_title, seo_description)\n         SELECT $2, locale, name || ' (copie)', slug || '-' || $3, subtitle, short_description, description, seo_title, seo_description\n         FROM product_translations WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5df7cddb2994004d3891629f88949ba6400e6010b49551e782958b47df20f740"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_options o SET display_type = a.display_type FROM variation_attributes a WHERE a.id = $1 AND o.attribute_id = a.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "431fd3f91a10eb794ade4fbb2cf0c246dce2dd9a7a2116089c1c93f76edc3798"
+}

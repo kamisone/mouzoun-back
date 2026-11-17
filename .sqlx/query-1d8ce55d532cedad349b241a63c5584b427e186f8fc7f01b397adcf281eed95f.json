@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_options WHERE product_id = $1 AND NOT (code::text = ANY($2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1d8ce55d532cedad349b241a63c5584b427e186f8fc7f01b397adcf281eed95f"
+}

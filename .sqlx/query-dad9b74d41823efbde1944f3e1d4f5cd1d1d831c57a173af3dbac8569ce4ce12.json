@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_option_translations (option_id, locale, name)\n         SELECT o.id, t.locale, t.name FROM product_options o JOIN variation_attribute_translations t ON t.attribute_id = o.attribute_id\n         WHERE o.attribute_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dad9b74d41823efbde1944f3e1d4f5cd1d1d831c57a173af3dbac8569ce4ce12"
+}

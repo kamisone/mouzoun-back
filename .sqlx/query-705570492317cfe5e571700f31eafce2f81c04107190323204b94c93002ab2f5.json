@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM stock_locations WHERE is_active ORDER BY fulfills_online_orders DESC, sort_order LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "705570492317cfe5e571700f31eafce2f81c04107190323204b94c93002ab2f5"
+}

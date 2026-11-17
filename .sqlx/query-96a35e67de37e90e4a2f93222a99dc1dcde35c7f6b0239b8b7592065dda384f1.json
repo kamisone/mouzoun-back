@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET country_of_origin = COALESCE($2, country_of_origin) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bpchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "96a35e67de37e90e4a2f93222a99dc1dcde35c7f6b0239b8b7592065dda384f1"
+}

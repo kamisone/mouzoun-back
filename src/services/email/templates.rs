@@ -99,6 +99,8 @@ pub enum SaveError {
     Invalid(#[from] RenderError),
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+    #[error("the French subject and body of {0:?} are required (consumer emails)")]
+    FrenchRequired(String),
 }
 
 /// Creates or replaces a translation, after checking its syntax and that it only uses the
@@ -118,6 +120,15 @@ pub async fn save_translation(
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| SaveError::UnknownTemplate(code.into()))?;
+    if locale == "fr"
+        && !crate::services::shop::legal::email_template_french_ok(
+            code,
+            Some(subject),
+            Some(body_html),
+        )
+    {
+        return Err(SaveError::FrenchRequired(code.into()));
+    }
     render::validate(&TemplateSource {
         subject,
         body_html,

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT order_id AS \"order_id!\" FROM payments WHERE provider_payment_id = $1 AND order_id IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "54af71493239413e7e3eea112d339c27d9abaa984c5e9dcb82a2ff0fa8a07d32"
+}

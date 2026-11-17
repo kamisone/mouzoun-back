@@ -1,0 +1,15 @@
+<div dir="{{ dir }}" style="margin:24px 0 0 0;padding:16px;border-top:1px solid #e8dcc6;font-size:12px;line-height:1.6;color:#6b5e4e;text-align:{{ start }};">
+{%- if lang == "ar" %}
+  <p style="margin:0 0 8px 0;">البائع: {{ seller.legal_name }} ({{ seller.legal_form }})، {{ seller.address }}{% if seller.siren %}، SIREN {{ seller.siren }}{% endif %}{% if seller.vat_number %}، TVA {{ seller.vat_number }}{% endif %}.</p>
+  <p style="margin:0 0 8px 0;">حق التراجع: لديك {{ withdrawal.days }} يومًا من تاريخ استلام المنتجات للتراجع دون تبرير، باستثناء المنتجات القابلة للتلف والمنتجات المفتوحة لأسباب صحية. نموذج التراجع وشروط البيع مرفقة بهذه الرسالة. نعيد المبلغ خلال {{ withdrawal.refund_days }} يومًا بما في ذلك مصاريف التوصيل العادي.</p>
+  <p style="margin:0;">ضمان المطابقة القانوني: {{ withdrawal.guarantee_years }} سنة.{% if mediator.name %} وسيط المستهلك: {{ mediator.name }}{% if mediator.url %} — <span dir="ltr">{{ mediator.url }}</span>{% endif %}.{% endif %}</p>
+{%- elif lang == "en" %}
+  <p style="margin:0 0 8px 0;">Seller: {{ seller.legal_name }} ({{ seller.legal_form }}), {{ seller.address }}{% if seller.siren %}, SIREN {{ seller.siren }}{% endif %}{% if seller.vat_number %}, VAT {{ seller.vat_number }}{% endif %}.</p>
+  <p style="margin:0 0 8px 0;">Right of withdrawal: you have {{ withdrawal.days }} days from receiving the products to withdraw without giving a reason, except perishable goods and hygiene-sensitive goods unsealed after delivery. The withdrawal form and our terms of sale are attached. We refund within {{ withdrawal.refund_days }} days, standard delivery included.</p>
+  <p style="margin:0;">Legal guarantee of conformity: {{ withdrawal.guarantee_years }} years.{% if mediator.name %} Consumer mediator: {{ mediator.name }}{% if mediator.url %} — {{ mediator.url }}{% endif %}.{% endif %}</p>
+{%- else %}
+  <p style="margin:0 0 8px 0;">Vendeur : {{ seller.legal_name }} ({{ seller.legal_form }}), {{ seller.address }}{% if seller.siren %}, SIREN {{ seller.siren }}{% endif %}{% if seller.vat_number %}, TVA {{ seller.vat_number }}{% endif %}.</p>
+  <p style="margin:0 0 8px 0;">Droit de rétractation : vous disposez de {{ withdrawal.days }} jours à compter de la réception des produits pour vous rétracter sans motif, sauf pour les denrées périssables et les produits descellés après la livraison pour des raisons d'hygiène. Le formulaire de rétractation et nos conditions générales de vente sont joints à ce message. Nous vous remboursons sous {{ withdrawal.refund_days }} jours, frais de livraison standard inclus.</p>
+  <p style="margin:0;">Garantie légale de conformité : {{ withdrawal.guarantee_years }} ans.{% if mediator.name %} Médiateur de la consommation : {{ mediator.name }}{% if mediator.url %} — {{ mediator.url }}{% endif %}.{% endif %}</p>
+{%- endif %}
+</div>

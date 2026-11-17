@@ -60,6 +60,7 @@ pub async fn send_test(
             html: rendered.html,
             text: rendered.text,
             reply_to: mailer.settings.reply_to.clone(),
+            attachments: vec![],
         })
         .await;
     match &result {

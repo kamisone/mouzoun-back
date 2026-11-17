@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE customers SET marketing_consent = true, marketing_consent_at = COALESCE(marketing_consent_at, $2) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f22c525dfea3d4f5c5c251b052372fbf9662ef47669362246c15ed9a1c81a3e"
+}

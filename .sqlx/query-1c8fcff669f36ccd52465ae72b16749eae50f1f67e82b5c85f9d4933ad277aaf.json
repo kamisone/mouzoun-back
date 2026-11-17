@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.status, p.is_featured, p.updated_at, sp.product_type,\n                  COALESCE(t.name, '') AS \"name!\", COALESCE(t.slug, '') AS \"slug!\", m.object_key AS \"image_key?\",\n                  (SELECT min(price_minor) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'active') AS price_min,\n                  (SELECT max(price_minor) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'active') AS price_max,\n                  (SELECT count(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'active') AS \"variants!\",\n                  (SELECT COALESCE(sum(l.on_hand), 0) FROM inventory_levels l JOIN product_variants v ON v.id = l.variant_id\n                   WHERE v.product_id = p.id AND v.deleted_at IS NULL)::bigint AS \"stock!\",\n                  (SELECT array_agg(locale) FROM product_translations WHERE product_id = p.id) AS locales,\n                  count(*) OVER () AS \"total!\"\n           FROM products p JOIN shop_products sp ON sp.product_id = p.id\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL\n           WHERE p.deleted_at IS NULL\n             AND ($1::text IS NULL OR t.name ILIKE '%' || $1 || '%'\n                  OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.sku::text ILIKE '%' || $1 || '%'))\n             AND ($2::text IS NULL OR p.status = $2)\n             AND ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = $3))\n             AND ($4::text IS NULL OR sp.product_type = $4)\n           ORDER BY CASE WHEN $5 = 'name' THEN t.name END, CASE WHEN $5 = 'updated' THEN p.updated_at END DESC,\n                    p.sort_order, t.name\n           LIMIT $6 OFFSET $7",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_featured",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "product_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "image_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "price_min",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "price_max",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "variants!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "stock!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "locales",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1c8fcff669f36ccd52465ae72b16749eae50f1f67e82b5c85f9d4933ad277aaf"
+}

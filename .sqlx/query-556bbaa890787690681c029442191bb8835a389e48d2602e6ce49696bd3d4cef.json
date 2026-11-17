@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_variants (id, product_id, sku, barcode, status, is_default, sort_order, price_minor, compare_at_price_minor,\n                                           cost_minor, currency, net_quantity, net_unit, weight_grams, length_mm, width_mm, height_mm,\n                                           requires_shipping, is_taxable, track_inventory, low_stock_threshold, cover_media_id)\n             SELECT $2, $3, sku || '-COPY-' || $4, NULL, status, is_default, sort_order, price_minor, compare_at_price_minor, cost_minor,\n                    currency, net_quantity, net_unit, weight_grams, length_mm, width_mm, height_mm, requires_shipping, is_taxable,\n                    track_inventory, low_stock_threshold, cover_media_id\n             FROM product_variants WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "556bbaa890787690681c029442191bb8835a389e48d2602e6ce49696bd3d4cef"
+}

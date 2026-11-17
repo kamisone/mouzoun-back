@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.sku::text AS \"sku!\", COALESCE(t.name, '') AS \"name!\", s.code::text AS \"location!\", l.on_hand, l.reserved,\n                  l.backorder_limit, l.bin_location, v.cost_minor\n           FROM inventory_levels l JOIN product_variants v ON v.id = l.variant_id AND v.deleted_at IS NULL\n           JOIN stock_locations s ON s.id = l.location_id\n           LEFT JOIN product_translations t ON t.product_id = v.product_id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           ORDER BY t.name, v.sku, s.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "on_hand",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "backorder_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "bin_location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "cost_minor",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "b86133187630451b9134677d4703936c1643818a5937d1158aea9d440f22561b"
+}

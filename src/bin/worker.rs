@@ -21,6 +21,7 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = db::connect(&config.database_url, 5).await?;
     let cache = Cache::connect(&config.redis_url, "mouzoun").await?;
+    let storage = mouzoun_api::infra::storage::gcs::connect(&config.storage).await?;
     let mailer = Mailer::new(
         pool.clone(),
         sender::from_config(&config.email)?,
@@ -31,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
     let shutdown = CancellationToken::new();
     let tasks = worker::spawn(
         pool.clone(),
-        worker::registry(&pool, &cache, &mailer),
+        worker::registry(&pool, &cache, &mailer, Some(storage)),
         config.worker.clone(),
         shutdown.clone(),
     );

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id FROM bookings b JOIN customers c ON c.id = b.customer_id\n                 WHERE b.reference = upper(trim($1)) AND lower(trim(c.last_name)) = lower(trim($2))\n                   AND b.status IN ('confirmed', 'checked_in') AND b.departure_date >= $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fcef674bff5de756ca5c83228aa3812c418b8ec55b3960b2906ac63baa8258ce"
+}

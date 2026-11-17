@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(jsonb_agg(jsonb_build_object('sku', v.sku, 'created_at', n.created_at, 'notified_at', n.notified_at)), '[]') AS \"x!\"\n           FROM stock_notifications n JOIN product_variants v ON v.id = n.variant_id\n           WHERE n.customer_id = $1 OR n.email = (SELECT email FROM users WHERE id = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cdfc92c7b75b552b7a1af12155f02b6b7cd3a047276b5b37ea6bd133e7ccd39b"
+}

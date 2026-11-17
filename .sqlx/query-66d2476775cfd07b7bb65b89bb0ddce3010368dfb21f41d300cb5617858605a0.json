@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET email = ('deleted-' || id || '@deleted.invalid')::citext, phone = NULL, shipping_address = NULL,\n                customer_note = NULL, ip_address = NULL, user_agent = NULL, relay_point = NULL\n         WHERE customer_id = ANY($1) AND status NOT IN ('pending', 'open')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "66d2476775cfd07b7bb65b89bb0ddce3010368dfb21f41d300cb5617858605a0"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key, value FROM settings WHERE key LIKE 'shop.%' OR key LIKE 'payments.%' OR key LIKE 'tax.%'\n             OR key LIKE 'customs.%' OR key LIKE 'legal.%' OR key = 'privacy.data_retention'\n         UNION ALL\n         SELECT '__entity_country', to_jsonb(country_code::text) FROM legal_entities WHERE id = shop_entity_id()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "300a6fb069014a5d9da452421827b09fd1782bf4d0260e2e1d60b11374db7dd0"
+}

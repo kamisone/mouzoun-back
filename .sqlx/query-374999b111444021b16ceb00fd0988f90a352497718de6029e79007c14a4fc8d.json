@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM product_variants v\n               WHERE v.product_id = $1 AND v.status = 'active' AND v.deleted_at IS NULL AND ($3::uuid IS NULL OR v.id <> $3)\n                 AND (SELECT COALESCE(array_agg(option_value_id ORDER BY option_value_id), '{}') FROM product_variant_option_values WHERE variant_id = v.id)\n                     = (SELECT COALESCE(array_agg(x ORDER BY x), '{}') FROM unnest($2::uuid[]) x)) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "374999b111444021b16ceb00fd0988f90a352497718de6029e79007c14a4fc8d"
+}

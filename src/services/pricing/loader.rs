@@ -158,7 +158,8 @@ pub async fn load_promotions(
                   COALESCE((SELECT array_agg(pp.product_id) FROM promotion_products pp
                             WHERE pp.promotion_id = promotions.id), '{}') AS "product_ids!"
            FROM promotions
-           WHERE is_active AND (($1::text IS NULL AND code IS NULL) OR code = $1::text::citext)
+           WHERE is_active AND scope IN ('booking', 'all')
+             AND (($1::text IS NULL AND code IS NULL) OR code = $1::text::citext)
            ORDER BY id"#,
         code
     )

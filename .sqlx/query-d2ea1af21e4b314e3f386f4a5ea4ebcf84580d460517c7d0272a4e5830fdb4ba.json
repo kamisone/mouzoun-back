@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT order_id AS \"order_id!\" FROM (\n             SELECT order_id FROM inventory_reservations\n             WHERE expires_at <= $1 AND released_at IS NULL AND consumed_at IS NULL\n             ORDER BY expires_at LIMIT 200 FOR UPDATE SKIP LOCKED) r",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d2ea1af21e4b314e3f386f4a5ea4ebcf84580d460517c7d0272a4e5830fdb4ba"
+}

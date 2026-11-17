@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.code::text AS \"option!\", ov.code::text AS \"value!\",\n                  COALESCE(ot.name, o.code::text) AS \"option_label!\", COALESCE(vt.label, ov.code::text) AS \"label!\",\n                  count(DISTINCT v.product_id) AS \"count!\"\n           FROM product_variant_option_values pvo\n           JOIN product_variants v ON v.id = pvo.variant_id AND v.status = 'active' AND v.deleted_at IS NULL\n           JOIN products p ON p.id = v.product_id AND p.status = 'published' AND p.deleted_at IS NULL\n           JOIN product_options o ON o.id = pvo.option_id\n           JOIN product_option_values ov ON ov.id = pvo.option_value_id\n           LEFT JOIN product_option_translations ot ON ot.option_id = o.id AND ot.locale = $1\n           LEFT JOIN product_option_value_translations vt ON vt.option_value_id = ov.id AND vt.locale = $1\n           GROUP BY 1, 2, 3, 4 ORDER BY 1, 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "option!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "value!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "option_label!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "label!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "dcb503407ea04d36f8aa999a4c826118cfbfd0c9660e5664515d0aaded748340"
+}

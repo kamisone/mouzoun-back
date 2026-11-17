@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT locale, ingredients, storage_instructions, usage_tips, origin_story, producer_name, legal_notice FROM shop_product_translations WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "ingredients",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage_instructions",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "usage_tips",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "origin_story",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "producer_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "legal_notice",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d7f419f9a7d55cdba583bd84b52d5e598668d0586899ba662071447abea22591"
+}

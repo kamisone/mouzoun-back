@@ -10,5 +10,6 @@ pub mod inventory;
 pub mod media;
 pub mod operations;
 pub mod pricing;
+pub mod shop;
 pub mod taxonomy;
 pub mod types;

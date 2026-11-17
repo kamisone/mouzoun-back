@@ -24,6 +24,8 @@ The schema lives in `migrations/` as reversible sqlx migrations; the Rust models
 | `0024_staff_2fa_optional` | removes `auth.staff_2fa_required`: staff turn two-factor sign-in on themselves (back-office settings) |
 | `0025_media_visibility` | `media_assets.visibility` (`public` / `private`): one bucket, ACL set per object at upload |
 | `0026_legacy_hero_shape` | data fix: heroes from before the page builder (`settings.layout`, `content.cta`) moved to the hero schema (`height`, `cta_primary` + `cta_primary_label`) |
+| `0027_shop` | online shop: shop products, options, variants, stock levels / lots / ledger / reservations, carts, orders, fulfilments, returns, shipping profiles / zones / rates; payments, refunds, invoices, promotions and reviews extended to orders; shop permissions, settings and emails (see `docs/shop/README.md`) |
+| `0028_shop_france` | the shop sold by the French company: `legal_entities` (+translations), per-entity gap-free invoice counters (`invoice_entity_counters` replaces `invoice_counters`), entity on orders / invoices / payments, immutable invoices (trigger) with seller snapshot, VAT breakdown, credit-note link, sealed PDF; `tax_classes`, `tax_rates` (exclusion constraint), product tax class / bundle split / withdrawal exemption; `variant_price_history` (30-day reference price); customs fields; relay points; consumer-contract fields on orders; return reasons; Stripe fees and payouts; French settings and emails (see `docs/shop/france.md`) |
 
 ## Running migrations
 

@@ -1,0 +1,220 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.number, o.status, o.payment_status, o.fulfillment_status, o.payment_method, o.fulfillment_method,\n                  o.requires_confirmation, o.confirmed_at, o.email::text AS \"email!\", o.phone, o.locale, o.currency::text AS \"currency!\",\n                  o.shipping_address, o.pickup_location_id, o.shipping_lines, o.subtotal_minor, o.discount_minor, o.shipping_minor,\n                  o.shipping_discount_minor, o.tax_minor, o.cod_fee_minor, o.total_minor, o.taxes_included, o.amount_paid_minor,\n                  o.amount_refunded_minor, o.placed_at, o.paid_at, o.cancelled_at, o.cancel_reason, o.created_at,\n                  (SELECT max(COALESCE(delivered_at, shipped_at)) FROM fulfillments f WHERE f.order_id = o.id AND f.status <> 'cancelled') AS delivered_at,\n                  (SELECT number FROM invoices WHERE order_id = o.id AND kind = 'invoice') AS invoice_number,\n                  (SELECT max(expires_at) FROM inventory_reservations r WHERE r.order_id = o.id AND released_at IS NULL AND consumed_at IS NULL) AS hold_until\n           FROM orders o WHERE o.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "payment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "fulfillment_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "requires_confirmation",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "shipping_address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "pickup_location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "shipping_lines",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 18,
+        "name": "shipping_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "shipping_discount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 20,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 21,
+        "name": "cod_fee_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 22,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 23,
+        "name": "taxes_included",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 24,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 25,
+        "name": "amount_refunded_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 26,
+        "name": "placed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 27,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 28,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 29,
+        "name": "cancel_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 30,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 31,
+        "name": "delivered_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 32,
+        "name": "invoice_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 33,
+        "name": "hold_until",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      null,
+      true,
+      false,
+      null,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0aa16587df1dd4dd0abed941205f166e977ca2a47b6dd0c60dd5a2a288080a2c"
+}

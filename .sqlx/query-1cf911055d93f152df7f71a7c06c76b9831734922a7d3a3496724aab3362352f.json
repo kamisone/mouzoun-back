@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO invoices (id, number, order_id, kind, billing_details, lines, subtotal_minor, tax_minor, total_minor, currency,\n                               issued_at, legal_entity_id, seller_snapshot, vat_breakdown, delivery_date, format_version, einvoice_status)\n         VALUES ($1, $2, $3, 'invoice', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'b2c_ereporting')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Jsonb",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bpchar",
+        "Timestamptz",
+        "Uuid",
+        "Jsonb",
+        "Jsonb",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1cf911055d93f152df7f71a7c06c76b9831734922a7d3a3496724aab3362352f"
+}

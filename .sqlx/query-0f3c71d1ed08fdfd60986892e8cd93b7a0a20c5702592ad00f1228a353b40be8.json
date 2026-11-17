@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id\n                        WHERE oi.product_id = $1 AND o.status IN ('draft', 'pending', 'open')) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0f3c71d1ed08fdfd60986892e8cd93b7a0a20c5702592ad00f1228a353b40be8"
+}

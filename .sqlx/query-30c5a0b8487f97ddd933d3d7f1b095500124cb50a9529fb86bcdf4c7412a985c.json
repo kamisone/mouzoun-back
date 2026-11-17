@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO customers (id, email, first_name, last_name, phone, country_code, preferred_locale)\n         VALUES ($1, $2::text::citext, $3, $4, $5, $6, $7)\n         ON CONFLICT (email) WHERE email IS NOT NULL AND deleted_at IS NULL DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bpchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30c5a0b8487f97ddd933d3d7f1b095500124cb50a9529fb86bcdf4c7412a985c"
+}

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, COALESCE(t.name, d.name, s.code::text) AS \"name!\", COALESCE(t.pickup_instructions, d.pickup_instructions) AS instructions\n           FROM stock_locations s\n           LEFT JOIN stock_location_translations t ON t.location_id = s.id AND t.locale = $1\n           LEFT JOIN stock_location_translations d ON d.location_id = s.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE s.is_active AND s.is_pickup_point ORDER BY s.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "instructions",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "4c01137258aa9b61ea57c66ca748046e356208ecb7239b5e9587db24a53c5fe4"
+}

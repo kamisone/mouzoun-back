@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE variation_values SET swatch_color = $3, swatch_media_id = $4, price_adjustment_minor = $5, sort_order = $6, is_active = $7\n                       WHERE id = $1 AND attribute_id = $2 RETURNING code::text AS \"code!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c8178887a83477a381421705683ce71fc306b3a99f0d8e5625b68b832e428385"
+}

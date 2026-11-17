@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use crate::{
     db::operations::OutboxEvent,
     infra::cache::Cache,
-    services::outbox::types,
+    services::{outbox::types, shop::events::types as shop},
     worker::{HandlerError, OutboxHandler},
 };
 
@@ -23,6 +23,8 @@ pub const SETTINGS_PREFIX: &str = "settings:";
 pub const MENUS_PREFIX: &str = "menus:";
 pub const PAGES_PREFIX: &str = "pages:";
 pub const AVAILABILITY_PREFIX: &str = "availability:";
+/// Shop lists and product pages (inside `catalog:`, so product changes reach them too).
+pub const SHOP_CATALOG_PREFIX: &str = "catalog:shop:";
 
 pub struct CacheInvalidationHandler {
     cache: Cache,
@@ -38,6 +40,10 @@ impl CacheInvalidationHandler {
 pub fn prefixes_for(event_type: &str) -> &'static [&'static str] {
     match event_type {
         types::PRODUCT_UPDATED => &[CATALOG_PREFIX, AVAILABILITY_PREFIX],
+        // Shop: product pages and lists carry prices, availability statuses and offers.
+        shop::VARIANT_UPDATED | shop::STOCK_CHANGED | shop::PROMOTION_UPDATED => {
+            &[SHOP_CATALOG_PREFIX]
+        }
         types::SETTINGS_UPDATED => &[SETTINGS_PREFIX, AVAILABILITY_PREFIX],
         types::MENU_UPDATED => &[MENUS_PREFIX],
         types::PAGE_UPDATED => &[PAGES_PREFIX],
@@ -69,6 +75,9 @@ impl OutboxHandler for CacheInvalidationHandler {
             types::BOOKING_CANCELLED,
             types::BOOKING_EXPIRED,
             types::BOOKING_DECLINED,
+            shop::VARIANT_UPDATED,
+            shop::STOCK_CHANGED,
+            shop::PROMOTION_UPDATED,
         ]
     }
 

@@ -10,7 +10,8 @@
 //! - `money(cents, currency)`, `date(value)`, `datetime(value)`, `time(value)` — localized,
 //!   in Africa/Casablanca time; `button(url, label)` — a call-to-action button;
 //! - partials: `{% include "booking_summary.html" %}` (needs `booking`, `lines`) and
-//!   `{% include "cancellation_policy.html" %}` (needs `policy`).
+//!   `{% include "cancellation_policy.html" %}` (needs `policy`), `{% include "order_summary.html" %}`
+//!   (shop orders: needs `order`, `lines`).
 //!
 //! Rendering is strict: an unknown variable or attribute is an error, never an empty string.
 
@@ -26,7 +27,7 @@ use super::{
 
 const LAYOUT: &str = include_str!("templates/layout.html");
 /// `(name, source)` of the partials templates may include.
-const PARTIALS: [(&str, &str); 2] = [
+const PARTIALS: [(&str, &str); 4] = [
     (
         "booking_summary.html",
         include_str!("templates/booking_summary.html"),
@@ -34,6 +35,14 @@ const PARTIALS: [(&str, &str); 2] = [
     (
         "cancellation_policy.html",
         include_str!("templates/cancellation_policy.html"),
+    ),
+    (
+        "order_summary.html",
+        include_str!("templates/order_summary.html"),
+    ),
+    (
+        "order_legal.html",
+        include_str!("templates/order_legal.html"),
     ),
 ];
 /// Helpers and builtins: never "unknown variables".

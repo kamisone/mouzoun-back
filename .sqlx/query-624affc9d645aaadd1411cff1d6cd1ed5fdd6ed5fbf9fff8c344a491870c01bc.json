@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE refunds SET status = 'failed', failure_reason = $2, processed_at = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "624affc9d645aaadd1411cff1d6cd1ed5fdd6ed5fbf9fff8c344a491870c01bc"
+}

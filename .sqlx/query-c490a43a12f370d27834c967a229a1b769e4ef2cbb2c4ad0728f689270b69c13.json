@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET\n                sku = COALESCE($2::text::citext, sku), barcode = CASE WHEN $3 THEN $4 ELSE barcode END,\n                status = COALESCE($5, status), is_default = COALESCE($6, is_default), sort_order = COALESCE($7, sort_order),\n                price_minor = $8, compare_at_price_minor = $9,\n                cost_minor = CASE WHEN $10 THEN $11 ELSE cost_minor END,\n                net_quantity = CASE WHEN $12 THEN $13 ELSE net_quantity END,\n                net_unit = CASE WHEN $12 THEN $14 ELSE net_unit END,\n                weight_grams = COALESCE($15, weight_grams), requires_shipping = COALESCE($16, requires_shipping),\n                is_taxable = COALESCE($17, is_taxable), track_inventory = COALESCE($18, track_inventory),\n                low_stock_threshold = CASE WHEN $19 THEN $20 ELSE low_stock_threshold END,\n                cover_media_id = CASE WHEN $21 THEN $22 ELSE cover_media_id END\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8",
+        "Bool",
+        "Numeric",
+        "Text",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c490a43a12f370d27834c967a229a1b769e4ef2cbb2c4ad0728f689270b69c13"
+}

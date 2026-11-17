@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM tax_rates WHERE is_active AND NOT is_confirmed\n             AND country_code = (SELECT country_code FROM legal_entities WHERE id = shop_entity_id())",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3bdb5a01655277086c4e1affa3b9cca050296531b1300d99427e6d8b8fa1ec03"
+}

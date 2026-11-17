@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM pages p JOIN page_translations t ON t.page_id = p.id AND t.locale = 'fr'\n                                  WHERE p.id = $1 AND p.status = 'published' AND p.deleted_at IS NULL\n                                    AND EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published')) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6a35047b38137fc761c72b12427cd9b3b359115ff19b4473b6972e7fd7cfbdb1"
+}

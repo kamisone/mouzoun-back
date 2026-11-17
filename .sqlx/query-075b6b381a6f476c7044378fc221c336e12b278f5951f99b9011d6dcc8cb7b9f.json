@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE carts SET promotion_codes = $2::text[]::citext[] WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "075b6b381a6f476c7044378fc221c336e12b278f5951f99b9011d6dcc8cb7b9f"
+}

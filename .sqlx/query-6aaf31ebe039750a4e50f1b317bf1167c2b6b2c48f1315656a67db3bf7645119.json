@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stock_locations (id, code, place_id, address, is_active, fulfills_online_orders, is_pickup_point, sort_order,\n                                              country_code, legal_entity_id)\n                 VALUES ($1, $2::text::citext, $3, $4, $5, $6, $7, $8, $9,\n                         COALESCE((SELECT id FROM legal_entities WHERE code = $10::text::citext), shop_entity_id()))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Bpchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6aaf31ebe039750a4e50f1b317bf1167c2b6b2c48f1315656a67db3bf7645119"
+}

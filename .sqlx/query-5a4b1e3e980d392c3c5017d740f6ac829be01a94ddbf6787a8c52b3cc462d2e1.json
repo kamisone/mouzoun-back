@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_lots (id, variant_id, location_id, lot_code, produced_on, harvested_on, best_before, notes)\n         VALUES ($1, $2, $3, $4::text::citext, $5, $6, $7, $8)\n         ON CONFLICT (variant_id, location_id, lot_code) DO UPDATE\n             SET best_before = COALESCE(EXCLUDED.best_before, inventory_lots.best_before),\n                 produced_on = COALESCE(EXCLUDED.produced_on, inventory_lots.produced_on),\n                 harvested_on = COALESCE(EXCLUDED.harvested_on, inventory_lots.harvested_on)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Date",
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5a4b1e3e980d392c3c5017d740f6ac829be01a94ddbf6787a8c52b3cc462d2e1"
+}

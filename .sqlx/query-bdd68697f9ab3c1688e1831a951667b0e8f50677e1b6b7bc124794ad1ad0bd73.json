@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, tax_class_code::text AS \"class!\", rate_percent FROM tax_rates\n           WHERE country_code = $1 AND is_active AND valid_period @> $2::date",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "class!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "rate_percent",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "bdd68697f9ab3c1688e1831a951667b0e8f50677e1b6b7bc124794ad1ad0bd73"
+}

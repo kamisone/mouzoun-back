@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM fulfillments WHERE order_id = $1\n                        AND status IN ('shipped', 'in_transit', 'delivered', 'picked_up')) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "1d919d37bbf0ab9022f01be6540ec4a93686af222f74094ab876186622936c1e"
+}

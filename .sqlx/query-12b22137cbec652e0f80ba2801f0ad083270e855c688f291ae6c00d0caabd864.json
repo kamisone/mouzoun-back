@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.provider, p.provider_payment_id, p.provider_session_id, p.currency::text AS \"currency!\",\n                  (p.amount_minor - COALESCE((SELECT sum(r.amount_minor) FROM refunds r\n                                              WHERE r.payment_id = p.id AND r.status <> 'failed'), 0))::bigint AS \"left!\"\n           FROM payments p WHERE p.order_id = $1 AND p.status IN ('succeeded', 'partially_refunded')\n           ORDER BY 6 DESC, p.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "provider_session_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "left!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "12b22137cbec652e0f80ba2801f0ad083270e855c688f291ae6c00d0caabd864"
+}

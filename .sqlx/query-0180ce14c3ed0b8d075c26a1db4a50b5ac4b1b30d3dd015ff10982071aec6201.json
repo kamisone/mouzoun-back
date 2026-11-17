@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(sum(l.on_hand), 0)::bigint AS \"on_hand!\", COALESCE(sum(l.reserved), 0)::bigint AS \"reserved!\",\n                  COALESCE(sum(l.backorder_limit), 0)::bigint AS \"backorder!\",\n                  v.low_stock_threshold, v.product_id\n           FROM product_variants v\n           LEFT JOIN inventory_levels l ON l.variant_id = v.id\n                AND l.location_id IN (SELECT id FROM stock_locations s WHERE is_active AND (fulfills_online_orders OR is_pickup_point)\n                                       AND (s.legal_entity_id IS NULL OR s.legal_entity_id = shop_entity_id()))\n           WHERE v.id = $1\n           GROUP BY v.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "on_hand!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "reserved!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "backorder!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "low_stock_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "product_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      true,
+      false
+    ]
+  },
+  "hash": "0180ce14c3ed0b8d075c26a1db4a50b5ac4b1b30d3dd015ff10982071aec6201"
+}

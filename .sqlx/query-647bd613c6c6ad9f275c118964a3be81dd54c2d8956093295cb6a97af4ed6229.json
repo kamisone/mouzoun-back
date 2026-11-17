@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_option_translations t USING product_options o WHERE t.option_id = o.id AND o.attribute_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "647bd613c6c6ad9f275c118964a3be81dd54c2d8956093295cb6a97af4ed6229"
+}

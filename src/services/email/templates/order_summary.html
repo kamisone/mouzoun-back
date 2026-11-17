@@ -1,0 +1,41 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="{{ dir }}" style="border-collapse:collapse;margin:20px 0;font-size:14px;">
+  <tr>
+    <td colspan="2" style="padding:8px 0;border-bottom:1px solid #e8dcc6;font-weight:bold;text-align:{{ start }};">{{ order.labels.details }} <span dir="ltr">{{ order.number }}</span></td>
+  </tr>
+  {%- for line in lines %}
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #f1e8d8;text-align:{{ start }};vertical-align:top;">
+      <strong>{{ line.name }}</strong>{% if line.quantity > 1 %} × {{ line.quantity }}{% endif %}
+      {%- if line.options %}<br><span style="color:#6b5e4e;font-size:13px;">{{ line.options }}</span>{% endif %}
+    </td>
+    <td style="padding:8px 0;border-bottom:1px solid #f1e8d8;text-align:{{ end }};vertical-align:top;white-space:nowrap;">{{ money(line.total_minor, order.currency) }}</td>
+  </tr>
+  {%- endfor %}
+  {%- if order.discount_minor > 0 %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ order.labels.discount }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">-{{ money(order.discount_minor, order.currency) }}</td>
+  </tr>
+  {%- endif %}
+  {%- if order.shipping_minor > 0 %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ order.labels.shipping }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ money(order.shipping_minor - order.shipping_discount_minor, order.currency) }}</td>
+  </tr>
+  {%- endif %}
+  {%- if order.cod_fee_minor > 0 %}
+  <tr>
+    <td style="padding:6px 0;color:#6b5e4e;text-align:{{ start }};">{{ order.labels.cod_fee }}</td>
+    <td style="padding:6px 0;text-align:{{ end }};">{{ money(order.cod_fee_minor, order.currency) }}</td>
+  </tr>
+  {%- endif %}
+  <tr>
+    <td style="padding:8px 0;font-weight:bold;font-size:16px;text-align:{{ start }};">{{ order.labels.total }}</td>
+    <td style="padding:8px 0;font-weight:bold;font-size:16px;text-align:{{ end }};">{{ money(order.total_minor, order.currency) }}</td>
+  </tr>
+  {%- if order.tax_minor > 0 %}
+  <tr>
+    <td colspan="2" style="padding:2px 0;color:#6b5e4e;font-size:12px;text-align:{{ start }};">{{ order.labels.tax_included }} {{ money(order.tax_minor, order.currency) }}</td>
+  </tr>
+  {%- endif %}
+</table>

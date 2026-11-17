@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.sku::text AS \"sku!\", v.barcode, v.is_default, v.price_minor, v.compare_at_price_minor,\n                  variant_reference_price(v.id) AS reference_price_minor, v.country_of_origin::text AS country_of_origin,\n                  v.net_quantity, v.net_unit, v.weight_grams, v.track_inventory, v.low_stock_threshold,\n                  COALESCE((SELECT sum(l.on_hand - l.reserved) FROM inventory_levels l JOIN stock_locations s ON s.id = l.location_id\n                            WHERE l.variant_id = v.id AND s.is_active AND s.fulfills_online_orders AND (s.legal_entity_id IS NULL OR s.legal_entity_id = shop_entity_id())), 0)::bigint AS \"free!\",\n                  COALESCE((SELECT sum(l.backorder_limit) FROM inventory_levels l JOIN stock_locations s ON s.id = l.location_id\n                            WHERE l.variant_id = v.id AND s.is_active AND s.fulfills_online_orders AND (s.legal_entity_id IS NULL OR s.legal_entity_id = shop_entity_id())), 0)::bigint AS \"backorder!\",\n                  COALESCE((SELECT jsonb_object_agg(o.code::text, ov.code::text) FROM product_variant_option_values pvo\n                            JOIN product_options o ON o.id = pvo.option_id JOIN product_option_values ov ON ov.id = pvo.option_value_id\n                            WHERE pvo.variant_id = v.id), '{}') AS \"options!\",\n                  COALESCE((SELECT array_agg(m.object_key ORDER BY vm.sort_order) FROM product_variant_media vm\n                            JOIN media_assets m ON m.id = vm.media_id AND m.deleted_at IS NULL WHERE vm.variant_id = v.id), '{}') AS \"media!\",\n                  cm.object_key AS \"cover_key?\"\n           FROM product_variants v LEFT JOIN media_assets cm ON cm.id = v.cover_media_id AND cm.deleted_at IS NULL\n           WHERE v.product_id = $1 AND v.status = 'active' AND v.deleted_at IS NULL\n           ORDER BY v.sort_order, v.sku",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "barcode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "reference_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "country_of_origin",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "net_quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "net_unit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "track_inventory",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "low_stock_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "free!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "backorder!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "options!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "media!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 17,
+        "name": "cover_key?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "359d6cdb813f047a263e66b81bd4918efccad7004efb1e567155fc16fb38cdce"
+}

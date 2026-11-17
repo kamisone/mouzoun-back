@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d::date AS \"day!\",\n                  COALESCE(sum(o.total_minor), 0)::bigint AS \"sales!\", count(o.id) AS \"orders!\",\n                  COALESCE(sum(o.amount_refunded_minor), 0)::bigint AS \"refunded!\", COALESCE(sum(o.tax_minor), 0)::bigint AS \"tax!\",\n                  COALESCE(sum(o.shipping_minor - o.shipping_discount_minor), 0)::bigint AS \"shipping!\"\n           FROM generate_series($1::date, $2::date, interval '1 day') d\n           LEFT JOIN orders o ON (o.placed_at AT TIME ZONE 'Africa/Casablanca')::date = d::date AND o.status IN ('open', 'completed')\n           GROUP BY d ORDER BY d",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "sales!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "orders!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "refunded!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "tax!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "shipping!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "de644b7de96a8a4429cbc0494c9a4024a39cef699f03e1527ac178c68a178f77"
+}

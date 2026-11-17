@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stock_notifications SET notified_at = now()\n                     WHERE variant_id = $1 AND notified_at IS NULL AND email = ANY($2::text[]::citext[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "394cda9d9ae4fe7a002e5c7c56f7206f71725db0686b404289b15378950e1797"
+}

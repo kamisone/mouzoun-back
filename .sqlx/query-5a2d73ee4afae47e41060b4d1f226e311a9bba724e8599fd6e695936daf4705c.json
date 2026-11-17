@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM carts WHERE status <> 'active' AND converted_order_id IS NULL AND updated_at < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a2d73ee4afae47e41060b4d1f226e311a9bba724e8599fd6e695936daf4705c"
+}

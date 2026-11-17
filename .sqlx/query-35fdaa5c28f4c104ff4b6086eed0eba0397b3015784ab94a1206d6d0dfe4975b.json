@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT variant_id, location_id, (on_hand + backorder_limit - reserved)::bigint AS \"free!\"\n           FROM inventory_levels WHERE variant_id = ANY($1) AND location_id = ANY($2)\n           ORDER BY variant_id, location_id FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "free!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "35fdaa5c28f4c104ff4b6086eed0eba0397b3015784ab94a1206d6d0dfe4975b"
+}

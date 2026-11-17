@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT n.id, n.email::text AS \"email!\", n.locale, COALESCE(t.name, d.name, v.sku::text) AS \"name!\",\n                      COALESCE(t.slug, d.slug) AS slug,\n                      (SELECT string_agg(COALESCE(vt.label, ov.code::text), ' · ' ORDER BY o.sort_order)\n                       FROM product_variant_option_values pvo JOIN product_options o ON o.id = pvo.option_id\n                       JOIN product_option_values ov ON ov.id = pvo.option_value_id\n                       LEFT JOIN product_option_value_translations vt ON vt.option_value_id = ov.id AND vt.locale = n.locale\n                       WHERE pvo.variant_id = v.id) AS variant_label\n               FROM stock_notifications n JOIN product_variants v ON v.id = n.variant_id\n               LEFT JOIN product_translations t ON t.product_id = v.product_id AND t.locale = n.locale\n               LEFT JOIN product_translations d ON d.product_id = v.product_id AND d.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE n.variant_id = $1 AND n.notified_at IS NULL ORDER BY n.created_at LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "variant_label",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e15ecb6bb1d227475bf7883732b8ae4493629b2bb14f8aa56fd8bc3997255fc5"
+}

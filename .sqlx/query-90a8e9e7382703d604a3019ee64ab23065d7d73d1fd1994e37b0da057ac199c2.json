@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE return_items SET restock = $3, condition = $4 WHERE return_id = $1 AND order_item_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "90a8e9e7382703d604a3019ee64ab23065d7d73d1fd1994e37b0da057ac199c2"
+}

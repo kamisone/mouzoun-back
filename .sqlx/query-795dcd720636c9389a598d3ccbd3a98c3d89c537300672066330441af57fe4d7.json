@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id AS variant_id, v.sku::text AS \"sku!\", v.track_inventory, v.cost_minor, COALESCE(v.low_stock_threshold, $5::int) AS \"threshold!\",\n                  COALESCE(t.name, '') AS \"name!\", sp.track_lots,\n                  COALESCE((SELECT string_agg(COALESCE(vt.label, ov.code::text), ' · ' ORDER BY o.sort_order)\n                            FROM product_variant_option_values pvo JOIN product_options o ON o.id = pvo.option_id\n                            JOIN product_option_values ov ON ov.id = pvo.option_value_id\n                            LEFT JOIN product_option_value_translations vt ON vt.option_value_id = ov.id\n                                 AND vt.locale = (SELECT code FROM locales WHERE is_default)\n                            WHERE pvo.variant_id = v.id), '') AS \"options!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('location_id', l.location_id, 'on_hand', l.on_hand, 'reserved', l.reserved,\n                            'available', l.on_hand - l.reserved, 'backorder_limit', l.backorder_limit, 'reorder_point', l.reorder_point,\n                            'bin_location', l.bin_location))\n                            FROM inventory_levels l WHERE l.variant_id = v.id AND ($2::uuid IS NULL OR l.location_id = $2)), '[]') AS \"levels!\",\n                  COALESCE((SELECT sum(l.on_hand - l.reserved) FROM inventory_levels l WHERE l.variant_id = v.id), 0)::bigint AS \"available!\",\n                  count(*) OVER () AS \"total!\"\n           FROM product_variants v\n           JOIN shop_products sp ON sp.product_id = v.product_id\n           JOIN products p ON p.id = v.product_id AND p.deleted_at IS NULL\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE v.deleted_at IS NULL AND ($1::text IS NULL OR v.sku::text ILIKE '%' || $1 || '%' OR t.name ILIKE '%' || $1 || '%')\n             AND ($3::uuid IS NULL OR v.id = $3)\n             AND (NOT $4 OR (v.track_inventory AND\n                  COALESCE((SELECT sum(l.on_hand - l.reserved) FROM inventory_levels l WHERE l.variant_id = v.id), 0)\n                  <= COALESCE(v.low_stock_threshold, $5::int)))\n           ORDER BY t.name, v.sort_order, v.sku\n           LIMIT $6 OFFSET $7",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "track_inventory",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "cost_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "threshold!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "track_lots",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "options!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "levels!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "available!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "795dcd720636c9389a598d3ccbd3a98c3d89c537300672066330441af57fe4d7"
+}

@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sp.product_type,\n                  NULLIF(btrim(t.name), '') IS NOT NULL AS \"name!\", NULLIF(btrim(t.description), '') IS NOT NULL AS \"description!\",\n                  NULLIF(btrim(st.ingredients), '') IS NOT NULL AS \"ingredients!\",\n                  NULLIF(btrim(st.storage_instructions), '') IS NOT NULL AS \"storage!\",\n                  NULLIF(btrim(st.producer_name), '') IS NOT NULL AS \"operator!\",\n                  (SELECT count(*) FROM product_variants v WHERE v.product_id = sp.product_id AND v.status = 'active' AND v.deleted_at IS NULL\n                     AND (v.net_quantity IS NULL OR v.net_unit IS NULL OR v.country_of_origin IS NULL)) AS \"incomplete_variants!\"\n           FROM shop_products sp\n           LEFT JOIN product_translations t ON t.product_id = sp.product_id AND t.locale = 'fr'\n           LEFT JOIN shop_product_translations st ON st.product_id = sp.product_id AND st.locale = 'fr'\n           WHERE sp.product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "description!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "ingredients!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "storage!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "operator!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "incomplete_variants!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "925d5c23e3c72e38187c6bc8755c440957329b446c637642c964573956bba493"
+}

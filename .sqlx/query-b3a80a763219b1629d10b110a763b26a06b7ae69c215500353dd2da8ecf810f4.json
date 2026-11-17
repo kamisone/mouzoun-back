@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(t.name, d.name, c.code::text) AS \"name!\", c.harvest_months FROM farm_crops c\n               LEFT JOIN farm_crop_translations t ON t.farm_crop_id = c.id AND t.locale = $2\n               LEFT JOIN farm_crop_translations d ON d.farm_crop_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE c.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "harvest_months",
+        "type_info": "Int2Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false
+    ]
+  },
+  "hash": "b3a80a763219b1629d10b110a763b26a06b7ae69c215500353dd2da8ecf810f4"
+}

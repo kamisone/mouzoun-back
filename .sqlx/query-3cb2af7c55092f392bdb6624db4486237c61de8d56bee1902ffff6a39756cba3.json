@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET status = $2, booking_mode = 'not_bookable', is_featured = $3, sort_order = $4, cover_media_id = $5,\n                gallery_id = COALESCE($6, gallery_id), updated_by = $7,\n                published_at = CASE WHEN $2 = 'published' THEN COALESCE(published_at, now()) ELSE published_at END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Int4",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3cb2af7c55092f392bdb6624db4486237c61de8d56bee1902ffff6a39756cba3"
+}

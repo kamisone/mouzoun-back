@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.promotion_id, count(*) AS \"n!\"\n           FROM promotion_redemptions r\n           LEFT JOIN orders o ON o.id = r.order_id\n           LEFT JOIN bookings b ON b.id = r.booking_id\n           LEFT JOIN customers c ON c.id = r.customer_id\n           WHERE (r.customer_id = $1 OR c.email = $2::text::citext OR o.email = $2::text::citext)\n             AND COALESCE(o.status, b.status) NOT IN ('cancelled', 'expired')\n           GROUP BY r.promotion_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "promotion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "60c7c99e6de7170f7007b4ab9e23d9d0d8bb6d59c977995e3e9d4cd42e14e555"
+}

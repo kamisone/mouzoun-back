@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, number, status AS \"status: OrderStatus\", payment_status, fulfillment_status,\n                  payment_method AS \"payment_method: ShopPaymentMethod\",\n                  fulfillment_method AS \"fulfillment_method: FulfillmentMethod\",\n                  requires_confirmation, confirmed_at, total_minor, amount_paid_minor, amount_refunded_minor,\n                  currency::text AS \"currency!\", pickup_location_id, customer_id, placed_at, locale\n           FROM orders WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: OrderStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "payment_method: ShopPaymentMethod",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "fulfillment_method: FulfillmentMethod",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "requires_confirmation",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "amount_paid_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "amount_refunded_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "pickup_location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "customer_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "placed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "locale",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "63d26731d499870a3f3d74695e3061e8c225f8aeddc6ac79e9ca6a8e8ffad839"
+}

@@ -7,7 +7,7 @@ use crate::{
     config::Config,
     infra::{cache::Cache, clock::Clock, storage::SharedStorage},
     modules::{media::MediaService, pages::SectionRegistry},
-    services::payments::Payments,
+    services::{payments::Payments, shop::payments::ShopPayments},
 };
 
 /// Shared application state. Cheap to clone: everything inside is pooled or `Arc`ed.
@@ -20,6 +20,8 @@ pub struct AppState {
     pub media: MediaService,
     /// Online payment providers (Stripe, PayPal, the fake one in development).
     pub payments: Payments,
+    /// Shop payment providers (Stripe Checkout, the fake one in development).
+    pub shop_payments: ShopPayments,
     /// Outgoing HTTP (payment providers, Turnstile).
     pub http: reqwest::Client,
     /// Last object-storage probe of the readiness endpoint (at most one call every 5 minutes).
@@ -28,6 +30,8 @@ pub struct AppState {
     pub sections: Arc<SectionRegistry>,
     /// "Now" for time-dependent content (tests pin it).
     pub clock: Clock,
+    /// Machine translation of admin content ("Générer" buttons).
+    pub translator: crate::services::translate::Translator,
 }
 
 impl AppState {
@@ -41,12 +45,17 @@ impl AppState {
             .build()
             .expect("HTTP client");
         let payments = Payments::from_config(&config.booking, http.clone());
+        let shop_payments = ShopPayments::from_config(&config, http.clone());
+        let translator =
+            crate::services::translate::Translator::new(http.clone(), config.translate.clone());
         Self {
             config,
             db,
             cache,
             media,
             payments,
+            shop_payments,
+            translator,
             http,
             storage_probe: Arc::default(),
             sections: Arc::new(SectionRegistry::load()),

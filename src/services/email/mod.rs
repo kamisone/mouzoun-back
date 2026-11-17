@@ -4,7 +4,7 @@
 
 pub mod account_jobs;
 pub mod admin;
-mod context;
+pub(crate) mod context;
 pub mod delivery;
 pub mod format;
 pub mod handler;
@@ -22,7 +22,7 @@ use sqlx::PgPool;
 
 pub use delivery::{Delivery, EmailJob, Source};
 pub use render::{RenderError, Rendered};
-pub use sender::{EmailSender, OutgoingEmail, ProviderMessageId, SendError};
+pub use sender::{Attachment, EmailSender, OutgoingEmail, ProviderMessageId, SendError};
 
 use crate::config::Config;
 

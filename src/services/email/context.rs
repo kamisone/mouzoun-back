@@ -440,7 +440,7 @@ pub async fn build(
             vars.insert("expires_at".into(), json!(expires_at.to_rfc3339()));
             vars.insert("invited_by".into(), json!(inviter));
         }
-        Source::Data(data) => {
+        Source::Data(data) | Source::Shop { vars: data, .. } => {
             if let Some(map) = data.as_object() {
                 vars.extend(map.clone());
             }

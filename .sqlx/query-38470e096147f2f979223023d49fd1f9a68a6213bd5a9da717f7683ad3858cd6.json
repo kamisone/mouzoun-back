@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM refunds r JOIN payments p ON p.id = r.payment_id\n                            WHERE r.provider_refund_id = $1 AND p.order_id IS NOT NULL) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "38470e096147f2f979223023d49fd1f9a68a6213bd5a9da717f7683ad3858cd6"
+}

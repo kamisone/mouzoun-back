@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.last_number, e.invoice_prefix FROM invoice_entity_counters c\n           JOIN legal_entities e ON e.id = c.legal_entity_id\n           WHERE c.legal_entity_id = $1 AND c.year = $2 FOR UPDATE OF c",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_prefix",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e13a532a07772b0b96bff7bc09a82e2c4e580f3fc29ffbb4e564d3c7be23c307"
+}

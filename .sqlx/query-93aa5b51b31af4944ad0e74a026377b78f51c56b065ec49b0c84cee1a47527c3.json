@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stock_locations SET code = $2::text::citext, place_id = $3, address = $4, is_active = $5, fulfills_online_orders = $6,\n                        is_pickup_point = $7, sort_order = $8, country_code = $9,\n                        legal_entity_id = COALESCE((SELECT id FROM legal_entities WHERE code = $10::text::citext), shop_entity_id())\n                 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Bpchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "93aa5b51b31af4944ad0e74a026377b78f51c56b065ec49b0c84cee1a47527c3"
+}

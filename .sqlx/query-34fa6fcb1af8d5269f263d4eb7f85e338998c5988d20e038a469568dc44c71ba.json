@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET status = 'cancelled', cancelled_at = $2, cancel_reason = $3, cancelled_by = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "34fa6fcb1af8d5269f263d4eb7f85e338998c5988d20e038a469568dc44c71ba"
+}

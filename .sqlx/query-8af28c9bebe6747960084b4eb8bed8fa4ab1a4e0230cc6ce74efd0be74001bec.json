@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payments SET provider_session_id = $2, provider_payload = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8af28c9bebe6747960084b4eb8bed8fa4ab1a4e0230cc6ce74efd0be74001bec"
+}

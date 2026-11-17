@@ -13,6 +13,7 @@ text_enum!(ProductKind {
     Activity = "activity",
     Extra = "extra",
     Package = "package",
+    ShopProduct = "shop_product",
 });
 text_enum!(ProductStatus { Draft = "draft", Published = "published", Archived = "archived" });
 text_enum!(BookingMode { Instant = "instant", OnRequest = "on_request", NotBookable = "not_bookable" });

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM inventory_reservations WHERE order_id = $1 AND NOT (order_item_id = ANY($2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e40c29f50f8101d1161657fe6d5a3f591381fbd58268e41f0aaa5e4672cc7244"
+}

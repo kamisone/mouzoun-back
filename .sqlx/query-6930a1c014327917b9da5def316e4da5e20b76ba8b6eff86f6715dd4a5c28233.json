@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.code::text AS \"code!\",\n                  (SELECT code::text FROM product_option_values WHERE id = o.default_value_id) AS default_value,\n                  COALESCE(array_agg(v.code::text ORDER BY v.sort_order, v.code) FILTER (WHERE v.id IS NOT NULL), '{}') AS \"values!\",\n                  COALESCE(array_agg(COALESCE(v.price_adjustment_minor, 0) ORDER BY v.sort_order, v.code) FILTER (WHERE v.id IS NOT NULL), '{}') AS \"adjustments!\"\n           FROM product_options o LEFT JOIN product_option_values v ON v.option_id = o.id\n           WHERE o.product_id = $1 GROUP BY o.id ORDER BY o.sort_order, o.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "default_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "values!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "adjustments!",
+        "type_info": "Int8Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "6930a1c014327917b9da5def316e4da5e20b76ba8b6eff86f6715dd4a5c28233"
+}

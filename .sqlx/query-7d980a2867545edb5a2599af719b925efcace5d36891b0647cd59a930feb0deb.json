@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT fulfilled_quantity, returned_quantity, COALESCE(product_snapshot->>'withdrawal_exemption', 'none') AS \"exemption!\"\n               FROM order_items WHERE id = $1 AND order_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "fulfilled_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "returned_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "exemption!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "7d980a2867545edb5a2599af719b925efcace5d36891b0647cd59a930feb0deb"
+}

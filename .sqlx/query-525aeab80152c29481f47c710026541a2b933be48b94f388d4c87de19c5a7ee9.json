@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.number, o.payment_method AS \"payment_method: ShopPaymentMethod\",\n                  (SELECT provider_payload FROM payments p WHERE p.order_id = o.id ORDER BY created_at DESC LIMIT 1) AS payload\n           FROM orders o WHERE o.checkout_key = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "payment_method: ShopPaymentMethod",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "payload",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "525aeab80152c29481f47c710026541a2b933be48b94f388d4c87de19c5a7ee9"
+}

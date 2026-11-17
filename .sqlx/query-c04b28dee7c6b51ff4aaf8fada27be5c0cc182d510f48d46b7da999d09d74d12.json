@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET status = $2 WHERE id = $1 AND kind = 'shop_product' AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c04b28dee7c6b51ff4aaf8fada27be5c0cc182d510f48d46b7da999d09d74d12"
+}

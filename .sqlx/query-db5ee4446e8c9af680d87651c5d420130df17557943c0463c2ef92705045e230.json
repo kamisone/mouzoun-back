@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payments (id, order_id, provider, purpose, status, amount_minor, currency, idempotency_key,\n                               provider_payment_id, paid_at, received_by, provider_payload, legal_entity_id)\n         VALUES ($1, $2, $3, 'full', 'succeeded', $4, $5, $6, $7, $8, $9, $10, (SELECT legal_entity_id FROM orders WHERE id = $2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Bpchar",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db5ee4446e8c9af680d87651c5d420130df17557943c0463c2ef92705045e230"
+}

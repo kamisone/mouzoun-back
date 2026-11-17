@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_variant_translations (variant_id, locale, customs_description) VALUES ($1, $2, NULLIF(btrim($3), ''))\n                     ON CONFLICT (variant_id, locale) DO UPDATE SET customs_description = EXCLUDED.customs_description",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d518caaa2903800c568cca4b6fece916b42b74897a5381c05d3e8c6d408ee94"
+}

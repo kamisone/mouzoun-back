@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO order_items (id, order_id, variant_id, product_id, sku, quantity, unit_price_minor,\n                                      compare_at_price_minor, subtotal_minor, discount_minor, tax_minor, total_minor,\n                                      tax_lines, discount_allocations, product_snapshot, sort_order)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a48f035eab087c72d743f5ad84cd378885caeb37f8fe9d890527e984479b655c"
+}

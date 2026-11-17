@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_profiles (id, code, name, is_default) VALUES ($1, $2::text::citext, $3, $4)\n         ON CONFLICT (id) DO UPDATE SET code = $2::text::citext, name = $3, is_default = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e1e0d58c86b12dfc463ed7692167c0ee25c7b72358c87c30f57bdea2230c17f"
+}

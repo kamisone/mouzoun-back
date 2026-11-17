@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Mouzoun API — library crate (the binary in `main.rs` is a thin launcher,
 //! integration tests in `tests/` drive the same router).
 

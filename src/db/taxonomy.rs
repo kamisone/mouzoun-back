@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::types::{Locale, WithTranslations};
 use crate::text_enum;
 
-text_enum!(CategoryScope { Product = "product", Post = "post", Faq = "faq", Place = "place" });
+text_enum!(CategoryScope { Product = "product", Post = "post", Faq = "faq", Place = "place", Shop = "shop" });
 text_enum!(AmenityGroup {
     Sanitary = "sanitary",
     WaterPower = "water_power",

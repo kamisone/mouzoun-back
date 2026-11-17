@@ -683,6 +683,7 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
         .await?;
     }
 
+    legal_pages(pool, &reg, &staff, admin).await?;
     for page in [home, about] {
         service::publish(
             pool,
@@ -698,6 +699,123 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
         )
         .await
         .map_err(|e| anyhow::anyhow!("publish {page}: {e:?}"))?;
+    }
+    Ok(())
+}
+
+/// The legal pages the French shop needs, as placeholders to be written by a lawyer, published
+/// (the compliance checklist checks they exist) and pointed to by the `legal.*_page_id` settings.
+async fn legal_pages(
+    pool: &PgPool,
+    reg: &SectionRegistry,
+    staff: &Staff,
+    admin: Uuid,
+) -> anyhow::Result<()> {
+    const TODO_FR: &str =
+        "<p><strong>Texte à rédiger par un avocat avant l'ouverture de la boutique.</strong></p>";
+    const TODO_EN: &str = "<p><strong>To be written by a lawyer before the shop opens. The French version prevails.</strong></p>";
+    const TODO_AR: &str =
+        "<p><strong>نص يحرره محامٍ قبل افتتاح المتجر. النسخة الفرنسية هي المعتمدة.</strong></p>";
+    type LegalSeed<'a> = (&'a str, [(&'a str, &'a str, &'a str); 3], &'a str);
+    let pages: [LegalSeed<'_>; 6] = [
+        (
+            "cgv",
+            [
+                (
+                    "fr",
+                    "Conditions générales de vente",
+                    "conditions-generales-de-vente",
+                ),
+                ("en", "Terms of sale", "terms-of-sale"),
+                ("ar", "الشروط العامة للبيع", "shurut-albay"),
+            ],
+            "<h2>Article 1 — Vendeur</h2><p>MOUZOUN SAS (identité à compléter).</p><h2>Article 2 — Prix</h2><p>Prix en euros TTC.</p><h2>Article 3 — Droit de rétractation</h2><p>14 jours à compter de la réception, sauf denrées périssables et produits descellés.</p><h2>Article 4 — Garanties légales</h2><p>Garantie légale de conformité de 2 ans.</p><h2>Article 5 — Médiation</h2><p>Médiateur de la consommation : à compléter.</p>",
+        ),
+        (
+            "notice",
+            [
+                ("fr", "Mentions légales", "mentions-legales"),
+                ("en", "Legal notice", "legal-notice"),
+                ("ar", "إشعار قانوني", "ishaar-qanouni"),
+            ],
+            "<p>Éditeur : MOUZOUN SAS (à compléter). Directeur de la publication : à compléter.</p><p>Hébergeur : Google Cloud France SARL, 8 rue de Londres, 75009 Paris.</p>",
+        ),
+        (
+            "privacy",
+            [
+                ("fr", "Politique de confidentialité", "confidentialite"),
+                ("en", "Privacy policy", "privacy-policy"),
+                ("ar", "سياسة الخصوصية", "siyasat-alkhususiya"),
+            ],
+            "<p>Responsable du traitement, finalités, durées de conservation, sous-traitants (Stripe, Google Cloud, transporteurs) et droits : à compléter.</p>",
+        ),
+        (
+            "cookies",
+            [
+                ("fr", "Politique cookies", "cookies"),
+                ("en", "Cookie policy", "cookie-policy"),
+                ("ar", "سياسة ملفات تعريف الارتباط", "cookies-ar"),
+            ],
+            "<p>Cookies nécessaires (panier, session) et mesure d'audience soumise à consentement, conservé 6 mois. Vous pouvez retirer votre consentement à tout moment depuis le pied de page.</p>",
+        ),
+        (
+            "withdrawal",
+            [
+                ("fr", "Droit de rétractation", "droit-de-retractation"),
+                ("en", "Right of withdrawal", "right-of-withdrawal"),
+                ("ar", "حق التراجع", "haq-attarajou"),
+            ],
+            "<p>Vous disposez de 14 jours à compter de la réception pour vous rétracter.</p><h2>Formulaire de rétractation</h2><p>À l'attention de MOUZOUN SAS (adresse à compléter) : je vous notifie par la présente ma rétractation du contrat portant sur la vente du bien ci-dessous : commandé le / reçu le, nom, adresse, signature, date.</p>",
+        ),
+        (
+            "shipping",
+            [
+                ("fr", "Livraison et retours", "livraison-et-retours"),
+                ("en", "Delivery and returns", "delivery-and-returns"),
+                ("ar", "التوصيل والإرجاع", "attawsil-walirja"),
+            ],
+            "<p>Livraison en France métropolitaine (hors Corse) par Colissimo ou Mondial Relay, offerte dès 60 €. Retours : voir le droit de rétractation.</p>",
+        ),
+    ];
+    for (key, texts, body) in pages {
+        let page = new_page(pool, staff, "legal", texts).await?;
+        save(
+            pool,
+            reg,
+            staff,
+            page,
+            vec![block(
+                "rich_text",
+                json!({ "max_width": "narrow" }),
+                text(
+                    json!({ "body": format!("{TODO_FR}{body}") }),
+                    json!({ "body": TODO_EN }),
+                    json!({ "body": TODO_AR }),
+                ),
+            )],
+        )
+        .await?;
+        service::publish(
+            pool,
+            reg,
+            &staff.actor(),
+            Some(admin),
+            page,
+            Utc::now(),
+            PublishRequest {
+                publish_at: None,
+                note: Some("Placeholder (seed)".into()),
+            },
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("publish legal page {key}: {e:?}"))?;
+        sqlx::query!(
+            "UPDATE settings SET value = to_jsonb($2::text) WHERE key = $1",
+            format!("legal.{key}_page_id"),
+            page.to_string()
+        )
+        .execute(pool)
+        .await?;
     }
     Ok(())
 }

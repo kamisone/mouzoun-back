@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.amount_minor, p.currency::text AS \"currency!\", p.order_id AS \"order_id!\" FROM payments p\n           WHERE p.provider_session_id = $1 AND p.order_id IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "order_id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true
+    ]
+  },
+  "hash": "7bb27034e63bdf5567b276cf9e8574792617c65ec403936ad12a916c52a16ef2"
+}

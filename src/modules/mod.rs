@@ -11,3 +11,5 @@ pub mod booking;
 pub mod booking_admin;
 pub mod media;
 pub mod pages;
+pub mod shop;
+pub mod translations;

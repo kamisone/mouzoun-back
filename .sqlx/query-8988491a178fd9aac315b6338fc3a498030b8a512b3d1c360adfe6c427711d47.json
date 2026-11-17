@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO customer_addresses (id, customer_id, label, first_name, last_name, company, line1, line2, city, region, postal_code,\n                                         country_code, phone, delivery_notes)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n         ON CONFLICT (id) DO UPDATE SET label = $3, first_name = $4, last_name = $5, company = $6, line1 = $7, line2 = $8, city = $9,\n             region = $10, postal_code = $11, country_code = $12, phone = $13, delivery_notes = $14\n         WHERE customer_addresses.customer_id = $2 AND customer_addresses.deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bpchar",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8988491a178fd9aac315b6338fc3a498030b8a512b3d1c360adfe6c427711d47"
+}

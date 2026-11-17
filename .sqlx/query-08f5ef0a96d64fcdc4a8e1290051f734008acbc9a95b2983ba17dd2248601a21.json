@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\", m.object_key AS \"image_key?\",\n                  (SELECT min(price_minor) FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL) AS price_min\n           FROM related_products r JOIN products p ON p.id = r.related_product_id\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL\n           WHERE r.product_id = $1 AND p.status = 'published' AND p.deleted_at IS NULL\n           ORDER BY r.sort_order LIMIT 8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "image_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_min",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "08f5ef0a96d64fcdc4a8e1290051f734008acbc9a95b2983ba17dd2248601a21"
+}

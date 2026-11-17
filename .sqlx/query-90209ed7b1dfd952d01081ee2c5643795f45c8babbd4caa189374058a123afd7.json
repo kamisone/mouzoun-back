@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET status = 'archived', is_default = false\n         WHERE product_id = $1 AND deleted_at IS NULL AND status = 'active' AND NOT (id = ANY($2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "90209ed7b1dfd952d01081ee2c5643795f45c8babbd4caa189374058a123afd7"
+}

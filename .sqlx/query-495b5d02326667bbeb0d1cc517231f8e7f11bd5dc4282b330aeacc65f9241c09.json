@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(sum(o.total_minor - o.tax_minor), 0)::bigint AS \"n!\" FROM orders o\n           WHERE o.payment_status IN ('paid', 'partially_refunded') AND extract(year FROM o.paid_at)::int = $1\n             AND COALESCE(o.relay_point->>'country_code', o.shipping_address->>'country_code') <> 'FR'\n             AND COALESCE(o.relay_point->>'country_code', o.shipping_address->>'country_code') = ANY($2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "495b5d02326667bbeb0d1cc517231f8e7f11bd5dc4282b330aeacc65f9241c09"
+}

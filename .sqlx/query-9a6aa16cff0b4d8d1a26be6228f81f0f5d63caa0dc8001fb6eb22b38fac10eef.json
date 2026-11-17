@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.number, o.status, o.payment_status, o.fulfillment_status, o.total_minor, o.currency::text AS \"currency!\", o.placed_at,\n                  (SELECT count(*) FROM order_items WHERE order_id = o.id) AS \"lines!\",\n                  (SELECT product_snapshot->>'image_url' FROM order_items WHERE order_id = o.id ORDER BY sort_order LIMIT 1) AS image_url\n           FROM orders o WHERE o.customer_id = $1 AND o.status <> 'draft' ORDER BY COALESCE(o.placed_at, o.created_at) DESC LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "placed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "lines!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "image_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "9a6aa16cff0b4d8d1a26be6228f81f0f5d63caa0dc8001fb6eb22b38fac10eef"
+}

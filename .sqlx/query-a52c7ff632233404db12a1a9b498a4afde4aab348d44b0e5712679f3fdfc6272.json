@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.number, i.kind, i.issued_at, i.total_minor, i.tax_minor, i.pdf_sha256, e.code::text AS \"entity!\",\n                  (SELECT number FROM invoices c WHERE c.id = i.credit_note_for_invoice_id) AS corrected,\n                  i.billing_details->>'order_number' AS order_number\n           FROM invoices i JOIN legal_entities e ON e.id = i.legal_entity_id\n           WHERE i.order_id IS NOT NULL AND (i.issued_at AT TIME ZONE 'Europe/Paris')::date BETWEEN $1 AND $2\n           ORDER BY e.code, i.number",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "issued_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "tax_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "pdf_sha256",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "entity!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "corrected",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "order_number",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a52c7ff632233404db12a1a9b498a4afde4aab348d44b0e5712679f3fdfc6272"
+}

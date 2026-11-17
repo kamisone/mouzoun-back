@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET status = $2, payment_method = $3, placed_at = $4::timestamptz,\n                confirmed_at = CASE WHEN $5 THEN $4::timestamptz END,\n                confirmed_by = CASE WHEN $5 THEN $6::uuid END, requires_confirmation = $5\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4a4ba40fe3f9baedd0be02dae678da16987ed6faacfd24db5d47eab90b18d7fd"
+}

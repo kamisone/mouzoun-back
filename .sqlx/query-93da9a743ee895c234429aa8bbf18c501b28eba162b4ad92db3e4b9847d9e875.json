@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.code::text AS code, p.discount_type AS \"discount_type: DiscountType\",\n                  p.discount_percent, p.discount_amount_minor, p.min_subtotal_minor, p.min_quantity,\n                  lower(p.booking_window) AS window_start, upper(p.booking_window) AS window_end,\n                  p.booking_window IS NOT NULL AS \"has_window!\",\n                  p.applies_to_all, p.applies_to_shipping, p.is_stackable,\n                  p.customer_eligibility AS \"eligibility: CustomerEligibility\", p.max_per_customer,\n                  (p.max_redemptions IS NOT NULL AND (\n                      SELECT count(*) FROM promotion_redemptions r\n                      LEFT JOIN orders o ON o.id = r.order_id\n                      LEFT JOIN bookings b ON b.id = r.booking_id\n                      WHERE r.promotion_id = p.id AND COALESCE(o.status, b.status) NOT IN ('cancelled', 'expired')\n                  ) >= p.max_redemptions) AS \"exhausted!\",\n                  COALESCE((SELECT array_agg(product_id) FROM promotion_products WHERE promotion_id = p.id), '{}') AS \"product_ids!\",\n                  COALESCE((SELECT array_agg(category_id) FROM promotion_categories WHERE promotion_id = p.id), '{}') AS \"category_ids!\"\n           FROM promotions p\n           WHERE p.is_active AND p.scope IN ('shop', 'all')\n             AND (p.code IS NULL OR p.code = ANY($1::text[]::citext[]))\n           ORDER BY p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "discount_type: DiscountType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "discount_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "discount_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "min_subtotal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "min_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "window_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "window_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "has_window!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "applies_to_all",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "applies_to_shipping",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "is_stackable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "eligibility: CustomerEligibility",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "max_per_customer",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "exhausted!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 16,
+        "name": "product_ids!",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 17,
+        "name": "category_ids!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "93da9a743ee895c234429aa8bbf18c501b28eba162b4ad92db3e4b9847d9e875"
+}

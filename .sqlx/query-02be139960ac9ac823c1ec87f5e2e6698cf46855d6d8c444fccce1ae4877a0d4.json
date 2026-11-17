@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.code::text AS \"code!\", t.rate_percent, t.is_active, t.is_inclusive,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM tax_translations WHERE tax_id = t.id), '{}') AS \"names!\",\n                  (SELECT count(*) FROM product_taxes pt JOIN products p ON p.id = pt.product_id WHERE pt.tax_id = t.id AND p.kind = 'shop_product') AS \"products!\"\n           FROM taxes t WHERE t.calc_type = 'percent' ORDER BY t.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "rate_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_inclusive",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "products!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "02be139960ac9ac823c1ec87f5e2e6698cf46855d6d8c444fccce1ae4877a0d4"
+}

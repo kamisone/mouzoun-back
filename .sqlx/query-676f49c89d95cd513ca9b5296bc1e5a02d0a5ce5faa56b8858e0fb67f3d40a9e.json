@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT oi.product_id, max(oi.product_snapshot->>'name') AS \"name!\", sum(oi.quantity)::bigint AS \"units!\",\n                  sum(oi.total_minor)::bigint AS \"sales!\",\n                  sum(COALESCE((oi.product_snapshot->>'cost_minor')::bigint, 0) * oi.quantity)::bigint AS \"cost!\"\n           FROM order_items oi JOIN orders o ON o.id = oi.order_id\n           WHERE o.status IN ('open', 'completed') AND (o.placed_at AT TIME ZONE 'Africa/Casablanca')::date BETWEEN $1 AND $2\n           GROUP BY oi.product_id ORDER BY 4 DESC LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "units!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "sales!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "cost!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "676f49c89d95cd513ca9b5296bc1e5a02d0a5ce5faa56b8858e0fb67f3d40a9e"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sp.track_lots FROM product_variants v JOIN shop_products sp ON sp.product_id = v.product_id WHERE v.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "track_lots",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "82d465af94a3f5e6d0d7ccd317dd2414075b044fe3b139c2b3c803713ccc478d"
+}

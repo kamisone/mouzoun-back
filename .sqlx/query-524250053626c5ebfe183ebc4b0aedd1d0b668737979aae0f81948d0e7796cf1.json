@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT country_code = 'FR' AS \"x!\" FROM legal_entities WHERE id = shop_entity_id()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "524250053626c5ebfe183ebc4b0aedd1d0b668737979aae0f81948d0e7796cf1"
+}

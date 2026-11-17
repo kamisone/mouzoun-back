@@ -57,7 +57,8 @@
                   "accommodation",
                   "activity",
                   "extra",
-                  "package"
+                  "package",
+                  "shop_product"
                 ],
                 "title": "Kind"
               },

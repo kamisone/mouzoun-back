@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT f.status, f.method, f.carrier, f.tracking_number, f.tracking_url,\n                              COALESCE(t.name, d.name, s.code::text) AS \"location!\", COALESCE(t.pickup_instructions, d.pickup_instructions) AS instructions\n                       FROM fulfillments f JOIN stock_locations s ON s.id = f.location_id\n                       LEFT JOIN stock_location_translations t ON t.location_id = s.id AND t.locale = $2\n                       LEFT JOIN stock_location_translations d ON d.location_id = s.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n                       WHERE f.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "carrier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "tracking_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "tracking_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "instructions",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "440528ee0c52b12436c8d51280d1848c41ed0e157e9eb319076a0fd56b5c41a3"
+}

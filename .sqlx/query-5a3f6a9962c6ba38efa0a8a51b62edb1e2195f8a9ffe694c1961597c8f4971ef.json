@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT variant_id, location_id, lot_id, (-sum(delta))::int AS \"q!\"\n               FROM inventory_movements WHERE order_id = $1 AND reason IN ('sale', 'return_restock')\n               GROUP BY variant_id, location_id, lot_id HAVING sum(delta) < 0\n               ORDER BY variant_id, location_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "variant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "lot_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "q!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "5a3f6a9962c6ba38efa0a8a51b62edb1e2195f8a9ffe694c1961597c8f4971ef"
+}

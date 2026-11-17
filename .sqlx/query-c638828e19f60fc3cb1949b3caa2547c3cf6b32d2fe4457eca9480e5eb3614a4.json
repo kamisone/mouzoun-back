@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_levels SET on_hand = on_hand + $3\n         WHERE variant_id = $1 AND location_id = $2 RETURNING on_hand",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "on_hand",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c638828e19f60fc3cb1949b3caa2547c3cf6b32d2fe4457eca9480e5eb3614a4"
+}

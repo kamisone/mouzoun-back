@@ -1,0 +1,196 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.sku::text AS \"sku!\", v.barcode, v.status, v.is_default, v.sort_order, v.price_minor, v.compare_at_price_minor,\n                  v.cost_minor, v.currency::text AS \"currency!\", v.net_quantity, v.net_unit, v.weight_grams, v.length_mm, v.width_mm,\n                  v.height_mm, v.requires_shipping, v.is_taxable, v.track_inventory, v.low_stock_threshold, v.cover_media_id,\n                  v.country_of_origin::text AS country_of_origin, v.hs_code, variant_reference_price(v.id) AS reference_price_minor,\n                  (SELECT min(price_minor) FROM variant_price_history h WHERE h.variant_id = v.id\n                     AND COALESCE(h.valid_to, 'infinity') > now() - interval '30 days') AS lowest_30d_minor,\n                  COALESCE((SELECT jsonb_object_agg(locale, customs_description) FROM product_variant_translations WHERE variant_id = v.id), '{}') AS \"customs_description!\",\n                  COALESCE((SELECT jsonb_object_agg(o.code::text, ov.code::text) FROM product_variant_option_values pvo\n                            JOIN product_options o ON o.id = pvo.option_id JOIN product_option_values ov ON ov.id = pvo.option_value_id\n                            WHERE pvo.variant_id = v.id), '{}') AS \"options!\",\n                  COALESCE((SELECT array_agg(media_id ORDER BY sort_order) FROM product_variant_media WHERE variant_id = v.id), '{}') AS \"media_ids!\",\n                  COALESCE((SELECT sum(on_hand) FROM inventory_levels WHERE variant_id = v.id), 0)::bigint AS \"on_hand!\",\n                  COALESCE((SELECT sum(reserved) FROM inventory_levels WHERE variant_id = v.id), 0)::bigint AS \"reserved!\"\n           FROM product_variants v WHERE v.product_id = $1 AND v.deleted_at IS NULL ORDER BY v.status, v.sort_order, v.sku",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sku!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "barcode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "compare_at_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "cost_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "currency!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "net_quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "net_unit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "length_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "width_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "height_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "requires_shipping",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "is_taxable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "track_inventory",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 19,
+        "name": "low_stock_threshold",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 21,
+        "name": "country_of_origin",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "hs_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "reference_price_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 24,
+        "name": "lowest_30d_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 25,
+        "name": "customs_description!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 26,
+        "name": "options!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 27,
+        "name": "media_ids!",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 28,
+        "name": "on_hand!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 29,
+        "name": "reserved!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e80e16095080a3bd1952bd08f6092d0ce07d3faf2761b341f998aa8f439c5543"
+}

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.code::text AS \"code!\", a.admin_label, a.display_type, a.category_id, a.sort_order, a.is_active,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM variation_attribute_translations WHERE attribute_id = a.id), '{}') AS \"names!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('id', v.id, 'code', v.code::text, 'swatch_color', v.swatch_color,\n                            'swatch_media_id', v.swatch_media_id, 'price_adjustment_minor', v.price_adjustment_minor,\n                            'sort_order', v.sort_order, 'is_active', v.is_active,\n                            'product_count', (SELECT count(DISTINCT o.product_id) FROM product_option_values pv\n                                              JOIN product_options o ON o.id = pv.option_id WHERE pv.variation_value_id = v.id),\n                            'labels', COALESCE((SELECT jsonb_object_agg(locale, label) FROM variation_value_translations WHERE value_id = v.id), '{}'))\n                            ORDER BY v.sort_order, v.code) FROM variation_values v WHERE v.attribute_id = a.id), '[]') AS \"values!\",\n                  (SELECT count(*) FROM product_options o JOIN products p ON p.id = o.product_id\n                   WHERE o.attribute_id = a.id AND p.deleted_at IS NULL) AS \"products!\"\n           FROM variation_attributes a WHERE $1::uuid IS NULL OR a.id = $1\n           ORDER BY a.sort_order, a.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "admin_label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "values!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "products!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b665a8d33069885ec6e21e6b155439d1f3fb7f8f80420a391c08ebf4247509a4"
+}

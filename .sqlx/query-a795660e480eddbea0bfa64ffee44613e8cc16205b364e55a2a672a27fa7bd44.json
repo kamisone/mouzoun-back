@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, status, booking_mode, created_by) VALUES ($1, 'shop_product', 'draft', 'not_bookable', $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a795660e480eddbea0bfa64ffee44613e8cc16205b364e55a2a672a27fa7bd44"
+}

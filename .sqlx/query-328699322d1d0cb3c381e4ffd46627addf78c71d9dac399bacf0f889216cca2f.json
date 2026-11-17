@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, status, booking_mode, is_featured, place_id, cover_media_id, sort_order, created_by)\n         SELECT $2, kind, 'draft', 'not_bookable', false, place_id, cover_media_id, sort_order, $3 FROM products\n         WHERE id = $1 AND kind = 'shop_product' AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "328699322d1d0cb3c381e4ffd46627addf78c71d9dac399bacf0f889216cca2f"
+}

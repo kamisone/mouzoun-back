@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT oi.sku, oi.product_snapshot, fi.quantity, fi.lots FROM fulfillment_items fi\n           JOIN order_items oi ON oi.id = fi.order_item_id WHERE fi.fulfillment_id = $1 ORDER BY oi.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sku",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_snapshot",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "lots",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0a1e1f30e7efed7a9601e26dc51c728ae0f6f4faa9119afda272d268b68f9c3a"
+}

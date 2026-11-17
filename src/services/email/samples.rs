@@ -10,7 +10,7 @@ use super::views::{
 };
 
 /// Every template the application sends.
-pub const TEMPLATE_CODES: [&str; 38] = [
+pub const TEMPLATE_CODES: [&str; 53] = [
     "booking_received",
     "booking_confirmation",
     "booking_cancelled",
@@ -49,6 +49,21 @@ pub const TEMPLATE_CODES: [&str; 38] = [
     "account_export_ready",
     "account_deletion_scheduled",
     "account_deleted",
+    "order_confirmation",
+    "order_payment_pending",
+    "order_confirmed_cod",
+    "order_shipped",
+    "order_ready_for_pickup",
+    "order_delivered",
+    "order_cancelled",
+    "refund_issued",
+    "return_update",
+    "abandoned_cart",
+    "back_in_stock",
+    "staff_new_order",
+    "staff_low_stock",
+    "staff_payment_issue",
+    "withdrawal_acknowledgment",
 ];
 
 fn at(s: &str) -> DateTime<Utc> {
@@ -197,6 +212,9 @@ pub fn for_template(code: &str, locale: &str, site_url: &str) -> Option<Value> {
         vars.insert("expires_at".into(), json!("2027-01-03T16:20:00Z"));
         vars.insert("invited_by".into(), json!("Hassan Ait Ouarab"));
     };
+    if let Some(shop) = shop_sample(code, locale, site_url) {
+        return Some(shop);
+    }
     match code {
         "booking_received" | "staff_new_booking" => booking_vars(&mut vars, "awaiting_payment"),
         "booking_confirmation" | "booking_modified" | "pre_arrival" => {
@@ -321,5 +339,117 @@ pub fn for_template(code: &str, locale: &str, site_url: &str) -> Option<Value> {
         "staff_invitation" => account(&mut vars, "admin/accept-invitation"),
         _ => return None,
     }
+    Some(Value::Object(vars))
+}
+
+/// Sample variables of the shop templates.
+fn shop_sample(code: &str, locale: &str, site_url: &str) -> Option<Value> {
+    if !code.starts_with("order_")
+        && !matches!(
+            code,
+            "refund_issued"
+                | "return_update"
+                | "abandoned_cart"
+                | "back_in_stock"
+                | "staff_new_order"
+                | "staff_low_stock"
+                | "staff_payment_issue"
+                | "withdrawal_acknowledgment"
+        )
+    {
+        return None;
+    }
+    let labels = match locale {
+        "fr" => {
+            json!({ "details": "Commande", "discount": "Remise", "shipping": "Livraison", "cod_fee": "Frais de paiement à la livraison", "total": "Total", "tax_included": "dont TVA" })
+        }
+        "ar" => {
+            json!({ "details": "الطلب", "discount": "الخصم", "shipping": "التوصيل", "cod_fee": "رسوم الدفع عند الاستلام", "total": "المجموع", "tax_included": "منها الضريبة" })
+        }
+        _ => {
+            json!({ "details": "Order", "discount": "Discount", "shipping": "Shipping", "cod_fee": "Cash on delivery fee", "total": "Total", "tax_included": "incl. VAT" })
+        }
+    };
+    let order = json!({
+        "number": "MZS-27-000042", "url": format!("{site_url}/boutique/orders/MZS-27-000042?t=sample"), "status": "open",
+        "email": "amina@example.com", "phone": "+212600000000", "payment_method": "cash_on_delivery",
+        "fulfillment_method": "shipping", "requires_confirmation": true, "subtotal_minor": 4_200, "discount_minor": 420,
+        "shipping_minor": 450, "shipping_discount_minor": 0, "cod_fee_minor": 150, "tax_minor": 630, "total_minor": 4_380,
+        "amount_paid_minor": 0, "currency": "EUR", "hold_until": "2027-01-08T10:00:00Z", "labels": labels,
+    });
+    let lines = json!([
+        { "name": "Dattes Medjool", "options": "1 kg", "quantity": 2, "total_minor": 2_400 },
+        { "name": "Huile d'olive vierge extra", "options": "1 L", "quantity": 1, "total_minor": 1_800 },
+    ]);
+    let mut vars = Map::new();
+    vars.insert(
+        "customer".into(),
+        json!({ "first_name": "Amina", "full_name": "Amina Ait Ali" }),
+    );
+    vars.insert("order".into(), order);
+    vars.insert(
+        "admin_url".into(),
+        json!(format!("{site_url}/admin/shop/orders/sample")),
+    );
+    vars.insert(
+        "seller".into(),
+        json!({ "legal_name": "MOUZOUN SAS", "legal_form": "SAS", "address": "1 rue Exemple, 75001 Paris, FR",
+                "email": "boutique@example.com", "phone": null, "siren": "123456789", "vat_number": "FR12123456789", "rcs_city": "Paris" }),
+    );
+    vars.insert(
+        "withdrawal".into(),
+        json!({ "days": 14, "refund_days": 14, "deadline": "2027-01-22", "refund_due_by": "2027-01-24", "guarantee_years": 2 }),
+    );
+    vars.insert(
+        "mediator".into(),
+        json!({ "name": "Médiateur (exemple)", "url": "https://mediateur.example" }),
+    );
+    match code {
+        "withdrawal_acknowledgment" => {
+            vars.insert("order_return".into(), json!({ "number": "MZR-27-000004", "status": "requested", "requested_at": "2027-01-10T09:00:00Z" }));
+        }
+        "abandoned_cart" => {
+            return Some(
+                json!({ "lines": [{ "name": "Dattes Medjool", "quantity": 2 }], "cart_url": format!("{site_url}/boutique/cart") }),
+            );
+        }
+        "back_in_stock" => {
+            return Some(
+                json!({ "product": { "name": "Dattes Medjool", "variant": "1 kg", "url": format!("{site_url}/boutique/p/dattes-medjool") } }),
+            );
+        }
+        "staff_low_stock" => {
+            return Some(
+                json!({ "stock": { "sku": "DATES-MEDJOOL-1KG", "name": "Dattes Medjool", "location": "Boutique de la ferme",
+                                           "available": 3, "threshold": 5 },
+                                "admin_url": format!("{site_url}/admin/shop/inventory") }),
+            );
+        }
+        "order_shipped" | "order_ready_for_pickup" => {
+            vars.insert("fulfillment".into(), json!({ "carrier": "amana", "tracking_number": "CP123456789MA",
+                "tracking_url": "https://www.poste.ma/suivi?n=CP123456789MA", "location_name": "Boutique de la ferme",
+                "pickup_instructions": "À l'accueil du camp, de 9 h à 19 h.", "pickup_code": "042917" }));
+        }
+        "refund_issued" => {
+            vars.insert(
+                "refund".into(),
+                json!({ "amount_minor": 1_800, "currency": "EUR" }),
+            );
+        }
+        "return_update" => {
+            vars.insert("order_return".into(), json!({ "number": "MZR-27-000003", "status": "approved", "status_label": "accepté",
+                                                       "staff_note": "Renvoyez le colis avec le bon joint." }));
+        }
+        "staff_payment_issue" => {
+            vars.insert("issue".into(), json!("paid 4200 EUR instead of 4380 EUR"));
+        }
+        _ => {}
+    }
+    vars.insert("lines".into(), lines);
+    vars.insert(
+        "bank_transfer_details".into(),
+        json!("IBAN MA64 0000 0000 0000 0000 0000 0000"),
+    );
+    vars.insert("payment_url".into(), Value::Null);
     Some(Value::Object(vars))
 }

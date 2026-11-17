@@ -22,6 +22,11 @@ pub struct MediaService {
 }
 
 impl MediaService {
+    /// The bucket (private documents written by other services: invoices).
+    pub fn storage(&self) -> SharedStorage {
+        self.storage.clone()
+    }
+
     pub fn new(db: PgPool, storage: SharedStorage, config: MediaConfig) -> Self {
         Self {
             db,
@@ -199,6 +204,11 @@ impl MediaService {
 
     /// URL of a `public-read` object (never use it for private files).
     pub fn public_url(&self, object_key: &str) -> String {
+        // Images shipped with the website (`storage_provider = 'site'`, demo content) are
+        // root-relative paths served by the front, not bucket objects.
+        if object_key.starts_with('/') {
+            return object_key.to_string();
+        }
         self.storage.public_url(object_key)
     }
 

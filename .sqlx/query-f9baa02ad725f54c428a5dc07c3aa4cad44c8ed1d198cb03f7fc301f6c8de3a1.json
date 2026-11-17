@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ri.order_item_id, sum(ri.quantity)::int AS \"q!\" FROM return_items ri JOIN order_returns r ON r.id = ri.return_id\n           WHERE r.order_id = $1 AND r.status IN ('requested', 'approved') GROUP BY ri.order_item_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_item_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "q!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "f9baa02ad725f54c428a5dc07c3aa4cad44c8ed1d198cb03f7fc301f6c8de3a1"
+}

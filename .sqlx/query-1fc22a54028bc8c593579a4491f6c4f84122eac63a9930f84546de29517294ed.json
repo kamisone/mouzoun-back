@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders o SET withdrawal_deadline = (\n                 SELECT (max(f.delivered_at) AT TIME ZONE 'Europe/Paris')::date\n                        + COALESCE((SELECT (value #>> '{}')::int FROM settings WHERE key = 'shop.withdrawal_days'), 14)\n                 FROM fulfillments f WHERE f.order_id = o.id AND f.status IN ('delivered', 'picked_up'))\n             WHERE o.id = (SELECT order_id FROM fulfillments WHERE id = $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1fc22a54028bc8c593579a4491f6c4f84122eac63a9930f84546de29517294ed"
+}

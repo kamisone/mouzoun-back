@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.status AS \"status: OrderStatus\", o.payment_status, o.fulfillment_status, o.total_minor, o.paid_at,\n                  COALESCE((SELECT sum(amount_minor) FROM payments\n                            WHERE order_id = o.id AND status IN ('succeeded', 'refunded', 'partially_refunded')), 0)::bigint AS \"paid!\",\n                  COALESCE((SELECT sum(r.amount_minor) FROM refunds r JOIN payments p ON p.id = r.payment_id\n                            WHERE p.order_id = o.id AND r.status = 'succeeded'), 0)::bigint AS \"refunded!\",\n                  EXISTS (SELECT 1 FROM payments WHERE order_id = o.id AND status IN ('pending', 'requires_action', 'authorized')) AS \"pending!\",\n                  COALESCE((SELECT sum(quantity) FROM order_items WHERE order_id = o.id), 0)::bigint AS \"qty!\",\n                  COALESCE((SELECT sum(fulfilled_quantity) FROM order_items WHERE order_id = o.id), 0)::bigint AS \"fulfilled!\",\n                  COALESCE((SELECT sum(returned_quantity) FROM order_items WHERE order_id = o.id), 0)::bigint AS \"returned!\"\n           FROM orders o WHERE o.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status: OrderStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "payment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "fulfillment_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "paid!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "refunded!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "pending!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "qty!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "fulfilled!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "returned!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "87116c37decd9aca85c644887c9170ce15344888bd0e472130bbac2247969211"
+}

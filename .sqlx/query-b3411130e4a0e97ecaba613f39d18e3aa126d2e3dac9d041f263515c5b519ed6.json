@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE fulfillments SET status = 'cancelled' WHERE order_id = $1 AND status IN ('pending', 'packed', 'ready_for_pickup')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b3411130e4a0e97ecaba613f39d18e3aa126d2e3dac9d041f263515c5b519ed6"
+}

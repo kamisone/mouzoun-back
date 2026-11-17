@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.provider, p.status, p.amount_minor, p.provider_payment_id, p.paid_at, p.created_at, p.failure_reason,\n                  u.full_name AS \"received_by?\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('id', r.id, 'amount_minor', r.amount_minor, 'status', r.status,\n                            'reason', r.reason, 'created_at', r.created_at, 'lines', r.lines, 'failure_reason', r.failure_reason) ORDER BY r.created_at)\n                            FROM refunds r WHERE r.payment_id = p.id), '[]') AS \"refunds!\"\n           FROM payments p LEFT JOIN users u ON u.id = p.received_by WHERE p.order_id = $1 ORDER BY p.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "provider_payment_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "received_by?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "refunds!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "b411076a3f8414a0ce6b711cefe62a188043eb308eb61df15ed9c6e2cf2292c6"
+}

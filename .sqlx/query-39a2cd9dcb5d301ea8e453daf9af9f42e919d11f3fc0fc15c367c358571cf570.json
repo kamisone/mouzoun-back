@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.code::text AS \"code!\", o.sort_order, o.attribute_id, o.display_type,\n                  (SELECT code::text FROM product_option_values WHERE id = o.default_value_id) AS default_value,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM product_option_translations WHERE option_id = o.id), '{}') AS \"names!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('id', v.id, 'code', v.code::text, 'sort_order', v.sort_order,\n                            'swatch_media_id', v.swatch_media_id, 'swatch_color', v.swatch_color,\n                            'price_adjustment_minor', v.price_adjustment_minor, 'variation_value_id', v.variation_value_id,\n                            'labels', COALESCE((SELECT jsonb_object_agg(locale, label) FROM product_option_value_translations WHERE option_value_id = v.id), '{}'))\n                            ORDER BY v.sort_order, v.code) FROM product_option_values v WHERE v.option_id = o.id), '[]') AS \"values!\"\n           FROM product_options o WHERE o.product_id = $1 ORDER BY o.sort_order, o.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "attribute_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "display_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "default_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "values!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "39a2cd9dcb5d301ea8e453daf9af9f42e919d11f3fc0fc15c367c358571cf570"
+}

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, tax_class_code::text AS \"class!\", country_code::text AS \"country!\", rate_percent,\n                  lower(valid_period) AS valid_from, upper(valid_period) AS valid_until, is_active, is_confirmed, note\n           FROM tax_rates ORDER BY country_code = 'FR' DESC, country_code, tax_class_code, lower(valid_period)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "class!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "country!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "rate_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "valid_from",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "valid_until",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_confirmed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "note",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false,
+      null,
+      null,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9765124fa8f01d0b2298c7679498478656441e598c2b82c16cf17f0c320839bf"
+}

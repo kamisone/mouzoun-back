@@ -25,6 +25,16 @@ pub struct OutgoingEmail {
     pub html: String,
     pub text: String,
     pub reply_to: Option<String>,
+    /// Files sent with the email (terms of sale, withdrawal form...).
+    pub attachments: Vec<Attachment>,
+}
+
+/// A file attached to an email.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Attachment {
+    pub filename: String,
+    pub content_type: String,
+    pub bytes: Vec<u8>,
 }
 
 /// The provider's id for the message (SMTP: the `Message-ID` we set).
@@ -118,9 +128,21 @@ impl EmailSender for SmtpSender {
         if let Some(reply_to) = reply_to.or_else(|| self.reply_to.clone()) {
             builder = builder.reply_to(reply_to);
         }
-        let email = builder
-            .multipart(MultiPart::alternative_plain_html(msg.text, msg.html))
-            .map_err(|e| SendError::Permanent(e.to_string()))?;
+        let body = MultiPart::alternative_plain_html(msg.text, msg.html);
+        let email = if msg.attachments.is_empty() {
+            builder.multipart(body)
+        } else {
+            let mut mixed = MultiPart::mixed().multipart(body);
+            for a in msg.attachments {
+                let content_type = lettre::message::header::ContentType::parse(&a.content_type)
+                    .map_err(|e| SendError::Permanent(format!("attachment type: {e}")))?;
+                mixed = mixed.singlepart(
+                    lettre::message::Attachment::new(a.filename).body(a.bytes, content_type),
+                );
+            }
+            builder.multipart(mixed)
+        }
+        .map_err(|e| SendError::Permanent(e.to_string()))?;
         match self.transport.send(email).await {
             Ok(_) => Ok(ProviderMessageId(message_id)),
             Err(e) if e.is_permanent() => Err(SendError::Permanent(e.to_string())),
@@ -145,6 +167,7 @@ impl EmailSender for LogSender {
             to = %msg.to_email,
             subject = %msg.subject,
             html_bytes = msg.html.len(),
+            attachments = ?msg.attachments.iter().map(|a| &a.filename).collect::<Vec<_>>(),
             "email (EMAIL_PROVIDER=log, not sent):\n{}",
             msg.text
         );
