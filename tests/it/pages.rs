@@ -772,3 +772,83 @@ async fn shared_sections_are_placed_inlined_and_protected(db: PgPool) {
         "shared_not_found"
     );
 }
+
+async fn publish_errors(app: &TestApp, page: Uuid) -> usize {
+    let (status, body) = app
+        .admin(
+            Method::GET,
+            &format!("/v1/admin/pages/{page}/publish-check"),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    body["errors"].as_array().unwrap().len()
+}
+
+/// Dev databases seeded before the page builder hold a hero in the old shape (`layout`, `cta`):
+/// the hero schema refuses it, so the page could not be published until 0026 converted it.
+#[sqlx::test(migrations = "./migrations")]
+async fn legacy_heroes_are_converted_so_the_page_can_be_published(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "home", "accueil").await;
+    let hero: Uuid = sqlx::query_scalar(
+        r#"INSERT INTO content_blocks (page_id, block_type, settings, sort_order)
+           VALUES ($1, 'hero', '{"layout": "full"}', 0) RETURNING id"#,
+    )
+    .bind(page)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    for (locale, cta) in [("fr", "Réserver"), ("en", "Book now"), ("ar", "احجز الآن")] {
+        sqlx::query(
+            "INSERT INTO content_block_translations (content_block_id, locale, content)
+             VALUES ($1, $2, jsonb_build_object('title', 'Le désert', 'subtitle', 'Camping', 'cta', $3::text))",
+        )
+        .bind(hero)
+        .bind(locale)
+        .bind(cta)
+        .execute(&db)
+        .await
+        .unwrap();
+    }
+    assert_eq!(
+        publish_errors(&app, page).await,
+        4,
+        "the old keys are refused"
+    );
+
+    // The migration is idempotent: running it again on converted rows changes nothing.
+    for _ in 0..2 {
+        sqlx::raw_sql(include_str!(
+            "../../migrations/0026_legacy_hero_shape.up.sql"
+        ))
+        .execute(&db)
+        .await
+        .unwrap();
+    }
+    assert_eq!(
+        publish_errors(&app, page).await,
+        0,
+        "publishable after the conversion"
+    );
+    let settings: Value = sqlx::query_scalar("SELECT settings FROM content_blocks WHERE id = $1")
+        .bind(hero)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(
+        settings,
+        json!({"height": "screen", "cta_primary": {"link": {"type": "route", "route": "/stays", "new_tab": false}, "style": "primary"}})
+    );
+    let fr: Value = sqlx::query_scalar(
+        "SELECT content FROM content_block_translations WHERE content_block_id = $1 AND locale = 'fr'",
+    )
+    .bind(hero)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(
+        fr,
+        json!({"title": "Le désert", "subtitle": "Camping", "cta_primary_label": "Réserver"})
+    );
+}
