@@ -33,7 +33,10 @@ pub fn router(state: AppState) -> Router {
     // Back-office: every route under /v1/admin requires a staff token (secure by default:
     // a route added here cannot be exposed by forgetting a check in its handler).
     let admin = Router::new()
-        .nest("/media", modules::media::admin_routes())
+        .nest(
+            "/media",
+            modules::media::admin_routes(state.config.media.max_upload_bytes),
+        )
         .merge(modules::booking_admin::admin_routes())
         .merge(modules::pages::admin_routes())
         .merge(auth::mfa::admin_routes())
@@ -61,7 +64,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(health::routes())
         .nest("/v1", api_v1)
-        // Files never transit through the API (direct-to-GCS uploads), so JSON bodies stay small.
+        // JSON bodies stay small; only the media upload route raises its own limit.
         .layer(DefaultBodyLimit::max(1024 * 1024))
         .layer(
             ServiceBuilder::new()

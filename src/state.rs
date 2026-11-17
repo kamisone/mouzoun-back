@@ -33,7 +33,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(config: Config, db: PgPool, cache: Cache, buckets: SharedStorage) -> Self {
         let config = Arc::new(config);
-        let media = MediaService::new(db.clone(), buckets, cache.clone(), config.media.clone());
+        let media = MediaService::new(db.clone(), buckets, config.media.clone());
         let http = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(20))
             .connect_timeout(std::time::Duration::from_secs(5))

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO media_assets (id, bucket, object_key, original_filename, mime_type, kind, size_bytes,\n                                       uploaded_by, visibility)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n               ON CONFLICT (bucket, object_key) DO UPDATE SET updated_at = media_assets.updated_at\n               RETURNING id, folder_id, storage_provider, bucket, visibility, object_key, original_filename, mime_type,\n                         kind AS \"kind: MediaKind\", size_bytes, width, height, duration_seconds, checksum_sha256,\n                         blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at",
+  "query": "INSERT INTO media_assets (id, bucket, object_key, original_filename, mime_type, kind, size_bytes,\n                                       uploaded_by, visibility)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n               RETURNING id, folder_id, storage_provider, bucket, visibility, object_key, original_filename, mime_type,\n                         kind AS \"kind: MediaKind\", size_bytes, width, height, duration_seconds, checksum_sha256,\n                         blurhash, focal_x, focal_y, variants, uploaded_by, created_at, updated_at, deleted_at",
   "describe": {
     "columns": [
       {
@@ -152,5 +152,5 @@
       true
     ]
   },
-  "hash": "8d262af9faff864151996fddba0f5eb98ad2612eb826c06c98ad3555b15ca609"
+  "hash": "d08ea1e83884b84c6ad26e72688e70650e445d4db977c1ba94d72533d782db35"
 }

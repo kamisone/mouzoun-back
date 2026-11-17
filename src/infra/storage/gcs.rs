@@ -1,7 +1,7 @@
 //! Google Cloud Storage implementation, built on Google's official Rust SDK.
 //!
 //! - Signed URLs are produced locally with the service-account key (no network call).
-//! - Metadata operations use `StorageControl`, data reads use `Storage`.
+//! - Metadata operations use `StorageControl`, object writes use `Storage`.
 //! - Both clients pool connections internally and are shared across buckets.
 
 use std::{sync::Arc, time::Duration};
@@ -9,8 +9,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Context;
 use async_trait::async_trait;
 use axum::http::Method;
-use bytes::{Bytes, BytesMut};
-use chrono::Utc;
+use bytes::Bytes;
 use google_cloud_auth::{
     credentials::{self, Credentials, service_account},
     signer::Signer,
@@ -19,14 +18,10 @@ use google_cloud_gax::error::rpc::Code;
 use google_cloud_storage::{
     builder::storage::SignedUrlBuilder,
     client::{Storage, StorageControl},
-    model_ext::ReadRange,
 };
 use serde_json::json;
 
-use super::{
-    ObjectMeta, ObjectStorage, SharedStorage, SignedRequest, StorageError, UploadConstraints,
-    upload_headers,
-};
+use super::{ObjectMeta, ObjectStorage, PutOptions, SharedStorage, StorageError};
 use crate::config::{GcsCredentials, StorageConfig};
 
 struct GcsClients {
@@ -126,28 +121,18 @@ impl GcsBucket {
 
 #[async_trait]
 impl ObjectStorage for GcsBucket {
-    async fn signed_upload(
-        &self,
-        key: &str,
-        constraints: &UploadConstraints,
-    ) -> Result<SignedRequest, StorageError> {
-        let headers = upload_headers(constraints);
-        let mut builder = SignedUrlBuilder::for_object(&self.resource, key)
-            .with_method(Method::PUT)
-            .with_expiration(constraints.ttl);
-        for (name, value) in &headers {
-            builder = builder.with_header(name, value);
+    async fn put(&self, key: &str, bytes: Bytes, options: &PutOptions) -> Result<(), StorageError> {
+        let mut write = self
+            .clients
+            .storage
+            .write_object(&self.resource, key, bytes)
+            .set_content_type(&options.content_type)
+            .set_predefined_acl(options.acl.predefined());
+        if let Some(cc) = &options.cache_control {
+            write = write.set_cache_control(cc);
         }
-        let url = builder
-            .sign_with(&self.clients.signer)
-            .await
-            .map_err(|e| StorageError::Signing(e.to_string()))?;
-        Ok(SignedRequest {
-            url,
-            method: "PUT",
-            headers,
-            expires_at: Utc::now() + constraints.ttl,
-        })
+        write.send_unbuffered().await.map_err(backend)?;
+        Ok(())
     }
 
     async fn signed_download_url(
@@ -188,26 +173,6 @@ impl ObjectStorage for GcsBucket {
             Err(e) if is_not_found(&e) => Ok(None),
             Err(e) => Err(backend(e)),
         }
-    }
-
-    async fn read_prefix(&self, key: &str, len: u64) -> Result<Bytes, StorageError> {
-        let mut response = self
-            .clients
-            .storage
-            .read_object(&self.resource, key)
-            .set_read_range(ReadRange::head(len))
-            .send()
-            .await
-            .map_err(backend)?;
-        let mut buf = BytesMut::new();
-        while let Some(chunk) = response.next().await {
-            buf.extend_from_slice(&chunk.map_err(backend)?);
-            if buf.len() as u64 >= len {
-                break;
-            }
-        }
-        buf.truncate(len as usize);
-        Ok(buf.freeze())
     }
 
     async fn delete(&self, key: &str) -> Result<(), StorageError> {

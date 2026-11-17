@@ -5,7 +5,6 @@ mod accounts;
 mod booking_holds;
 pub mod booking_ops;
 mod inventory;
-mod media_cleanup;
 mod page_publishing;
 
 use std::{future::Future, time::Duration};
@@ -20,15 +19,6 @@ use crate::state::AppState;
 
 pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandle<()>> {
     vec![
-        every(
-            "media cleanup",
-            state.config.media.cleanup_interval,
-            shutdown.clone(),
-            {
-                let media = state.media.clone();
-                move || media_cleanup::run_once(media.clone())
-            },
-        ),
         every(
             "booking holds",
             Duration::from_secs(60),

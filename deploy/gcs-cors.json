@@ -1,8 +1,0 @@
-[
-  {
-    "origin": ["http://localhost:3001", "https://mouzoun.com", "https://www.mouzoun.com"],
-    "method": ["PUT", "GET", "HEAD"],
-    "responseHeader": ["Content-Type", "Cache-Control", "x-goog-content-length-range", "x-goog-acl", "ETag"],
-    "maxAgeSeconds": 3600
-  }
-]

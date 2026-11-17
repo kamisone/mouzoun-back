@@ -80,7 +80,7 @@ Bookings belong to `customers`; an account (`users`, `is_staff = false`) owns on
   immediate. An expired access token is refreshed transparently by middleware.
 - Rotation: each refresh replaces the token and keeps the previous hash. Presenting a rotated
   token again after a 10 s grace (two tabs) revokes the session (theft detection, audited).
-- CSRF: SameSite=Lax cookies, JSON bodies only, CORS limited to the site origins.
+- CSRF: SameSite=Lax cookies, JSON bodies (plus the staff-only multipart media upload), CORS limited to the site origins; writes from a foreign `Origin` are refused.
 - The front never calls the account API during server rendering (`/account/**` is
   client-rendered) and never forwards the refresh cookie from SSR: a rotation there could not
   reach the browser.

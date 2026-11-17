@@ -162,20 +162,14 @@ async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
     create_user(&app, "boss@mouzoun.com", "abc123", true).await;
     let (_, cookie, _) = login(&app, "boss@mouzoun.com", "abc123").await;
     let cookie = cookie.unwrap();
-    let upload = json!({ "filename": "dune.png", "content_type": "image/png", "size_bytes": 1024 });
+    // Any cookie-authenticated write will do: starting 2FA setup.
+    let write = "/v1/admin/account/2fa/setup";
 
     let evil = [
         ("cookie", cookie.clone()),
         ("origin", "https://evil.example".to_string()),
     ];
-    let (status, _, _) = app
-        .send(
-            Method::POST,
-            "/v1/admin/media/uploads",
-            Some(upload.clone()),
-            &evil,
-        )
-        .await;
+    let (status, _, _) = app.send(Method::POST, write, None, &evil).await;
     assert_eq!(status, StatusCode::FORBIDDEN, "cross-site write");
     let (status, _, _) = app
         .send(
@@ -191,10 +185,8 @@ async fn state_changing_requests_from_foreign_origins_are_rejected(db: PgPool) {
         ("cookie", cookie.clone()),
         ("origin", ALLOWED_ORIGIN.to_string()),
     ];
-    let (status, _, body) = app
-        .send(Method::POST, "/v1/admin/media/uploads", Some(upload), &ours)
-        .await;
-    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let (status, _, body) = app.send(Method::POST, write, None, &ours).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
     let (status, _, _) = app
         .send(
             Method::GET,

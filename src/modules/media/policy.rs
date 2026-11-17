@@ -3,9 +3,6 @@
 use chrono::{DateTime, Datelike, Utc};
 use uuid::Uuid;
 
-/// Bytes read back from storage to verify the real file type.
-pub const SNIFF_LEN: u64 = 16;
-
 /// Public objects have unique, never-reused keys, so they can be cached forever.
 pub const PUBLIC_CACHE_CONTROL: &str = "public, max-age=31536000, immutable";
 

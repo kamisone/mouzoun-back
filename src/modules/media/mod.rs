@@ -1,32 +1,34 @@
 //! Media library backed by object storage (back-office only).
 //!
-//! Upload protocol (bytes never transit through the API):
-//! 1. `POST /v1/admin/media/uploads`        → validates the request, returns a signed PUT URL
-//! 2. client `PUT`s the file to that URL (straight to GCS)
-//! 3. `POST /v1/admin/media/{id}/complete`  → verifies size, type and magic bytes, marks it `ready`
-//!
-//! Uploads in progress live in Redis (the `media_assets` row is only inserted once the file is
-//! verified); uploads never completed are purged by `jobs::media_cleanup`.
+//! Upload: `POST /v1/admin/media` (multipart). The API checks the type, the size and the magic
+//! bytes, writes the object to the bucket with the ACL of its visibility (`publicRead` for site
+//! photos, `private` for personal files) and inserts the `media_assets` row. Browsers never
+//! write to the bucket, so it needs no CORS rule and its ACLs stay under the API's control.
 
 mod handlers;
 pub mod model;
 pub mod policy;
 mod service;
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::{Router, extract::DefaultBodyLimit, routing::get};
 
 pub use service::MediaService;
 
 use crate::state::AppState;
 
+/// Room for the multipart envelope around the largest allowed file.
+const MULTIPART_OVERHEAD: usize = 64 * 1024;
+
 /// `/v1/admin/media` (staff guard applied by the admin router).
-pub fn admin_routes() -> Router<AppState> {
+pub fn admin_routes(max_upload_bytes: i64) -> Router<AppState> {
+    let limit = usize::try_from(max_upload_bytes).unwrap_or(0) + MULTIPART_OVERHEAD;
     Router::new()
-        .route("/", get(handlers::list))
-        .route("/uploads", post(handlers::create_upload))
+        .route(
+            "/",
+            get(handlers::list)
+                // Only this route accepts large bodies; the API-wide limit stays at 1 MiB.
+                .post(handlers::upload)
+                .layer(DefaultBodyLimit::max(limit)),
+        )
         .route("/{id}", get(handlers::get).delete(handlers::delete))
-        .route("/{id}/complete", post(handlers::complete))
 }

@@ -61,10 +61,7 @@ pub fn test_config() -> Config {
         },
         media: MediaConfig {
             max_upload_bytes: 1024 * 1024,
-            upload_url_ttl: Duration::from_secs(900),
             download_url_ttl: Duration::from_secs(900),
-            pending_ttl: Duration::from_secs(3600),
-            cleanup_interval: Duration::from_secs(3600),
         },
         email: EmailConfig {
             provider: EmailProvider::Log,

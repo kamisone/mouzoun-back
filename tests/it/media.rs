@@ -1,34 +1,69 @@
-//! Media uploads: Redis ticket → direct upload → verified `media_assets` row.
+//! Media uploads: multipart to the API → checked → written to the bucket with its ACL → row.
 
 use crate::common::{TestApp, png_bytes};
-use axum::http::{Method, StatusCode};
-use serde_json::{Value, json};
+use axum::{
+    body::Body,
+    http::{Method, Request, StatusCode, header},
+};
+use http_body_util::BodyExt;
+use mouzoun_api::infra::storage::ObjectAcl;
+use serde_json::Value;
 use sqlx::PgPool;
+use tower::ServiceExt;
 
-fn object_key(ticket: &Value) -> String {
-    ticket["upload"]["url"]
-        .as_str()
-        .unwrap()
-        .trim_start_matches("memory://upload/")
-        .to_string()
+const BOUNDARY: &str = "mouzoun-test-boundary";
+
+/// `POST /v1/admin/media` as the admin, like the browser's `FormData`.
+async fn upload(
+    app: &TestApp,
+    filename: &str,
+    content_type: &str,
+    bytes: &[u8],
+    visibility: Option<&str>,
+) -> (StatusCode, Value) {
+    let mut body = Vec::new();
+    if let Some(v) = visibility {
+        body.extend_from_slice(
+            format!(
+                "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"visibility\"\r\n\r\n{v}\r\n"
+            )
+            .as_bytes(),
+        );
+    }
+    body.extend_from_slice(
+        format!(
+            "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\nContent-Type: {content_type}\r\n\r\n"
+        )
+        .as_bytes(),
+    );
+    body.extend_from_slice(bytes);
+    body.extend_from_slice(format!("\r\n--{BOUNDARY}--\r\n").as_bytes());
+
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri("/v1/admin/media")
+        .header(header::AUTHORIZATION, format!("Bearer {}", app.admin_token))
+        .header(
+            header::CONTENT_TYPE,
+            format!("multipart/form-data; boundary={BOUNDARY}"),
+        )
+        .body(Body::from(body))
+        .unwrap();
+    let res = app.router.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    (
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    )
 }
 
-async fn start_upload(app: &TestApp, size: usize) -> (String, String, Value) {
-    let (status, ticket) = app
-        .admin(
-            Method::POST,
-            "/v1/admin/media/uploads",
-            Some(
-                json!({ "filename": "dune.png", "content_type": "image/png", "size_bytes": size }),
-            ),
-        )
-        .await;
-    assert_eq!(status, StatusCode::CREATED, "{ticket}");
-    (
-        ticket["media_id"].as_str().unwrap().to_string(),
-        object_key(&ticket),
-        ticket,
-    )
+async fn object_key(app: &TestApp, id: &str) -> String {
+    sqlx::query_scalar("SELECT object_key FROM media_assets WHERE id = $1::uuid")
+        .bind(id)
+        .fetch_one(&app.db)
+        .await
+        .unwrap()
 }
 
 async fn asset_rows(app: &TestApp) -> i64 {
@@ -39,55 +74,26 @@ async fn asset_rows(app: &TestApp) -> i64 {
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn a_verified_upload_becomes_a_media_asset(db: PgPool) {
+async fn an_uploaded_image_is_stored_public_and_listed(db: PgPool) {
     let app = TestApp::new(db).await;
-    let (id, key, ticket) = start_upload(&app, 2048).await;
-
-    let headers = &ticket["upload"]["headers"];
-    assert_eq!(headers["content-type"], "image/png");
-    assert_eq!(headers["x-goog-content-length-range"], "2048,2048");
-    assert_eq!(
-        headers["cache-control"],
-        "public, max-age=31536000, immutable"
-    );
-    assert!(key.starts_with("media/") && key.ends_with(".png"));
-    assert_eq!(
-        asset_rows(&app).await,
-        0,
-        "nothing in the table until the file is verified"
-    );
-
-    let (status, _) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::BAD_REQUEST, "file not uploaded yet");
-
-    app.storage.put(&key, png_bytes(2048), "image/png");
-    let (status, media) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "{media}");
+    let (status, media) = upload(&app, "dune.png", "image/png", &png_bytes(2048), None).await;
+    assert_eq!(status, StatusCode::CREATED, "{media}");
     assert_eq!(media["kind"], "image");
     assert_eq!(media["visibility"], "public");
+    assert_eq!(media["original_filename"], "dune.png");
+    let id = media["id"].as_str().unwrap().to_string();
+    let key = object_key(&app, &id).await;
+    assert!(key.starts_with("media/") && key.ends_with(".png"));
     assert_eq!(media["url"], format!("https://cdn.test/{key}"));
 
-    let (status, again) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "idempotent");
-    assert_eq!(again["id"], media["id"]);
+    let stored = app.storage.object(&key).expect("written by the API");
+    assert_eq!(stored.size, 2048);
+    assert_eq!(stored.content_type, "image/png");
+    assert_eq!(stored.acl, Some(ObjectAcl::PublicRead));
+    assert_eq!(
+        stored.cache_control.as_deref(),
+        Some("public, max-age=31536000, immutable")
+    );
 
     let (bucket, size, kind): (String, i64, String) =
         sqlx::query_as("SELECT bucket, size_bytes, kind FROM media_assets WHERE id = $1::uuid")
@@ -121,113 +127,25 @@ async fn a_verified_upload_becomes_a_media_asset(db: PgPool) {
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn spoofed_or_resized_content_is_rejected_and_removed(db: PgPool) {
+async fn private_files_get_the_private_acl_and_signed_urls(db: PgPool) {
     let app = TestApp::new(db).await;
-    let (id, key, _) = start_upload(&app, 64).await;
-    let mut html = b"<html><script>alert(1)</script>".to_vec();
-    html.resize(64, b' ');
-    app.storage.put(&key, html, "image/png");
-    let (status, _) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::BAD_REQUEST);
-    assert!(!app.storage.contains(&key), "rejected file deleted");
-    let (status, _) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::NOT_FOUND, "ticket forgotten");
-
-    let (id, key, _) = start_upload(&app, 100).await;
-    app.storage.put(&key, png_bytes(90), "image/png");
-    let (status, _) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(
-        status,
-        StatusCode::BAD_REQUEST,
-        "size differs from the declaration"
-    );
-    assert_eq!(asset_rows(&app).await, 0);
-}
-
-#[sqlx::test(migrations = "./migrations")]
-async fn upload_requests_are_validated(db: PgPool) {
-    let app = TestApp::new(db).await;
-    for (body, expected) in [
-        (
-            json!({ "filename": "x.svg", "content_type": "image/svg+xml", "size_bytes": 10 }),
-            StatusCode::BAD_REQUEST,
-        ),
-        (
-            json!({ "filename": "x.png", "content_type": "image/png", "size_bytes": 10 * 1024 * 1024 }),
-            StatusCode::BAD_REQUEST,
-        ),
-        (
-            json!({ "filename": "x.png", "content_type": "image/png", "size_bytes": 0 }),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ),
-        (
-            json!({ "filename": "", "content_type": "image/png", "size_bytes": 10 }),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ),
-    ] {
-        let (status, res) = app
-            .admin(Method::POST, "/v1/admin/media/uploads", Some(body.clone()))
-            .await;
-        assert_eq!(status, expected, "{body} -> {res}");
-    }
-}
-
-#[sqlx::test(migrations = "./migrations")]
-async fn each_upload_is_signed_with_its_acl_and_private_files_use_signed_urls(db: PgPool) {
-    let app = TestApp::new(db).await;
-    // Public: readable by anyone, cached for good.
-    let (_, _, ticket) = start_upload(&app, 32).await;
-    let headers = &ticket["upload"]["headers"];
-    assert_eq!(headers["x-goog-acl"], "public-read");
-    assert_eq!(
-        headers["cache-control"],
-        "public, max-age=31536000, immutable"
-    );
-
-    // Private: owner-only ACL, never cached, served through signed URLs.
-    let (status, ticket) = app
-        .admin(
-            Method::POST,
-            "/v1/admin/media/uploads",
-            Some(json!({ "filename": "passeport.pdf", "content_type": "application/pdf", "size_bytes": 16, "visibility": "private" })),
-        )
-        .await;
-    assert_eq!(status, StatusCode::CREATED, "{ticket}");
-    let headers = &ticket["upload"]["headers"];
-    assert_eq!(headers["x-goog-acl"], "private");
-    assert_eq!(headers["cache-control"], "private, no-store");
-    let id = ticket["media_id"].as_str().unwrap().to_string();
-    let key = object_key(&ticket);
-    app.storage
-        .put(&key, b"%PDF-1.7\n0123456".to_vec(), "application/pdf");
-    let (status, media) = app
-        .admin(
-            Method::POST,
-            &format!("/v1/admin/media/{id}/complete"),
-            None,
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "{media}");
+    let (status, media) = upload(
+        &app,
+        "passeport.pdf",
+        "application/pdf",
+        b"%PDF-1.7\n0123456",
+        Some("private"),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{media}");
     assert_eq!(media["visibility"], "private");
+    let id = media["id"].as_str().unwrap().to_string();
+    let key = object_key(&app, &id).await;
     assert_eq!(media["url"], format!("memory://download/{key}?signed=1"));
+
+    let stored = app.storage.object(&key).unwrap();
+    assert_eq!(stored.acl, Some(ObjectAcl::Private));
+    assert_eq!(stored.cache_control.as_deref(), Some("private, no-store"));
     let visibility: String =
         sqlx::query_scalar("SELECT visibility FROM media_assets WHERE id = $1::uuid")
             .bind(&id)
@@ -238,39 +156,42 @@ async fn each_upload_is_signed_with_its_acl_and_private_files_use_signed_urls(db
 }
 
 #[sqlx::test(migrations = "./migrations")]
-async fn abandoned_uploads_are_purged(db: PgPool) {
+async fn refused_files_never_reach_the_bucket(db: PgPool) {
     let app = TestApp::new(db).await;
-    let (_, key, _) = start_upload(&app, 32).await;
-    app.storage.put(&key, png_bytes(32), "image/png"); // uploaded, never completed
+    let mut html = b"<html><script>alert(1)</script>".to_vec();
+    html.resize(64, b' ');
+    let too_big = png_bytes(1024 * 1024 + 1);
+    // (filename, type, bytes, visibility): all refused before anything is stored.
+    let cases: [(&str, &str, &[u8], Option<&str>); 5] = [
+        ("x.png", "image/png", &html, None), // spoofed: HTML announced as PNG
+        ("x.svg", "image/svg+xml", b"<svg/>", None),
+        ("x.png", "image/png", b"", None),
+        ("x.png", "image/png", &too_big, None),
+        ("x.png", "image/png", &png_bytes(32), Some("everyone")),
+    ];
+    for (name, content_type, bytes, visibility) in cases {
+        let (status, res) = upload(&app, name, content_type, bytes, visibility).await;
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "{name} {content_type} -> {res}"
+        );
+    }
+    assert!(app.storage.is_empty(), "nothing written");
+    assert_eq!(asset_rows(&app).await, 0);
+}
 
-    assert_eq!(
-        app.state.media.purge_abandoned(100).await.unwrap(),
-        0,
-        "not expired yet"
-    );
-    // Expire the ticket: move its deadline to the past in the pending index.
-    let mut redis = app.state.cache.connection();
-    let index = app.state.cache.key("media:uploads:pending");
-    let members: Vec<String> = redis::cmd("ZRANGE")
-        .arg(&index)
-        .arg(0)
-        .arg(-1)
-        .query_async(&mut redis)
-        .await
-        .unwrap();
-    let _: () = redis::cmd("ZADD")
-        .arg(&index)
-        .arg(0)
-        .arg(&members[0])
-        .query_async(&mut redis)
-        .await
-        .unwrap();
-
-    assert_eq!(app.state.media.purge_abandoned(100).await.unwrap(), 1);
-    assert!(!app.storage.contains(&key));
-    assert_eq!(
-        app.state.media.purge_abandoned(100).await.unwrap(),
-        0,
-        "idempotent"
-    );
+#[sqlx::test(migrations = "./migrations")]
+async fn bodies_over_the_route_limit_are_refused(db: PgPool) {
+    let app = TestApp::new(db).await;
+    let (status, res) = upload(
+        &app,
+        "x.png",
+        "image/png",
+        &png_bytes(2 * 1024 * 1024),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{res}");
+    assert!(app.storage.is_empty());
 }

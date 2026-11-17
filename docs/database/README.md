@@ -157,5 +157,4 @@ dispatcher, the handlers and the emails is in [`docs/email/README.md`](../email/
 | outbox dispatcher | on NOTIFY + every `OUTBOX_POLL_SECS` | runs the handlers of due outbox events (`src/worker`) |
 | email scheduler | 5 min | plans pre-arrival and review-request emails |
 | `inventory` | 24 h | extends the inventory calendar to 18 months and activity slots to `booking.max_days_ahead`; never overwrites existing rows (manual overrides are kept) |
-| `media_cleanup` | `MEDIA_CLEANUP_INTERVAL_SECS` | deletes objects of uploads never completed |
 | `page_publishing` | 60 s | publishes scheduled page revisions whose `publish_at` has passed |

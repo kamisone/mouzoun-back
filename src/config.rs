@@ -403,11 +403,7 @@ impl fmt::Debug for StorageConfig {
 #[derive(Clone, Debug)]
 pub struct MediaConfig {
     pub max_upload_bytes: i64,
-    pub upload_url_ttl: Duration,
     pub download_url_ttl: Duration,
-    /// Pending uploads older than this are considered abandoned and purged.
-    pub pending_ttl: Duration,
-    pub cleanup_interval: Duration,
 }
 
 /// Variables the API cannot start without.
@@ -558,13 +554,10 @@ impl MediaConfig {
     fn from_env() -> Result<Self> {
         Ok(Self {
             max_upload_bytes: parse_or("MEDIA_MAX_UPLOAD_BYTES", 15 * 1024 * 1024)?,
-            upload_url_ttl: Duration::from_secs(parse_or("MEDIA_UPLOAD_URL_TTL_SECS", 15 * 60)?),
             download_url_ttl: Duration::from_secs(parse_or(
                 "MEDIA_DOWNLOAD_URL_TTL_SECS",
                 15 * 60,
             )?),
-            pending_ttl: Duration::from_secs(parse_or("MEDIA_PENDING_TTL_SECS", 24 * 3600)?),
-            cleanup_interval: Duration::from_secs(parse_or("MEDIA_CLEANUP_INTERVAL_SECS", 3600)?),
         })
     }
 }
@@ -696,10 +689,7 @@ mod tests {
             },
             media: MediaConfig {
                 max_upload_bytes: 1,
-                upload_url_ttl: Duration::from_secs(1),
                 download_url_ttl: Duration::from_secs(1),
-                pending_ttl: Duration::from_secs(1),
-                cleanup_interval: Duration::from_secs(1),
             },
             email: EmailConfig {
                 provider: EmailProvider::Log,

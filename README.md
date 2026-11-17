@@ -62,31 +62,29 @@ mount them in `web/mod.rs` (admin routes are guarded automatically).
 
 ## Media uploads (Google Cloud Storage)
 
-Files go **directly from the browser to GCS**; the API never streams bytes, so uploads don't
-consume API memory, bandwidth or request time.
+The browser sends the file **to the API**, which writes it to GCS itself (server to server,
+with a predefined ACL). The browser never talks to the bucket, so the bucket
+needs **no CORS rule**, and only the API decides an object's ACL.
 
 ```
-admin ── POST /v1/admin/media/uploads {filename, content_type, size_bytes} ──► API
-      ◄── {media_id, expires_at, upload: {url, method: PUT, headers}} ── (pending, kept in Redis)
-admin ── PUT <signed url> (file, with the returned headers) ──────────────► GCS
-admin ── POST /v1/admin/media/{id}/complete ──► API checks size + type + magic bytes ► media_assets row
+admin ── POST /v1/admin/media (multipart: file, visibility) ──► API
+         API checks type + size + magic bytes ──► GCS write (ACL, Content-Type, Cache-Control)
+                                              ──► media_assets row ──► 201 {id, url, ...}
 ```
 
-- The signed URL (V4, 15 min) pins content type, **exact size**, cache headers and the
-  object's **ACL** (`x-goog-acl`): the browser cannot upload a private file as public.
-- Completion re-checks what actually landed in the bucket and sniffs the first bytes:
-  a renamed `.exe`/`.html` is deleted and refused.
-- Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts). Max 15 MB.
+- The bytes are checked **before** anything is stored: a renamed `.exe`/`.html` never reaches
+  the bucket. If the database insert fails, the object is deleted again.
+- Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts). Max
+  `MEDIA_MAX_UPLOAD_BYTES` (15 MB). Only this route raises the body limit (the rest of the API
+  keeps 1 MiB); nginx allows 16M on `location = /api/v1/admin/media` only.
 - Keys are opaque (`media/YYYY/MM/<uuid>.<ext>`), never derived from filenames.
 - One bucket, fine-grained access control, ACL chosen per file (`media_assets.visibility`):
-  - `"visibility": "public"` (default: site photos) → ACL `public-read`, served at its plain URL
-    with `Cache-Control: public, max-age=31536000, immutable`;
-  - `"visibility": "private"` (files tied to a person) → ACL `private`, `Cache-Control: private,
+  - `visibility=public` (default: site photos) → predefined ACL `publicRead`, served at its
+    plain URL with `Cache-Control: public, max-age=31536000, immutable`;
+  - `visibility=private` (files tied to a person) → ACL `private`, `Cache-Control: private,
     no-store`, only ever served through short-lived signed download URLs (attachment, original
     name). Public pages, the catalogue and account covers never show private files.
-- Only completed uploads exist in `media_assets`; pending ones live in Redis until completed.
 - Deleting media is a soft delete (`deleted_at`): references from content keep working.
-- Uploads never completed are purged hourly after 24 h (`jobs/media_cleanup.rs`).
 
 ### Bucket setup (once per environment)
 
@@ -101,10 +99,9 @@ gcloud storage buckets update gs://$B --no-uniform-bucket-level-access --no-publ
 # Service account: objects of this bucket only. objectAdmin, because setting an object's ACL
 # at upload needs storage.objects.setIamPolicy (objectUser does not have it).
 gcloud storage buckets add-iam-policy-binding gs://$B --member=serviceAccount:$SA --role=roles/storage.objectAdmin
-
-# Allow browser uploads from the front origins (edit deploy/gcs-cors.json first)
-gcloud storage buckets update gs://$B --cors-file=deploy/gcs-cors.json
 ```
+
+No CORS rule is needed: browsers never write to the bucket (uploads go through the API).
 
 Credentials: copy `project_id`, `client_email`, `private_key_id`, `private_key` from the
 service-account JSON key into `GCS_*` (keep `private_key` on one line with its `\n`).
@@ -130,7 +127,7 @@ Application Default Credentials.
 | POST | `/v1/auth/login` · `/v1/auth/logout` | public (set / expire the session cookie) |
 | GET | `/v1/auth/me` | authenticated |
 | GET | `/v1/admin/media` (`?kind=&page=&per_page=`) | staff |
-| POST | `/v1/admin/media/uploads` · `/v1/admin/media/{id}/complete` | staff |
+| POST | `/v1/admin/media` (multipart `file`, `visibility`) | staff |
 | GET · DELETE | `/v1/admin/media/{id}` | staff (DELETE = soft delete) |
 
 `/v1/auth/login` and `/v1/auth/me` return the profile: `is_staff`, `roles` and the effective
@@ -242,7 +239,7 @@ silomis), `SERVER_USER` allowed to `sudo`.
    Non-secret settings (log level, DB pool size, token lifetime) are set in the workflow.
    If your secrets are repository secrets rather than `dev` environment secrets, they work too
    once the `dev` environment exists (or remove `environment: dev` from the workflow).
-3. **GCS bucket**: see "Bucket setup" above, with the production origins in `deploy/gcs-cors.json`.
+3. **GCS bucket**: see "Bucket setup" above.
 4. Push the **back** and the **front** to `dev`, in any order (until the back is deployed the
    website is up but shows no API data, and is only reachable once nginx is configured by the back).
 5. **TLS**: the certificate files and `/etc/ssl/mouzoun/ssl_config.conf` / `ssl_redirect.conf` are

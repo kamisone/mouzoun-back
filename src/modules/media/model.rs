@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use validator::Validate;
 
-use crate::{db::media::MediaKind, infra::storage::SignedRequest};
+use crate::db::media::MediaKind;
 
 /// Who can read a file: anyone at its public URL (`public-read` ACL, CDN-cacheable), or only
 /// through short-lived signed URLs (`private` ACL: files tied to a person).
@@ -31,38 +30,14 @@ pub struct MediaDto {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct CreateUploadRequest {
-    #[validate(length(min = 1, max = 255))]
+/// A file received by `POST /v1/admin/media` (multipart), not yet checked.
+#[derive(Debug)]
+pub struct NewUpload {
     pub filename: String,
-    #[validate(length(min = 3, max = 100))]
+    /// Type announced by the browser; the bytes must match it.
     pub content_type: String,
-    #[validate(range(min = 1))]
-    pub size_bytes: i64,
-    #[serde(default)]
+    pub bytes: bytes::Bytes,
     pub visibility: MediaVisibility,
-}
-
-/// An upload in progress. Lives in Redis until `complete` verifies the file and inserts the
-/// `media_assets` row (the table never holds half-uploaded files).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PendingUpload {
-    pub id: Uuid,
-    pub visibility: MediaVisibility,
-    pub object_key: String,
-    pub content_type: String,
-    pub size_bytes: i64,
-    pub original_filename: String,
-    pub uploaded_by: Uuid,
-    pub expires_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct UploadTicket {
-    /// Id of the future media asset (pass it to `complete`).
-    pub media_id: Uuid,
-    pub expires_at: DateTime<Utc>,
-    pub upload: SignedRequest,
 }
 
 #[derive(Debug, Deserialize)]
