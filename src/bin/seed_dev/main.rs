@@ -38,12 +38,9 @@ type Text<'a> = [(&'a str, &'a str, &'a str, &'a str); 3];
 async fn main() -> anyhow::Result<()> {
     app::install_crypto_provider();
     dotenvy::dotenv().ok();
-    let env = |a: &str, b: &str| {
-        std::env::var(a)
-            .or_else(|_| std::env::var(b))
-            .ok()
-            .filter(|v| !v.is_empty())
-    };
+    // An empty variable (`KEY=` in .env) counts as unset, so the fallback still applies.
+    let set = |k: &str| std::env::var(k).ok().filter(|v| !v.trim().is_empty());
+    let env = |a: &str, b: &str| set(a).or_else(|| set(b));
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL is required")?;
     let args: Vec<String> = std::env::args().skip(1).collect();
     if let [command, email, password, role] = args.as_slice()

@@ -282,7 +282,9 @@ fn placement(shared: &BlockDraft, anchor: Option<&str>) -> BlockDraft {
 /// Blur-up previews from the front's photo manifest, when the repository is checked out whole.
 fn lqips() -> BTreeMap<String, String> {
     let path = std::env::var("SEED_PHOTOS_MANIFEST")
-        .unwrap_or_else(|_| "../front/app/data/photos.json".into());
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| "../front/app/data/photos.json".into());
     std::fs::read_to_string(path)
         .ok()
         .and_then(|raw| serde_json::from_str::<Vec<Value>>(&raw).ok())
