@@ -852,3 +852,504 @@ async fn legacy_heroes_are_converted_so_the_page_can_be_published(db: PgPool) {
         json!({"title": "Le désert", "subtitle": "Camping", "cta_primary_label": "Réserver"})
     );
 }
+
+// ---- Gallery sections --------------------------------------------------------------------------
+
+/// A public photo described in French (and in English when `all_locales`).
+async fn photo(db: &PgPool, all_locales: bool) -> Uuid {
+    let id = media(db).await;
+    let locales: &[&str] = if all_locales {
+        &["fr", "en", "ar"]
+    } else {
+        &["fr"]
+    };
+    for locale in locales {
+        sqlx::query("INSERT INTO media_asset_translations (media_asset_id, locale, alt_text) VALUES ($1, $2, 'Dunes')")
+            .bind(id)
+            .bind(locale)
+            .execute(db)
+            .await
+            .unwrap();
+    }
+    id
+}
+
+async fn gallery_of(db: &PgPool, photos: &[Uuid]) -> Uuid {
+    let id = Uuid::now_v7();
+    sqlx::query("INSERT INTO galleries (id, name) VALUES ($1, 'Test')")
+        .bind(id)
+        .execute(db)
+        .await
+        .unwrap();
+    for (i, m) in photos.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO gallery_items (gallery_id, media_id, sort_order) VALUES ($1, $2, $3)",
+        )
+        .bind(id)
+        .bind(m)
+        .bind(i32::try_from(i).unwrap())
+        .execute(db)
+        .await
+        .unwrap();
+    }
+    id
+}
+
+/// `n` galleries of `size` photos each.
+async fn galleries(db: &PgPool, n: usize, size: usize) -> Vec<(Uuid, Vec<Uuid>)> {
+    let mut out = Vec::new();
+    for _ in 0..n {
+        let mut photos = Vec::new();
+        for _ in 0..size {
+            photos.push(photo(db, true).await);
+        }
+        out.push((gallery_of(db, &photos).await, photos));
+    }
+    out
+}
+
+fn album(gallery: Uuid, title: &str) -> Value {
+    json!({ "id": Uuid::now_v7(), "settings": { "gallery_id": gallery }, "content": { "fr": { "title": title } } })
+}
+
+fn gallery_section(albums: Vec<Value>) -> Value {
+    json!({ "id": Uuid::now_v7(), "type": "gallery",
+            "settings": { "preview_layout": "mosaic", "preview_source": "auto", "viewer_layout": "albums" },
+            "content": { "fr": { "title": "En images" } }, "items": albums })
+}
+
+fn section_of<'a>(page: &'a Value, kind: &str) -> &'a Value {
+    page["sections"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["type"] == kind)
+        .unwrap_or_else(|| panic!("no {kind} section in {page}"))
+}
+
+/// Every photo of the viewer, page after page; returns `(media ids, number of calls)`.
+async fn all_photos(app: &TestApp, block: &str, query: &str) -> (Vec<String>, usize) {
+    let mut ids = Vec::new();
+    let mut cursor: Option<String> = None;
+    let mut calls = 0;
+    loop {
+        let uri = match &cursor {
+            Some(c) => format!("/v1/sections/{block}/gallery?{query}&cursor={c}"),
+            None => format!("/v1/sections/{block}/gallery?{query}"),
+        };
+        let (status, body) = public(app, &uri).await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(
+            body.get("albums").is_some(),
+            cursor.is_none(),
+            "albums on the first call only"
+        );
+        calls += 1;
+        ids.extend(
+            body["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|i| i["media"]["id"].as_str().unwrap().to_string()),
+        );
+        match body["next_cursor"].as_str() {
+            Some(c) => cursor = Some(c.to_string()),
+            None => break,
+        }
+    }
+    (ids, calls)
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn a_gallery_page_carries_the_preview_and_the_photos_page_on_demand(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "home", "accueil").await;
+    let sets = galleries(&db, 3, 10).await;
+    let albums: Vec<Value> = sets
+        .iter()
+        .enumerate()
+        .map(|(i, (g, _))| album(*g, &format!("Album {i}")))
+        .collect();
+    let section = gallery_section(albums.clone());
+    let block = section["id"].as_str().unwrap().to_string();
+    save_ok(&app, page, json!([section])).await;
+    let (status, body) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+
+    let (_, body) = public(&app, "/v1/pages/home?locale=fr").await;
+    let g = section_of(&body, "gallery");
+    assert_eq!(g["data"]["total_count"], 30);
+    let preview = g["data"]["preview"].as_array().unwrap();
+    assert_eq!(preview.len(), 5, "the mosaic shows five photos");
+    // first photo of each album, then the second ones
+    assert_eq!(preview[0]["media_id"], json!(sets[0].1[0]));
+    assert_eq!(preview[1]["media_id"], json!(sets[1].1[0]));
+    assert_eq!(preview[3]["media_id"], json!(sets[0].1[1]));
+    assert_eq!(g["data"]["albums"].as_array().unwrap().len(), 3);
+    assert_eq!(g["data"]["albums"][1]["count"], 10);
+    // resolved media: the preview photos and the album covers, never the whole set
+    let media = g["data"]["media"].as_object().unwrap();
+    assert!(
+        media.len() <= 8,
+        "{} media in the page payload",
+        media.len()
+    );
+    assert!(body.to_string().matches("media/").count() < 30);
+
+    // the whole set, 7 at a time, in album order, without duplicates or gaps
+    let (ids, calls) = all_photos(&app, &block, "locale=fr&limit=7").await;
+    let expected: Vec<String> = sets
+        .iter()
+        .flat_map(|(_, p)| p.iter().map(ToString::to_string))
+        .collect();
+    assert_eq!(ids, expected);
+    assert_eq!(calls, 5);
+    // one album
+    let second = albums[1]["id"].as_str().unwrap();
+    let (ids, _) = all_photos(&app, &block, &format!("locale=fr&album={second}")).await;
+    assert_eq!(
+        ids,
+        sets[1]
+            .1
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+    let (status, _) = public(
+        &app,
+        &format!("/v1/sections/{block}/gallery?album={}", Uuid::now_v7()),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _) = public(&app, &format!("/v1/sections/{block}/gallery?cursor=nope")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn an_album_outside_its_period_is_left_out(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    app.state.clock.set(Some(t0()));
+    let page = new_page(&app, "home", "accueil").await;
+    let sets = galleries(&db, 2, 3).await;
+    let mut harvest = album(sets[1].0, "Récolte des dattes");
+    let start = t0() + Duration::days(30);
+    harvest["active_period"] = json!({"start": start, "end": start + Duration::days(30)});
+    let section = gallery_section(vec![album(sets[0].0, "Le camp"), harvest]);
+    let block = section["id"].as_str().unwrap().to_string();
+    save_ok(&app, page, json!([section])).await;
+    publish(&app, page, json!({})).await;
+
+    let (_, body) = public(&app, "/v1/pages/home?locale=fr").await;
+    assert_eq!(section_of(&body, "gallery")["data"]["total_count"], 3);
+    let (_, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(body["albums"].as_array().unwrap().len(), 1);
+    assert_eq!(body["total_count"], 3);
+
+    app.state.cache.delete_prefix("gallery:").await.unwrap();
+    app.state.clock.set(Some(start));
+    let (_, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(body["albums"][1]["title"], "Récolte des dattes");
+    assert_eq!(body["total_count"], 6);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn a_draft_album_shows_only_with_a_preview_token_and_publishing_changes_the_key(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "home", "accueil").await;
+    let sets = galleries(&db, 2, 2).await;
+    let mut section = gallery_section(vec![album(sets[0].0, "Le camp")]);
+    let block = section["id"].as_str().unwrap().to_string();
+    save_ok(&app, page, json!([section.clone()])).await;
+    let (status, _) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "not published yet");
+    publish(&app, page, json!({})).await;
+
+    section["items"]
+        .as_array_mut()
+        .unwrap()
+        .push(album(sets[1].0, "Brouillon"));
+    save_ok(&app, page, json!([section])).await;
+    let (_, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(
+        body["albums"].as_array().unwrap().len(),
+        1,
+        "published albums only"
+    );
+    let key1 = format!("gallery:{block}:1:fr:all:start:24");
+    assert!(app.state.cache.get_json::<Value>(&key1).await.is_some());
+
+    let (_, body) = app
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/pages/{page}/preview-token"),
+            None,
+        )
+        .await;
+    let token = body["token"].as_str().unwrap();
+    let (status, headers, body) = app
+        .send(
+            Method::GET,
+            &format!("/v1/sections/{block}/gallery?preview={token}"),
+            None,
+            &[],
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(headers["cache-control"], "no-store");
+    assert_eq!(body["albums"].as_array().unwrap().len(), 2);
+    let (status, _) = public(&app, &format!("/v1/sections/{block}/gallery?preview=0000")).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+
+    publish(&app, page, json!({})).await;
+    let (_, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(body["albums"].as_array().unwrap().len(), 2);
+    assert!(
+        app.state
+            .cache
+            .get_json::<Value>(&format!("gallery:{block}:2:fr:all:start:24"))
+            .await
+            .is_some(),
+        "a new revision, a new key"
+    );
+
+    // removed from the page: 410 once published without it
+    save_ok(&app, page, json!([rich("Plus de galerie")])).await;
+    publish(&app, page, json!({})).await;
+    let (status, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(status, StatusCode::GONE, "{body}");
+    let (status, _) = public(&app, &format!("/v1/sections/{}/gallery", Uuid::now_v7())).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn publishing_a_gallery_checks_its_albums_preview_and_alt_texts(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "home", "accueil").await;
+    let described = photo(&db, true).await;
+    let french_only = photo(&db, false).await;
+    let undescribed = media(&db).await;
+    let g = gallery_of(&db, &[described, french_only, undescribed]).await;
+    let empty = gallery_of(&db, &[]).await;
+    let mut section = gallery_section(vec![album(g, "Le camp"), album(empty, "Vide")]);
+    section["settings"]["preview_source"] = json!("manual");
+    section["settings"]["preview_media_ids"] = json!([described, french_only]);
+    // autosaves accept a section in progress
+    save_ok(&app, page, json!([section.clone()])).await;
+
+    let (status, body) = app
+        .admin(
+            Method::GET,
+            &format!("/v1/admin/pages/{page}/publish-check"),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let codes: Vec<(String, String)> = body["errors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                e["path"].as_str().unwrap().into(),
+                e["code"].as_str().unwrap().into(),
+            )
+        })
+        .collect();
+    assert!(
+        codes.contains(&(
+            format!("/blocks/0/items/0/media/{undescribed}/alt/fr"),
+            "missing_alt".into()
+        )),
+        "{codes:?}"
+    );
+    assert!(
+        codes.contains(&(
+            "/blocks/0/items/1/settings/gallery_id".into(),
+            "empty_gallery".into()
+        )),
+        "{codes:?}"
+    );
+    assert!(
+        codes.contains(&(
+            "/blocks/0/settings/preview_media_ids".into(),
+            "preview_count".into()
+        )),
+        "{codes:?}"
+    );
+    let warnings: Vec<&str> = body["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["path"].as_str().unwrap())
+        .collect();
+    assert!(
+        warnings.contains(&format!("/blocks/0/items/0/media/{french_only}/alt/en").as_str()),
+        "{warnings:?}"
+    );
+    let (status, _) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+
+    // describe the photo through the builder's dialog, drop the empty album, use the automatic preview
+    let (status, body) = app
+        .admin(
+            Method::PUT,
+            &format!("/v1/admin/media/{undescribed}/texts"),
+            Some(json!({"translations": {"fr": {"alt_text": "Tente au matin", "caption": "Le camp à l'aube"}}})),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    section["items"].as_array_mut().unwrap().pop();
+    section["settings"]["preview_source"] = json!("auto");
+    save_ok(&app, page, json!([section.clone()])).await;
+    let (status, body) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let block = section["id"].as_str().unwrap();
+    let (_, body) = public(&app, &format!("/v1/sections/{block}/gallery")).await;
+    assert_eq!(body["items"][2]["caption"], "Le camp à l'aube");
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn galleries_are_managed_from_the_builder(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let photos = [photo(&db, true).await, photo(&db, false).await];
+    let (status, body) = app
+        .admin(
+            Method::POST,
+            "/v1/admin/galleries",
+            Some(json!({"name": "Tentes", "media_ids": photos})),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let id = body["id"].as_str().unwrap().to_string();
+    assert_eq!(body["photos"].as_array().unwrap().len(), 2);
+    assert_eq!(body["photos"][1]["alt"], json!({"fr": "Dunes"}));
+    let (status, body) = app
+        .admin(
+            Method::PUT,
+            &format!("/v1/admin/galleries/{id}"),
+            Some(json!({"media_ids": [photos[1]]})),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["photos"][0]["media_id"], json!(photos[1]));
+    assert_eq!(body["name"], "Tentes");
+    let (status, _) = app
+        .admin(
+            Method::PUT,
+            &format!("/v1/admin/galleries/{id}"),
+            Some(json!({"media_ids": [photos[1], photos[1]]})),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "a photo once per gallery");
+    let changed: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM outbox_events WHERE event_type = 'content.changed' AND payload ->> 'ref_type' = 'gallery'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(changed, 1);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn version_1_gallery_drafts_are_upgraded_and_old_snapshots_still_render(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "home", "accueil").await;
+    let photos: Vec<Uuid> = {
+        let mut v = Vec::new();
+        for _ in 0..6 {
+            v.push(photo(&db, true).await);
+        }
+        v
+    };
+    // A version 1 section, published before the upgrade.
+    let block: Uuid = sqlx::query_scalar(
+        "INSERT INTO content_blocks (page_id, block_type, settings, sort_order)
+         VALUES ($1, 'gallery', jsonb_build_object('source', 'media_list', 'media_ids', $2::jsonb, 'layout', 'grid',
+                                                  'lightbox', true, 'max_photos', 12), 0) RETURNING id",
+    )
+    .bind(page)
+    .bind(json!(photos))
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO content_block_translations (content_block_id, locale, content) VALUES ($1, 'fr', '{\"title\": \"En images\"}')")
+        .bind(block)
+        .execute(&db)
+        .await
+        .unwrap();
+    let snapshot = json!({
+        "format": 1,
+        "page": {"id": page, "page_type": "home", "cover_media_id": null,
+                 "translations": {"fr": {"title": "Accueil", "slug": "accueil"}}},
+        "blocks": [{"id": block, "type": "gallery", "content": {"fr": {"title": "En images"}},
+                    "settings": {"source": "media_list", "media_ids": photos, "layout": "carousel", "lightbox": true}}],
+        "refs": [], "rule_sources": []
+    });
+    sqlx::query("INSERT INTO page_revisions (page_id, revision_number, status, snapshot, published_at) VALUES ($1, 1, 'published', $2, now())")
+        .bind(page)
+        .bind(&snapshot)
+        .execute(&db)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE pages SET status = 'published', revision_counter = 1 WHERE id = $1")
+        .bind(page)
+        .execute(&db)
+        .await
+        .unwrap();
+
+    let migrated =
+        mouzoun_api::modules::pages::gallery::migrate_v1_drafts(&db, &app.state.sections)
+            .await
+            .unwrap();
+    assert_eq!(migrated, 1);
+    assert_eq!(
+        mouzoun_api::modules::pages::gallery::migrate_v1_drafts(&db, &app.state.sections)
+            .await
+            .unwrap(),
+        0,
+        "idempotent"
+    );
+    let t = tree(&app, page).await;
+    assert_eq!(t["has_unpublished_changes"], true);
+    let b = &t["blocks"][0];
+    assert_eq!(b["settings"]["preview_layout"], "mosaic");
+    assert_eq!(b["settings"]["preview_source"], "manual");
+    assert_eq!(b["settings"]["preview_media_ids"], json!(photos[..5]));
+    assert_eq!(b["items"][0]["content"]["fr"]["title"], "En images");
+    let made: Uuid = b["items"][0]["settings"]["gallery_id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let in_gallery: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT media_id FROM gallery_items WHERE gallery_id = $1 ORDER BY sort_order",
+    )
+    .bind(made)
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    assert_eq!(in_gallery, photos);
+    let audited: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM audit_logs WHERE action = 'section.migrated'")
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert_eq!(audited, 1);
+    // the published snapshot is untouched and still renders, in the new shape
+    let kept: Value = sqlx::query_scalar("SELECT snapshot FROM page_revisions WHERE page_id = $1")
+        .bind(page)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(kept, snapshot);
+    let (status, body) = public(&app, "/v1/pages/home?locale=fr").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let g = section_of(&body, "gallery");
+    assert_eq!(g["settings"]["preview_layout"], "filmstrip");
+    assert_eq!(g["data"]["total_count"], 6);
+    let (ids, _) = all_photos(&app, &block.to_string(), "locale=fr").await;
+    assert_eq!(ids.len(), 6);
+    // and the converted draft can be published as is
+    let (status, body) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+}

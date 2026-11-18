@@ -124,6 +124,113 @@ const PHOTOS: &[(&str, i32, i32, &str, &str, &str)] = &[
 
 const OPENING_DATE: &str = "2027-03-20";
 
+type AlbumText = Option<(&'static str, &'static str, &'static str)>;
+/// `(gallery name, photos, title fr, en, ar, description fr/en/ar)`
+type Album = (
+    &'static str,
+    &'static [&'static str],
+    &'static str,
+    &'static str,
+    &'static str,
+    AlbumText,
+);
+
+/// Home page gallery: six albums.
+const GALLERY_ALBUMS: &[Album] = &[
+    (
+        "Accueil · Le camp",
+        &[
+            "camp",
+            "nomad-tent",
+            "mint-tea",
+            "hero-dunes",
+            "host",
+            "sunset-ripples",
+        ],
+        "Le camp",
+        "The camp",
+        "المخيم",
+        Some((
+            "Au pied des dunes, à quelques minutes de M'ssici.",
+            "At the foot of the dunes, a few minutes from M'ssici.",
+            "عند سفح الكثبان، على بعد دقائق من مسيسي.",
+        )),
+    ),
+    (
+        "Accueil · Tentes et emplacements",
+        &[
+            "nomad-tent",
+            "camp",
+            "night-sky",
+            "mint-tea",
+            "hero-dunes",
+            "sunset-ripples",
+        ],
+        "Tentes et emplacements",
+        "Tents and pitches",
+        "الخيام والمواقع",
+        None,
+    ),
+    (
+        "Accueil · Activités",
+        &[
+            "caravan",
+            "quads",
+            "hero-dunes",
+            "host",
+            "sunset-ripples",
+            "oasis",
+            "camp",
+        ],
+        "Activités",
+        "Activities",
+        "الأنشطة",
+        None,
+    ),
+    (
+        "Accueil · La ferme",
+        &["farm-fields", "oasis", "ksar", "mint-tea", "host", "camp"],
+        "La ferme : olives, dattes et navets",
+        "The farm: olives, dates and turnips",
+        "المزرعة: الزيتون والتمر واللفت",
+        Some((
+            "Les champs irrigués entre les palmiers, au rythme des récoltes.",
+            "Irrigated fields between the palms, at the pace of the harvests.",
+            "حقول مسقية بين النخيل على إيقاع مواسم الحصاد.",
+        )),
+    ),
+    (
+        "Accueil · Le village de M'ssici",
+        &[
+            "ksar",
+            "oasis",
+            "farm-fields",
+            "host",
+            "caravan",
+            "hero-dunes",
+        ],
+        "Le village de M'ssici",
+        "M'ssici village",
+        "قرية مسيسي",
+        None,
+    ),
+    (
+        "Accueil · Le ciel la nuit",
+        &[
+            "night-sky",
+            "sunset-ripples",
+            "camp",
+            "nomad-tent",
+            "hero-dunes",
+            "caravan",
+        ],
+        "Le ciel la nuit",
+        "Night sky",
+        "سماء الليل",
+        None,
+    ),
+];
+
 fn text(fr: Value, en: Value, ar: Value) -> BTreeMap<String, Value> {
     BTreeMap::from([
         ("fr".to_string(), fr),
@@ -545,16 +652,60 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
             json!({"title": "على مدار الفصول", "subtitle": "ما ينمو ويُحصد حول المخيم شهرًا بشهر."}),
         ),
     );
-    let gallery = block(
+    // Gallery: six albums (one gallery each). Only twelve placeholder photos exist, so albums
+    // share some of them.
+    let mut albums = Vec::new();
+    for (name, slugs, fr, en, ar, about) in GALLERY_ALBUMS {
+        let gallery = Uuid::now_v7();
+        sqlx::query!(
+            "INSERT INTO galleries (id, name) VALUES ($1, $2)",
+            gallery,
+            name
+        )
+        .execute(pool)
+        .await?;
+        for (i, slug) in slugs.iter().enumerate() {
+            sqlx::query!(
+                "INSERT INTO gallery_items (gallery_id, media_id, sort_order) VALUES ($1, $2, $3)",
+                gallery,
+                photo[slug],
+                i32::try_from(i)?
+            )
+            .execute(pool)
+            .await?;
+        }
+        let mut fr = json!({ "title": fr });
+        if let Some((d_fr, d_en, d_ar)) = about {
+            fr["description"] = json!(d_fr);
+            albums.push(item(
+                json!({ "gallery_id": gallery }),
+                text(
+                    fr,
+                    json!({"title": en, "description": d_en}),
+                    json!({"title": ar, "description": d_ar}),
+                ),
+            ));
+        } else {
+            albums.push(item(
+                json!({ "gallery_id": gallery }),
+                text(fr, json!({"title": en}), json!({"title": ar})),
+            ));
+        }
+    }
+    let mut gallery = block(
         "gallery",
-        json!({"source": "media_list", "layout": "grid", "lightbox": true, "max_photos": 6,
-               "media_ids": [photo["camp"], photo["mint-tea"], photo["ksar"], photo["caravan"], photo["sunset-ripples"], photo["host"]]}),
+        json!({"preview_layout": "mosaic", "preview_height": "md", "preview_source": "auto", "preview_media_ids": [],
+               "show_count": true, "show_album_chips": true, "viewer_layout": "albums",
+               "open_lightbox_directly": false, "allow_download": false, "allow_share": true, "autoplay_videos": false}),
         text(
-            json!({"title": "En images"}),
-            json!({"title": "In pictures"}),
-            json!({"title": "بالصور"}),
+            json!({"title": "En images", "view_all_label": "Voir les {count} photos"}),
+            json!({"title": "In pictures", "view_all_label": "View all {count} photos"}),
+            json!({"title": "بالصور", "view_all_label": "عرض الصور ({count})"}),
         ),
     );
+    gallery.anchor_id = Some("photos".into());
+    gallery.analytics_label = Some("home_gallery".into());
+    gallery.items = albums;
     let offers = block(
         "offers",
         json!({"source": "promotions", "promotion_ids": [], "product_ids": [], "show_countdown": true}),

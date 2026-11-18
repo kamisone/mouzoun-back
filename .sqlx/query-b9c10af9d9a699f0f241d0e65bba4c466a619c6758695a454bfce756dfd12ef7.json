@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b ->> 'id' AS \"id!\" FROM page_revisions r, jsonb_array_elements(r.snapshot -> 'blocks') b\n           WHERE r.page_id = $1 AND r.status = 'published' AND b ->> 'type' = 'gallery'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b9c10af9d9a699f0f241d0e65bba4c466a619c6758695a454bfce756dfd12ef7"
+}

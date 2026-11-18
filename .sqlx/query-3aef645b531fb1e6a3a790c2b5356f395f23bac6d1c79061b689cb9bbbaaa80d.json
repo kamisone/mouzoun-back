@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page_id, revision_number, snapshot FROM page_revisions\n         WHERE status = 'published' AND snapshot -> 'blocks' @> $1\n         ORDER BY page_id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "revision_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "snapshot",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3aef645b531fb1e6a3a790c2b5356f395f23bac6d1c79061b689cb9bbbaaa80d"
+}

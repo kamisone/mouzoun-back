@@ -793,6 +793,12 @@ async fn draft_snapshot(
         shared: &shared,
     };
     let mut errors = validate::validate_blocks(reg, &blocks, &ctx, "/blocks");
+    // Rules that need the galleries (photos, alt texts): before publishing, not on every autosave.
+    errors.extend(
+        super::gallery::check_blocks(conn, &blocks, &default_locale, &locales)
+            .await?
+            .errors,
+    );
     let texts = repo::page_texts(conn, page.id).await?;
     if !texts.contains_key(&default_locale) {
         errors.push(FieldError::new(
@@ -1200,6 +1206,8 @@ pub struct Diff {
 #[derive(Debug, Serialize)]
 pub struct PublishCheck {
     pub errors: Vec<FieldError>,
+    /// Not blocking: alt texts missing in the other languages (gallery sections).
+    pub warnings: Vec<FieldError>,
     pub published_revision: Option<i32>,
     pub diff: Diff,
 }
@@ -1215,6 +1223,13 @@ pub async fn publish_check(
     let page = read_page(&mut conn, page_id).await?;
     let (default_locale, _) = locales(&mut conn).await?;
     let (draft, errors) = draft_snapshot(&mut conn, reg, &page).await?;
+    let ids = repo::page_block_ids(&mut conn, page_id).await?;
+    let mut blocks = repo::load_blocks(&mut conn, &ids).await?;
+    repo::expand_shared(&mut conn, &mut blocks).await?;
+    let (_, locales) = locales(&mut conn).await?;
+    let warnings = super::gallery::check_blocks(&mut conn, &blocks, &default_locale, &locales)
+        .await?
+        .warnings;
     let published = sqlx::query!(
         "SELECT revision_number, snapshot FROM page_revisions WHERE page_id = $1 AND status = 'published'",
         page_id
@@ -1232,6 +1247,7 @@ pub async fn publish_check(
     };
     Ok(PublishCheck {
         errors,
+        warnings,
         published_revision,
         diff: diff(&before, &draft.blocks, &default_locale),
     })

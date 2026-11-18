@@ -1,10 +1,12 @@
-//! Invalidation of rendered pages (`pages:{page_id}:{revision}:{locale}`).
+//! Invalidation of rendered pages (`pages:{page_id}:{revision}:{locale}`) and of the photo pages
+//! of their gallery sections (`gallery:{block_id}:{revision}:...`).
 //!
 //! - publishing changes the revision, hence the key: nothing to delete;
 //! - `product.updated` / `content.changed` delete the pages whose published revision references
 //!   that entity (`snapshot.refs`) or resolves that kind of data by rule (`snapshot.rule_sources`,
 //!   e.g. "latest activities");
-//! - `settings.updated` deletes every page (contact details, opening date, camp location).
+//! - `settings.updated` deletes every page (contact details, opening date, camp location);
+//! - a `content.changed` of a media also reaches the pages showing a gallery that contains it.
 //!
 //! Entries also expire on their own at the next schedule boundary of the page (≤ 1 hour).
 
@@ -101,14 +103,36 @@ impl OutboxHandler for PageCacheHandler {
             "farm_crop" => "crop",
             other => other,
         };
-        for page in affected_pages(&self.db, &ref_type, id, rule_kind)
+        let mut pages = affected_pages(&self.db, &ref_type, id, rule_kind)
             .await
-            .map_err(|e| retry(&e))?
-        {
+            .map_err(|e| retry(&e))?;
+        // A photo shown inside a gallery section is reached through its galleries.
+        if ref_type == "media" {
+            let galleries = sqlx::query_scalar!(
+                "SELECT gallery_id FROM gallery_items WHERE media_id = $1",
+                id
+            )
+            .fetch_all(&self.db)
+            .await
+            .map_err(|e| retry(&e))?;
+            for g in galleries {
+                pages.extend(
+                    affected_pages(&self.db, "gallery", g, "gallery")
+                        .await
+                        .map_err(|e| retry(&e))?,
+                );
+            }
+        }
+        pages.sort_unstable();
+        pages.dedup();
+        for page in pages {
             let deleted = invalidate_page(&self.cache, page)
                 .await
                 .map_err(|e| retry(&e))?;
-            tracing::debug!(event_id = event.id, %page, deleted, "page cache invalidated");
+            let photos = super::gallery::invalidate_page_galleries(&self.db, &self.cache, page)
+                .await
+                .map_err(|e| retry(&e))?;
+            tracing::debug!(event_id = event.id, %page, deleted, photos, "page cache invalidated");
         }
         Ok(())
     }

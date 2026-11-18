@@ -14,6 +14,7 @@ use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
 use super::{
+    gallery,
     model::{BlockDraft, ItemDraft, RefType, Snapshot},
     registry::SectionRegistry,
     validate,
@@ -266,7 +267,7 @@ pub fn renders_nothing(s: &RenderedSection) -> bool {
         "posts_feed" => empty("posts"),
         "category_tiles" => empty("categories"),
         "seasonal_calendar" => empty("crops"),
-        "gallery" => empty("photos"),
+        "gallery" => empty("preview"),
         _ => false,
     }
 }
@@ -351,6 +352,14 @@ pub async fn render_section(
     lang: &Lang<'_>,
     now: DateTime<Utc>,
 ) -> AppResult<(RenderedSection, Vec<Value>)> {
+    // Old snapshots keep version 1 galleries: rendered in the current shape.
+    let upgraded;
+    let b = if b.block_type == "gallery" && gallery::is_v1(&b.settings) {
+        upgraded = gallery::upgrade_v1(b, None, b.id, lang.default);
+        &upgraded
+    } else {
+        b
+    };
     let mut settings = b.settings.clone();
     let mut items: Vec<RenderedItem> = b
         .items
@@ -872,25 +881,8 @@ async fn section_data(
                     "cover_media_id": r.cover_media_id, "harvest_months": r.harvest_months })).collect::<Vec<_>>()
             })
         }
-        "gallery" => {
-            let max = int_of(s, "/max_photos", 12).clamp(1, 60) as usize;
-            let mut photos = if str_of(s, "/source") == Some("gallery") {
-                match str_of(s, "/gallery_id").and_then(|g| g.parse::<Uuid>().ok()) {
-                    Some(g) => sqlx::query_scalar!(
-                        "SELECT gi.media_id FROM gallery_items gi JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.visibility = 'public'
-                         WHERE gi.gallery_id = $1 ORDER BY gi.sort_order, gi.media_id",
-                        g
-                    )
-                    .fetch_all(db)
-                    .await?,
-                    None => Vec::new(),
-                }
-            } else {
-                ids_of(s.get("media_ids"))
-            };
-            photos.truncate(max);
-            json!({ "photos": photos })
-        }
+        // The preview only: the viewer loads the photos from GET /v1/sections/{id}/gallery.
+        "gallery" => gallery::preview_data(state, b, lang).await?,
         "testimonials" => {
             let product = str_of(s, "/product_id").and_then(|p| p.parse::<Uuid>().ok());
             let featured = s

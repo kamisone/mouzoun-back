@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, page_id, is_shared, sort_order FROM content_blocks\n           WHERE block_type = 'gallery' AND deleted_at IS NULL\n             AND shared_block_id IS NULL AND NOT settings ? 'preview_layout'\n             AND settings ?| array['source', 'media_ids', 'gallery_id', 'layout', 'lightbox', 'max_photos']\n           ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "page_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_shared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_order",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "16e419fd5a4554688ce4b3efaee8f1ad1e58c69157ab11e775d4bea193102329"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT gi.gallery_id, gi.media_id, m.kind,\n                  ARRAY(SELECT t.locale FROM media_asset_translations t\n                        WHERE t.media_asset_id = m.id AND btrim(coalesce(t.alt_text, '')) <> '') AS \"alt_locales!\"\n           FROM gallery_items gi\n           JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL AND m.visibility = 'public'\n                               AND m.kind IN ('image', 'video')\n           WHERE gi.gallery_id = ANY($1)\n           ORDER BY gi.gallery_id, gi.sort_order, gi.media_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "gallery_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "alt_locales!",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "20288e45d618ba6d569d9e36f7f87f1fd279dc5590200214de7a0c0af417a172"
+}

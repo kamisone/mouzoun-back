@@ -280,8 +280,9 @@ impl SectionRegistry {
         &self.compiled[&(t.code.clone(), t.schema_version)]
     }
 
-    /// Upserts every system type into `section_types` (schemas, limits, preset). `is_active`
-    /// and `preview_media_id` belong to the admin and are never overwritten.
+    /// Upserts every system type into `section_types` (schemas, limits, preset), then upgrades
+    /// the drafts saved in an older version of a type (gallery v1 → v2). `is_active` and
+    /// `preview_media_id` belong to the admin and are never overwritten.
     pub async fn sync(&self, db: &PgPool) -> sqlx::Result<()> {
         let mut tx = db.begin().await?;
         for t in self.types.values() {
@@ -338,7 +339,10 @@ impl SectionRegistry {
             .execute(&mut *tx)
             .await?;
         }
-        tx.commit().await
+        tx.commit().await?;
+        // Sections saved in an older shape of their type (drafts only).
+        super::gallery::migrate_v1_drafts(db, self).await?;
+        Ok(())
     }
 }
 

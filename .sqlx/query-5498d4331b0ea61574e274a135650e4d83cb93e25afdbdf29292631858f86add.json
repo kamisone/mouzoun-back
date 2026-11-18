@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, COALESCE(NULLIF(btrim(t.caption), ''), NULLIF(btrim(d.caption), '')) AS \"caption?\"\n           FROM media_assets m\n           LEFT JOIN media_asset_translations t ON t.media_asset_id = m.id AND t.locale = $2\n           LEFT JOIN media_asset_translations d ON d.media_asset_id = m.id AND d.locale = $3\n           WHERE m.id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "caption?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "5498d4331b0ea61574e274a135650e4d83cb93e25afdbdf29292631858f86add"
+}

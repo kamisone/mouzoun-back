@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO media_asset_translations (media_asset_id, locale, alt_text, title, caption)\n             VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''))\n             ON CONFLICT (media_asset_id, locale) DO UPDATE SET\n                 alt_text = CASE WHEN $3::text IS NULL THEN media_asset_translations.alt_text ELSE NULLIF($3, '') END,\n                 title = CASE WHEN $4::text IS NULL THEN media_asset_translations.title ELSE NULLIF($4, '') END,\n                 caption = CASE WHEN $5::text IS NULL THEN media_asset_translations.caption ELSE NULLIF($5, '') END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8eb75470d9821f4bda75eac5ff5edd31e695dedde5119286c284789572aa927d"
+}

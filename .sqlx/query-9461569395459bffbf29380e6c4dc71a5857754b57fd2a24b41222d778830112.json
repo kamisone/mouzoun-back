@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, m.kind, m.storage_provider, m.object_key, m.width, m.height, m.visibility,\n                  COALESCE((SELECT jsonb_object_agg(t.locale, t.alt_text) FROM media_asset_translations t\n                            WHERE t.media_asset_id = m.id AND btrim(coalesce(t.alt_text, '')) <> ''), '{}') AS \"alt!\"\n           FROM gallery_items gi JOIN media_assets m ON m.id = gi.media_id AND m.deleted_at IS NULL\n           WHERE gi.gallery_id = $1 ORDER BY gi.sort_order, gi.media_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage_provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "object_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "visibility",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "alt!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "9461569395459bffbf29380e6c4dc71a5857754b57fd2a24b41222d778830112"
+}

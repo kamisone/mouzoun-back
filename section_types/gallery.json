@@ -1,13 +1,13 @@
 {
   "code": "gallery",
   "name": "Gallery",
-  "description": "Photos from a gallery or picked one by one.",
+  "description": "A compact photo preview with a \"View all photos\" button; the full set opens in a full-screen viewer organised in albums.",
   "icon": "i-lucide-images",
   "category": "media",
-  "schema_version": 1,
+  "schema_version": 2,
   "sort_order": 110,
-  "min_items": 0,
-  "max_items": null,
+  "min_items": 1,
+  "max_items": 12,
   "max_per_page": null,
   "allowed_owners": [
     "page"
@@ -18,97 +18,224 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "source": {
+      "preview_layout": {
         "type": "string",
         "enum": [
-          "media_list",
-          "gallery"
+          "mosaic",
+          "mosaic_3",
+          "cover",
+          "filmstrip"
         ],
-        "default": "media_list",
+        "default": "mosaic",
         "x-widget": "select",
-        "x-group": "source",
-        "title": "Source"
+        "x-group": "preview",
+        "title": "Preview layout"
       },
-      "gallery_id": {
+      "preview_height": {
         "type": "string",
-        "format": "uuid",
-        "x-widget": "gallery_picker",
-        "x-ref": "gallery",
-        "x-group": "source",
-        "title": "Gallery"
+        "enum": [
+          "sm",
+          "md",
+          "lg"
+        ],
+        "default": "md",
+        "x-widget": "select",
+        "x-group": "preview",
+        "title": "Preview height"
       },
-      "media_ids": {
+      "preview_source": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "manual"
+        ],
+        "default": "auto",
+        "x-widget": "select",
+        "x-group": "preview",
+        "title": "Preview photos"
+      },
+      "preview_media_ids": {
         "type": "array",
         "items": {
           "type": "string",
           "format": "uuid"
         },
-        "maxItems": 60,
+        "maxItems": 12,
         "uniqueItems": true,
         "default": [],
         "x-widget": "media_list",
         "x-ref": "media",
-        "x-group": "source",
-        "title": "Photos",
+        "x-group": "preview",
+        "title": "Photos of the preview",
         "x-media-kinds": [
-          "image"
+          "image",
+          "video"
         ]
       },
-      "layout": {
-        "type": "string",
-        "enum": [
-          "masonry",
-          "grid",
-          "carousel"
-        ],
-        "default": "grid",
-        "x-widget": "select",
-        "x-group": "layout",
-        "title": "Layout"
-      },
-      "lightbox": {
+      "show_count": {
         "type": "boolean",
         "default": true,
         "x-widget": "toggle",
-        "x-group": "layout",
-        "title": "Open photos full screen"
+        "x-group": "preview",
+        "title": "Show the number of photos"
       },
-      "max_photos": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 60,
-        "default": 12,
-        "x-widget": "number",
-        "x-group": "layout",
-        "title": "Photos shown"
+      "show_album_chips": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "preview",
+        "title": "Show the album names under the preview"
+      },
+      "viewer_layout": {
+        "type": "string",
+        "enum": [
+          "albums",
+          "stream"
+        ],
+        "default": "albums",
+        "x-widget": "select",
+        "x-group": "viewer",
+        "title": "Viewer layout"
+      },
+      "open_lightbox_directly": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "viewer",
+        "title": "Open the clicked photo full screen (skip the album grid)"
+      },
+      "allow_download": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "viewer",
+        "title": "Allow downloads"
+      },
+      "allow_share": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "viewer",
+        "title": "Allow sharing"
+      },
+      "autoplay_videos": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "viewer",
+        "title": "Autoplay videos (muted)"
       }
     }
   },
   "content_schema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+      "view_all_label": {
+        "type": "string",
+        "maxLength": 80,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "\"View all\" button ({count} = number of photos)"
+      }
+    }
   },
-  "item_settings_schema": null,
-  "item_content_schema": null,
+  "item_settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "gallery_id": {
+        "type": "string",
+        "format": "uuid",
+        "x-widget": "gallery_picker",
+        "x-ref": "gallery",
+        "x-group": "content",
+        "title": "Gallery"
+      },
+      "cover_media_id": {
+        "$ref": "#/$defs/media_id",
+        "x-group": "content",
+        "title": "Album cover",
+        "x-media-kinds": [
+          "image"
+        ]
+      },
+      "hidden_in_preview": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "content",
+        "title": "Only in the full gallery (not in the preview)"
+      }
+    }
+  },
+  "item_content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "Album title"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 240,
+        "x-widget": "textarea",
+        "x-group": "content",
+        "title": "Description"
+      }
+    },
+    "required": [
+      "title"
+    ]
+  },
   "preset": {
     "settings": {
-      "source": "media_list",
-      "media_ids": [],
-      "layout": "grid",
-      "lightbox": true,
-      "max_photos": 12
+      "preview_layout": "mosaic",
+      "preview_height": "md",
+      "preview_source": "auto",
+      "preview_media_ids": [],
+      "show_count": true,
+      "show_album_chips": true,
+      "viewer_layout": "albums",
+      "open_lightbox_directly": false,
+      "allow_download": false,
+      "allow_share": true,
+      "autoplay_videos": false
     },
     "content": {
       "fr": {
-        "title": "En images"
+        "title": "En images",
+        "view_all_label": "Voir les {count} photos"
       },
       "en": {
-        "title": "In pictures"
+        "title": "In pictures",
+        "view_all_label": "View all {count} photos"
       },
       "ar": {
-        "title": "بالصور"
+        "title": "بالصور",
+        "view_all_label": "عرض الصور ({count})"
       }
-    }
+    },
+    "items": [
+      {
+        "settings": {},
+        "content": {
+          "fr": {
+            "title": "Le camp"
+          },
+          "en": {
+            "title": "The camp"
+          },
+          "ar": {
+            "title": "المخيم"
+          }
+        }
+      }
+    ]
   }
 }

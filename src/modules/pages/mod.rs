@@ -5,15 +5,17 @@
 //!
 //! | endpoint | permission |
 //! |---|---|
-//! | GET section-types, GET pages, GET pages/{id}/builder, GET pages/{id}/revisions, GET pages/{id}/publish-check, GET revisions/{id}, GET shared-sections…, GET usages/{type}/{id}, GET lookup/{kind}, POST pages/{id}/preview-token | content.read |
-//! | POST pages, PUT pages/{id}/builder, POST pages/{id}/blocks, POST blocks/{id}/duplicate, PATCH/DELETE blocks/{id}, POST/PUT/DELETE shared-sections… | content.write (+ the type's `required_permission` for the sections touched) |
+//! | GET section-types, GET pages, GET pages/{id}/builder, GET pages/{id}/revisions, GET pages/{id}/publish-check, GET revisions/{id}, GET shared-sections…, GET usages/{type}/{id}, GET lookup/{kind}, POST pages/{id}/preview-token, GET galleries/{id} | content.read |
+//! | POST pages, PUT pages/{id}/builder, POST pages/{id}/blocks, POST blocks/{id}/duplicate, PATCH/DELETE blocks/{id}, POST/PUT/DELETE shared-sections…, POST galleries, PUT galleries/{id}, PUT media/{id}/texts | content.write (+ the type's `required_permission` for the sections touched) |
 //! | POST pages/{id}/publish, POST revisions/{id}/restore, POST revisions/{id}/cancel | content.publish |
 //! | PATCH section-types/{code} (activate, preview image) | content.html |
 //!
 //! Public: GET pages/home, GET pages/by-slug/{*slug} (`?locale=`, `?preview=`), POST
-//! pages/{id}/preview/section, GET banners, POST newsletter, POST contact.
+//! pages/{id}/preview/section, GET sections/{block_id}/gallery (photos of a gallery section,
+//! on demand), GET banners, POST newsletter, POST contact.
 
 pub mod cache;
+pub mod gallery;
 mod handlers;
 pub mod model;
 pub mod public;
@@ -67,6 +69,11 @@ pub fn admin_routes() -> Router<AppState> {
         .route("/shared-sections/{id}/usages", get(handlers::shared_usages))
         .route("/usages/{ref_type}/{id}", get(handlers::entity_usages))
         .route("/lookup/{kind}", get(handlers::lookup))
+        .route("/galleries", post(gallery::admin_create))
+        .route(
+            "/galleries/{id}",
+            get(gallery::admin_get).put(gallery::admin_update),
+        )
 }
 
 pub fn public_routes() -> Router<AppState> {
@@ -77,6 +84,7 @@ pub fn public_routes() -> Router<AppState> {
             "/pages/{id}/preview/section",
             post(handlers::preview_section),
         )
+        .route("/sections/{block_id}/gallery", get(gallery::photos))
         .route("/banners", get(site::banners))
         .route("/newsletter", post(site::newsletter))
         .route("/contact", post(site::contact))

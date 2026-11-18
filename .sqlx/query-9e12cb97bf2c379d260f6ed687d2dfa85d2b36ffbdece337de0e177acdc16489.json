@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM media_assets WHERE id = ANY($1) AND deleted_at IS NULL AND visibility = 'public'\n               AND kind IN ('image', 'video')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9e12cb97bf2c379d260f6ed687d2dfa85d2b36ffbdece337de0e177acdc16489"
+}

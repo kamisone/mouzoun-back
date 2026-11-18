@@ -72,7 +72,7 @@ crate. Every schema gets the `$defs` of `_defs.json` (`media_id`, `link`, `cta`)
 |---|---|
 | `x-widget` | form widget: `text`, `textarea`, `richtext`, `html`, `number`, `toggle`, `select` (multi for arrays), `color_scheme`, `icon`, `media`, `media_list`, `link`, `cta`, `source`, `product_picker`, `category_picker`, `place_picker`, `faq_picker`, `promotion_picker`, `gallery_picker`, `datetime` |
 | `x-ref` | `content_block_refs.ref_type` of the id(s) the field holds: media, product, category, place, page, faq, gallery, promotion, review |
-| `x-group` | form tab: `content`, `layout`, `source`, `advanced` |
+| `x-group` | form tab: `content`, `layout`, `source`, `advanced` (the gallery uses `preview` and `viewer` in its own form) |
 | `x-media-kinds` | media picker filter (`image`, `video`) |
 | `x-renders-h1` | (root of settings) the type renders the page's `<h1>`: at most one per page |
 
@@ -160,6 +160,72 @@ public GET /v1/pages/home | /v1/pages/by-slug/{slug}  ─► the published snaps
 Media with `storage_provider = 'site'` (development placeholders) have a key that is a path
 served by the front; `variants` is `{ name: { key, width } }`.
 
+## Gallery section
+
+A compact preview on the page (Airbnb / Booking style), the full set in a full-screen viewer.
+
+| Where | What |
+|---|---|
+| `section_types/gallery.json` | schema version 2 |
+| `src/modules/pages/gallery.rs` | v1 → v2 upgrade, publish rules, preview data, photo pages, admin galleries, alt texts |
+| front `components/sections/Gallery.vue` | the preview (and the mobile swipe) |
+| front `components/gallery/GalleryViewer.vue`, `GalleryLightbox.vue` | full screen, loaded only when opened |
+| front `composables/useGalleryRoute.ts` | the URL hash state |
+| front `components/admin/builder/MzBuilderGalleryForm.vue` | the builder form (Albums, Preview, Viewer) |
+
+- **Albums are the section's items** (1 to 12): `settings.gallery_id` (a `galleries` row, its photos
+  in `gallery_items`), optional `cover_media_id` (a photo of that gallery, else the first),
+  `hidden_in_preview` (in the viewer only), `title` / `description` per language, and the usual
+  item `active_period` (a seasonal album). No new table.
+- **Preview layouts** (`preview_layout`): `mosaic` (1 large + 4), `mosaic_3` (1 large + 2),
+  `cover` (one wide photo, title and button over it), `filmstrip` (one row, 3 to 12 photos). The
+  height is fixed (`preview_height` sm 320 / md 440 / lg 560 px) whatever the number of photos;
+  phones always get one swipeable 4:3 photo with "1 / N". `preview_source: auto` takes the first
+  photo of each album shown in the preview, then the second ones...; `manual` uses
+  `preview_media_ids` (exactly as many as the layout shows, all from the albums).
+- **Page payload**: `data = { total_count, preview: [{media_id, album_id}], albums: [{id, title,
+  description, count, cover_media_id, hidden_in_preview}], media }`: never the whole set.
+- **Photos on demand**: `GET /v1/sections/{block_id}/gallery?locale=&album=&cursor=&limit=24`
+  (`limit` ≤ 48, `preview=<token>` for the draft). It reads the published snapshot that holds the
+  block (404 if none, 410 if a later revision removed it), applies the album periods and the
+  language fallback (alt, caption), and pages with a keyset cursor on `(album position,
+  sort_order, media id)`. Answer: `{ albums (first page only), items: [{media, caption,
+  album_id}], next_cursor, total_count }`, cached under
+  `gallery:{block_id}:{revision}:{locale}:{album|all}:{cursor|start}:{limit}`.
+- **Publish rules** (`gallery::check`, run by publish and publish-check, not by autosaves so a
+  section can be built step by step): every album has a gallery with at least one image or
+  video; a cover belongs to its album; the manual preview count; every image has an alt text in
+  the default language. Missing alt texts in other languages come back as `warnings` of
+  publish-check (shown, not blocking).
+- **Back office**: `GET /v1/admin/galleries/{id}`, `POST /v1/admin/galleries` (`{name,
+  media_ids}`), `PUT /v1/admin/galleries/{id}` (replaces the list, emits `content.changed`),
+  `PUT /v1/admin/media/{id}/texts` (alt text, title, caption per language).
+- **URL**: opening the viewer pushes `#gallery-<anchor or block id>`, an album adds `/album-<n>`
+  (replaced while switching), the lightbox adds `/photo-<media id>`. Back closes the lightbox, then
+  the viewer. These entries are handled before Vue Router (capture-phase `popstate`), so the
+  router never scrolls on them. A shared link rebuilds the entries (page → viewer → photo).
+- **Version 1** (`source`, `media_ids`, `gallery_id`, `layout`, `lightbox`, `max_photos`):
+  recognised by its settings (sections do not store their type's version). At startup, after the
+  types are synced, drafts are converted (`gallery::migrate_v1_drafts`): one album titled with
+  the section title (or "Photos"); a photo list becomes a new gallery and, when long enough for
+  the layout, a manual preview; masonry / grid → `mosaic`, carousel → `filmstrip`. The page is
+  marked as changed (and its draft version bumped), each conversion is logged and audited
+  (`section.migrated`). Published snapshots are never rewritten: they are upgraded in memory when
+  rendered until the next publish.
+- **Analytics** (GA4 `dataLayer`, after consent): `gallery_open`, `gallery_album_view`,
+  `gallery_photo_view`, `gallery_share`, with `section` = the section's analytics label.
+
+### Adding a preview layout
+
+1. `gallery.json`: add the value to the `preview_layout` enum.
+2. `gallery.rs`: its photo count in `preview_range` (manual pick and automatic preview).
+3. `Gallery.vue`: a branch in `shape` / `tiles` and its markup, at the fixed height
+   (`height`), with the "View all" button; phones keep the shared swipe.
+4. `MzBuilderGalleryForm.vue`: `layouts`, `NEEDED` and its small drawing; the label in
+   `admin.builder.gallery.layouts.<value>` (fr, en, ar).
+5. Tests: `gallery::tests::a_manual_preview_needs_the_number_of_photos_of_its_layout` and
+   `tests/components/Gallery.spec.ts` (fixed height).
+
 ## Caching and invalidation
 
 - Key `pages:{page_id}:{revision}:{locale}` (under the `pages:` prefix of
@@ -168,8 +234,9 @@ served by the front; `variants` is `{ name: { key, width } }`.
 - TTL = time until the next start or end of a section/item period of the page, at most 1 hour.
 - Outbox events: `product.updated` and `content.changed { ref_type, ref_id }` delete the pages
   whose published snapshot references the entity (`snapshot.refs`) or resolves that kind of data
-  by rule (`snapshot.rule_sources`); `settings.updated` deletes every page (contact details,
-  opening date, location). `content.changed` is the event to emit when media, reviews, FAQs,
+  by rule (`snapshot.rule_sources`), with the photo pages of their gallery sections
+  (`gallery:{block_id}:…`); a changed media also reaches the pages showing a gallery that contains
+  it; `settings.updated` deletes every page (contact details, opening date, location). `content.changed` is the event to emit when media, reviews, FAQs,
   promotions, categories, places, crops or galleries change (their admin screens do not exist
   yet; until then the 1-hour TTL bounds staleness).
 
@@ -189,7 +256,7 @@ Every write is in the audit log (`page.draft_saved`, `page.published`, `page.dra
 
 `cargo run --bin seed_dev` builds, through the same service (so every section is validated), a
 "coming soon" home page (hero with booking search, facilities, stays, activities, the
-traditional fields, seasonal calendar, gallery, offers, testimonials, map with M'ssici, Alnif and
+traditional fields, seasonal calendar, gallery (six albums), offers, testimonials, map with M'ssici, Alnif and
 Rissani, FAQ, and two shared sections, pre-booking call to action and opening newsletter, also on
 the About page), the top bar "Opening on {opening_date}: pre-book now", sets
 `site.opening_date`, and publishes revision 1 of both pages. Placeholder photos are the front's

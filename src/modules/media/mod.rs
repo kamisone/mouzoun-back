@@ -10,7 +10,11 @@ pub mod model;
 pub mod policy;
 mod service;
 
-use axum::{Router, extract::DefaultBodyLimit, routing::get};
+use axum::{
+    Router,
+    extract::DefaultBodyLimit,
+    routing::{get, put},
+};
 
 pub use service::MediaService;
 
@@ -31,4 +35,9 @@ pub fn admin_routes(max_upload_bytes: i64) -> Router<AppState> {
                 .layer(DefaultBodyLimit::max(limit)),
         )
         .route("/{id}", get(handlers::get).delete(handlers::delete))
+        // Alt texts, titles and captions per language (content.write).
+        .route(
+            "/{id}/texts",
+            put(crate::modules::pages::gallery::admin_media_texts),
+        )
 }

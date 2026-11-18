@@ -7,6 +7,8 @@
 //! - `settings:` — public settings;
 //! - `menus:` — navigation menus;
 //! - `pages:` — CMS pages;
+//! - `gallery:` — photo pages of gallery sections (`modules::pages::gallery`, invalidated with
+//!   their page by `modules::pages::cache`);
 //! - `availability:` — availability calendars and searches (every booking change).
 
 use async_trait::async_trait;

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gallery_items (gallery_id, media_id, sort_order)\n         SELECT $1, x.media_id, x.sort_order FROM unnest($2::uuid[], $3::int[]) AS x (media_id, sort_order)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bba96b994158e139660dfc69461b37cff485daf7c56c3a2a676b9f35ec766e4c"
+}
