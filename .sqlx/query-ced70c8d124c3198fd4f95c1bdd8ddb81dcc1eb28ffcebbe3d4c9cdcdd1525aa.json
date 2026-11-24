@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE redirects SET is_active = $2, updated_at = now() WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ced70c8d124c3198fd4f95c1bdd8ddb81dcc1eb28ffcebbe3d4c9cdcdd1525aa"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_categories pc SET is_primary = true\n         FROM (SELECT DISTINCT ON (x.product_id) x.product_id, x.category_id\n               FROM product_categories x JOIN categories c ON c.id = x.category_id\n               WHERE x.product_id = ANY($1)\n                 AND NOT EXISTS (SELECT 1 FROM product_categories y WHERE y.product_id = x.product_id AND y.is_primary)\n               ORDER BY x.product_id, (c.scope = 'shop') DESC, c.sort_order, c.id) f\n         WHERE pc.product_id = f.product_id AND pc.category_id = f.category_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e8fb73d8f254ae46783ee3438cf94da8e90ff64146fd03841dc0c42708bd787a"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT default_sort FROM categories WHERE id = $1 AND scope = 'shop'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "default_sort",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c138dc342f7e5342c0bd49d2b0cffe6963bbaf30ecf4c49459e510cf553a408"
+}

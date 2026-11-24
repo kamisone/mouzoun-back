@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM not_found_log WHERE NOT is_ignored",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "9417536af2e018ac391ea6aa05141c99ef99f3dcd8bd8a8823b10b220366b455"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE nav_menu_items SET category_id = $2 WHERE category_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b12358e7b888c43c3fb33f29f3d3a52f8dcf8db20c9619a02e60105b76a0afd1"
+}

@@ -106,6 +106,30 @@ pub fn spawn_all(state: &AppState, shutdown: CancellationToken) -> Vec<JoinHandl
                 move || page_publishing::run_once(db.clone(), clock.clone())
             },
         ),
+        // SEO: redirect and 404 visits counted in Redis, written every minute; old 404s purged.
+        every("seo hits", Duration::from_secs(60), shutdown.clone(), {
+            let (db, cache) = (state.db.clone(), state.cache.clone());
+            move || {
+                let (db, cache) = (db.clone(), cache.clone());
+                async move {
+                    crate::modules::seo::hits::flush(&cache, &db)
+                        .await
+                        .map(|_| ())
+                }
+            }
+        }),
+        every(
+            "seo 404 purge",
+            Duration::from_secs(24 * 3600),
+            shutdown.clone(),
+            {
+                let db = state.db.clone();
+                move || {
+                    let db = db.clone();
+                    async move { Ok(crate::modules::seo::hits::purge(&db).await.map(|_| ())?) }
+                }
+            },
+        ),
         every("inventory", Duration::from_secs(24 * 3600), shutdown, {
             let db = state.db.clone();
             move || inventory::run_once(db.clone())

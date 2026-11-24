@@ -24,7 +24,8 @@ pub struct ListQuery {
     pub in_stock: bool,
     pub product_type: Option<String>,
     pub q: Option<String>,
-    /// featured | newest | price_asc | price_desc | best_selling
+    /// featured | newest | price_asc | price_desc | best_selling | name | manual. Absent (or
+    /// `default`) in a category: the category's default sort, pinned products first.
     pub sort: Option<String>,
     /// Option value filter `code:value` (e.g. `size:500g`), repeatable via comma.
     pub options: Option<String>,
@@ -71,6 +72,8 @@ pub struct ProductList {
     pub per_page: i64,
     pub next_cursor: Option<String>,
     pub facets: Value,
+    /// The sort applied (the category's default when the visitor chose none).
+    pub sort: String,
 }
 
 fn page_of(q: &ListQuery) -> (i64, i64) {
@@ -86,12 +89,20 @@ fn page_of(q: &ListQuery) -> (i64, i64) {
     (page, per_page)
 }
 
-/// Category id from a slug or id (shop scope), with its sub-categories.
-async fn category_ids(
+/// A category listing: the category, its default sort, and it with its visible subcategories.
+struct CategoryScope {
+    root: Uuid,
+    default_sort: String,
+    ids: Vec<Uuid>,
+}
+
+/// Category from a slug or id (shop scope). Empty `ids` when it is hidden (inactive, or under an
+/// inactive parent): its products are not listed through it.
+async fn category_scope(
     conn: &mut PgConnection,
     key: &str,
     locale: &str,
-) -> sqlx::Result<Option<Vec<Uuid>>> {
+) -> sqlx::Result<Option<CategoryScope>> {
     let root: Option<Uuid> = match key.parse::<Uuid>() {
         Ok(id) => Some(id),
         Err(_) => {
@@ -106,18 +117,26 @@ async fn category_ids(
         }
     };
     let Some(root) = root else { return Ok(None) };
-    Ok(Some(
-        sqlx::query_scalar!(
-            r#"WITH RECURSIVE tree AS (
-                   SELECT id FROM categories WHERE id = $1 AND scope = 'shop' AND is_active
-                   UNION ALL
-                   SELECT c.id FROM categories c JOIN tree ON c.parent_id = tree.id WHERE c.is_active)
-               SELECT id AS "id!" FROM tree"#,
-            root
-        )
-        .fetch_all(conn)
-        .await?,
-    ))
+    let Some(default_sort) = sqlx::query_scalar!(
+        "SELECT default_sort FROM categories WHERE id = $1 AND scope = 'shop'",
+        root
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    else {
+        return Ok(None);
+    };
+    let ids = sqlx::query_scalar!(
+        r#"SELECT id AS "id!" FROM shop_visible_categories() WHERE $1 = ANY(path)"#,
+        root
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok(Some(CategoryScope {
+        root,
+        default_sort,
+        ids,
+    }))
 }
 
 #[allow(clippy::too_many_lines)]
@@ -130,10 +149,10 @@ pub async fn list(
     now: DateTime<Utc>,
 ) -> sqlx::Result<ProductList> {
     let (page, per_page) = page_of(q);
-    let categories = match q.category.as_deref().filter(|c| !c.is_empty()) {
-        Some(c) => match category_ids(conn, c, locale).await? {
-            Some(ids) => Some(ids),
-            None => {
+    let scope = match q.category.as_deref().filter(|c| !c.is_empty()) {
+        Some(c) => match category_scope(conn, c, locale).await? {
+            Some(s) if !s.ids.is_empty() => Some(s),
+            _ => {
                 return Ok(ProductList {
                     data: vec![],
                     total: 0,
@@ -141,11 +160,13 @@ pub async fn list(
                     per_page,
                     next_cursor: None,
                     facets: json!({}),
+                    sort: q.sort.clone().unwrap_or_default(),
                 });
             }
         },
         None => None,
     };
+    let categories = scope.as_ref().map(|s| s.ids.clone());
     let search = q.q.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let option_filters: Vec<String> = q
         .options
@@ -157,7 +178,16 @@ pub async fn list(
                 .collect()
         })
         .unwrap_or_default();
-    let sort = q.sort.as_deref().unwrap_or("featured");
+    let chosen = q
+        .sort
+        .as_deref()
+        .filter(|s| !s.is_empty() && *s != "default");
+    let sort = chosen
+        .or(scope.as_ref().map(|s| s.default_sort.as_str()))
+        .unwrap_or("featured")
+        .to_string();
+    // In a category, its pinned products come first unless the visitor picked a sort.
+    let pinned_first = scope.is_some() && chosen.is_none();
     let rows = sqlx::query!(
         r#"WITH base AS (
                SELECT p.id, p.is_featured, p.sort_order, p.published_at, p.created_at, sp.product_type,
@@ -168,8 +198,11 @@ pub async fn list(
                       v.free_total, v.untracked, v.backorder,
                       (SELECT COALESCE(sum(oi.quantity), 0) FROM order_items oi JOIN orders o ON o.id = oi.order_id
                        WHERE oi.product_id = p.id AND o.status IN ('open', 'completed')) AS sold,
-                      r.avg AS rating_avg, COALESCE(r.n, 0) AS rating_count
+                      r.avg AS rating_avg, COALESCE(r.n, 0) AS rating_count,
+                      rc.is_pinned AS pinned, rc.sort_order AS manual_order,
+                      (SELECT min(x.sort_order) FROM product_categories x WHERE x.product_id = p.id AND x.category_id = ANY($2)) AS sub_order
                FROM products p
+               LEFT JOIN product_categories rc ON rc.product_id = p.id AND rc.category_id = $13
                JOIN shop_products sp ON sp.product_id = p.id
                LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $1
                LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = (SELECT code FROM locales WHERE is_default)
@@ -210,6 +243,10 @@ pub async fn list(
            WHERE ($5::bigint IS NULL OR price_max >= $5) AND ($6::bigint IS NULL OR price_min <= $6)
              AND (NOT $7 OR untracked OR free_total + backorder > 0)
            ORDER BY
+             CASE WHEN $14 THEN COALESCE(pinned, false) END DESC,
+             CASE WHEN $8 = 'manual' THEN manual_order END ASC,
+             CASE WHEN $8 = 'manual' THEN sub_order END ASC,
+             CASE WHEN $8 = 'name' THEN name END ASC,
              CASE WHEN $8 = 'price_asc' THEN price_min END ASC,
              CASE WHEN $8 = 'price_desc' THEN price_max END DESC,
              CASE WHEN $8 = 'newest' THEN COALESCE(published_at, created_at) END DESC,
@@ -228,7 +265,9 @@ pub async fn list(
         now,
         &option_filters,
         per_page,
-        (page - 1) * per_page
+        (page - 1) * per_page,
+        scope.as_ref().map(|s| s.root),
+        pinned_first
     )
     .fetch_all(&mut *conn)
     .await?;
@@ -267,19 +306,28 @@ pub async fn list(
         page,
         per_page,
         facets,
+        sort,
     })
 }
 
-/// Counts per category and per option value over the published catalogue.
+/// Counts per category (with its subcategories; categories shown in menus only) and per option
+/// value over the published catalogue.
 async fn facets(conn: &mut PgConnection, locale: &str) -> sqlx::Result<Value> {
     let categories = sqlx::query!(
-        r#"SELECT c.id, c.parent_id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
-                  (SELECT count(DISTINCT pc.product_id) FROM product_categories pc JOIN products p ON p.id = pc.product_id
-                   WHERE pc.category_id = c.id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL) AS "count!"
-           FROM categories c
+        r#"WITH vis AS (SELECT * FROM shop_visible_categories()),
+           counts AS (
+               SELECT a.id, count(DISTINCT pc.product_id) AS n
+               FROM vis a JOIN vis d ON a.id = ANY(d.path)
+               JOIN product_categories pc ON pc.category_id = d.id
+               JOIN products p ON p.id = pc.product_id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL
+               GROUP BY a.id)
+           SELECT c.id, c.parent_id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
+                  COALESCE(n.n, 0) AS "count!"
+           FROM vis v JOIN categories c ON c.id = v.id
+           LEFT JOIN counts n ON n.id = c.id
            LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $1
            LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)
-           WHERE c.scope = 'shop' AND c.is_active ORDER BY c.sort_order, 3"#,
+           WHERE v.in_menu ORDER BY c.sort_order, 3"#,
         locale
     )
     .fetch_all(&mut *conn)
@@ -580,12 +628,33 @@ pub async fn detail(
     .into_iter()
     .map(|r| (r.locale, r.slug))
     .collect();
+    // Visible categories, the primary one first.
     let categories = sqlx::query!(
-        r#"SELECT c.id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!"
+        r#"SELECT c.id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!", pc.is_primary
            FROM product_categories pc JOIN categories c ON c.id = pc.category_id AND c.scope = 'shop'
+           JOIN shop_visible_categories() v ON v.id = c.id
            LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
            LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)
-           WHERE pc.product_id = $1 ORDER BY c.sort_order"#,
+           WHERE pc.product_id = $1 ORDER BY pc.is_primary DESC, v.depth DESC, c.sort_order"#,
+        p.id,
+        locale
+    )
+    .fetch_all(&mut *conn)
+    .await?
+    .into_iter()
+    .map(|c| json!({ "id": c.id, "name": c.name, "slug": c.slug, "is_primary": c.is_primary }))
+    .collect::<Vec<_>>();
+    // Breadcrumbs: from the root down to the primary category (or the deepest visible one).
+    let breadcrumbs = sqlx::query!(
+        r#"WITH prim AS (
+               SELECT v.path FROM product_categories pc JOIN shop_visible_categories() v ON v.id = pc.category_id
+               WHERE pc.product_id = $1 ORDER BY pc.is_primary DESC, v.depth DESC LIMIT 1)
+           SELECT c.id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!"
+           FROM prim, unnest(prim.path) WITH ORDINALITY AS u(id, n)
+           JOIN categories c ON c.id = u.id
+           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
+           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)
+           ORDER BY u.n"#,
         p.id,
         locale
     )
@@ -606,6 +675,7 @@ pub async fn detail(
         "product_type": p.product_type,
         "is_featured": p.is_featured,
         "categories": categories,
+        "breadcrumbs": breadcrumbs,
         "currency": "EUR",
         "options": options,
         "variants": variants,

@@ -53,6 +53,7 @@ pub fn public_routes(state: &AppState) -> Router<AppState> {
         .route("/shop/products", get(public::products))
         .route("/shop/products/by-slug/{slug}", get(public::product))
         .route("/shop/categories", get(public::categories))
+        .route("/shop/categories/{slug}", get(public::category))
         .route("/shop/orders/{number}", get(public::get_order))
         .route("/shop/orders/{number}/status", get(public::order_status))
         .route(

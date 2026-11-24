@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO not_found_log (path, hits, last_referrer) VALUES ($1, $2, $3)\n             ON CONFLICT (path) DO UPDATE SET hits = not_found_log.hits + EXCLUDED.hits, last_seen_at = now(),\n                 last_referrer = COALESCE(EXCLUDED.last_referrer, not_found_log.last_referrer)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3228f6f0576356e42b4195219bf05e65fc5a1542db8a550c8fdfea5e18a0f231"
+}

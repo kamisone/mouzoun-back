@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(DISTINCT pc.product_id) AS \"n!\" FROM shop_visible_categories() x\n           JOIN product_categories pc ON pc.category_id = x.id\n           JOIN products p ON p.id = pc.product_id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL\n           WHERE $1 = ANY(x.path)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d20317996cc399a2bae8522e2dd496abc27ae78fdb720b3c939cb23ab4ae5477"
+}

@@ -51,6 +51,9 @@ uuid = { version = "1", features = ["v4", "v7", "serde"] }
 validator = { version = "0.20", features = ["derive"] }
 jsonschema = { version = "0.61.2", default-features = false }
 ammonia = "4.2.5"
+# SEO paths: percent-decoding and NFC (already in the tree through url/idna).
+percent-encoding = "2"
+unicode-normalization = "0.1"
 
 # Development builds: file and line numbers in backtraces, no full debug info (several times
 # smaller binaries). Third-party libraries carry no debug info at all.

@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.from_path, r.to_path, r.status_code, r.source, r.entity_type, r.entity_id, r.locale, r.note,\n                  r.hits, r.last_hit_at, r.is_active, r.created_at, r.updated_at, count(*) OVER () AS \"total!\"\n           FROM redirects r\n           WHERE ($1::text IS NULL OR r.from_path ILIKE '%' || $1 || '%' OR r.to_path ILIKE '%' || $1 || '%' OR r.note ILIKE '%' || $1 || '%')\n             AND ($2::text IS NULL OR r.source = $2)\n             AND ($3::smallint IS NULL OR r.status_code = $3)\n             AND ($4::bool IS NULL OR r.is_active = $4)\n             AND (NOT $5 OR ((r.last_hit_at IS NULL OR r.last_hit_at < now() - interval '6 months') AND r.created_at < now() - interval '6 months'))\n           ORDER BY\n             CASE WHEN $6 = 'from_path' AND NOT $7 THEN r.from_path END ASC, CASE WHEN $6 = 'from_path' AND $7 THEN r.from_path END DESC,\n             CASE WHEN $6 = 'to_path' AND NOT $7 THEN r.to_path END ASC, CASE WHEN $6 = 'to_path' AND $7 THEN r.to_path END DESC,\n             CASE WHEN $6 = 'hits' AND NOT $7 THEN r.hits END ASC, CASE WHEN $6 = 'hits' AND $7 THEN r.hits END DESC,\n             CASE WHEN $6 = 'status_code' AND NOT $7 THEN r.status_code END ASC, CASE WHEN $6 = 'status_code' AND $7 THEN r.status_code END DESC,\n             CASE WHEN $6 = 'last_hit_at' AND NOT $7 THEN r.last_hit_at END ASC NULLS FIRST, CASE WHEN $6 = 'last_hit_at' AND $7 THEN r.last_hit_at END DESC NULLS LAST,\n             CASE WHEN $6 = 'created_at' AND NOT $7 THEN r.created_at END ASC, CASE WHEN $6 = 'created_at' AND $7 THEN r.created_at END DESC,\n             r.from_path\n           LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "from_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "to_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "status_code",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "entity_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "entity_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "locale",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "hits",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "last_hit_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int2",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f275c032e5ed154f63df90ad58080e4c2807a982d2e6bec32c4973e668f33008"
+}

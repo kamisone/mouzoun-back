@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT path, hits, first_seen_at, last_seen_at, last_referrer, is_ignored, count(*) OVER () AS \"total!\"\n           FROM not_found_log\n           WHERE ($1 OR NOT is_ignored) AND ($2::text IS NULL OR path ILIKE '%' || $2 || '%')\n           ORDER BY hits DESC, last_seen_at DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "hits",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "first_seen_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_seen_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_referrer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_ignored",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "total!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "df6c13db191d47bf65fc74c268f4f5157578ce62ca61a280663170bebaeff576"
+}

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, storage_provider, object_key FROM media_assets\n         WHERE id = ANY($1) AND deleted_at IS NULL AND visibility = 'public' AND kind = 'image'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "storage_provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "object_key",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "797cddb616f99f726fc6af08fcdfdb6501ef3c6a83632f7dafc0c27e9017d063"
+}

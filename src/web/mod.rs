@@ -39,6 +39,7 @@ pub fn router(state: AppState) -> Router {
         )
         .merge(modules::booking_admin::admin_routes())
         .merge(modules::pages::admin_routes())
+        .merge(modules::seo::admin_routes())
         .merge(modules::shop::admin_routes())
         .merge(modules::translations::admin_routes())
         .merge(auth::mfa::admin_routes())
@@ -52,6 +53,7 @@ pub fn router(state: AppState) -> Router {
     let public = Router::new()
         .merge(modules::booking::public_routes())
         .merge(modules::pages::public_routes())
+        .merge(modules::seo::public_routes())
         .merge(modules::shop::public_routes(&state))
         .nest("/account", modules::account::routes())
         .layer(middleware::from_fn_with_state(

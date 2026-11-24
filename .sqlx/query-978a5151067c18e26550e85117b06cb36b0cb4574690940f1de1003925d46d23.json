@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE up AS (\n                   SELECT parent_id, 1 AS n FROM categories WHERE id = $1\n                   UNION ALL\n                   SELECT c.parent_id, up.n + 1 FROM categories c JOIN up ON c.id = up.parent_id WHERE up.n < 20)\n               SELECT COALESCE(t.slug, d.slug) AS \"slug!\" FROM up\n               JOIN shop_visible_categories() v ON v.id = up.parent_id\n               LEFT JOIN category_translations t ON t.category_id = v.id AND t.locale = $2\n               LEFT JOIN category_translations d ON d.category_id = v.id AND d.locale = $3\n               ORDER BY up.n LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "978a5151067c18e26550e85117b06cb36b0cb4574690940f1de1003925d46d23"
+}

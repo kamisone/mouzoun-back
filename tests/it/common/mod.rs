@@ -38,6 +38,9 @@ pub struct TestApp {
     pub state: AppState,
 }
 
+/// Token of the Nuxt server's internal calls in tests.
+pub const INTERNAL_TOKEN: &str = "test-internal-token-0123456789abcdef";
+
 pub fn test_config() -> Config {
     Config {
         app_env: AppEnv::Test,
@@ -92,6 +95,7 @@ pub fn test_config() -> Config {
             enabled: true,
             api_base: "http://127.0.0.1:9".into(),
         },
+        internal_api_token: Some(INTERNAL_TOKEN.into()),
     }
 }
 

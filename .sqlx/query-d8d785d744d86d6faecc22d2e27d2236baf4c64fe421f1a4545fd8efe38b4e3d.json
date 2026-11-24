@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM products p JOIN product_translations t ON t.product_id = p.id\n         WHERE p.kind = $1 AND t.slug = $2 ORDER BY (p.deleted_at IS NULL) DESC, (t.locale = $3) DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d8d785d744d86d6faecc22d2e27d2236baf4c64fe421f1a4545fd8efe38b4e3d"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE page_translations SET slug = $3, updated_at = now() WHERE page_id = $1 AND locale = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45939a0dbc9a3f058d674fdc004358c012fb7f2a52d26aad433758a002a52bb4"
+}

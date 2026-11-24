@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE redirects SET hits = hits + $2, last_hit_at = now() WHERE from_path = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3750a4d165d4a314c04082c865655f27af1516824d634bbaec2a3c7b40f4a68"
+}

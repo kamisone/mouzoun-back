@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\"\n           FROM unnest($1::uuid[]) WITH ORDINALITY AS u(id, n) JOIN categories c ON c.id = u.id\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2\n           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3\n           ORDER BY u.n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "8d3612c535b975d5bbfeb617161af4b2f679747bc95de4be121b449420845f54"
+}

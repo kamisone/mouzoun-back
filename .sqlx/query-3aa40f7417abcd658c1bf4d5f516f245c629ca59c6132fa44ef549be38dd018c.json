@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE redirects SET to_path = $2, updated_at = now() WHERE to_path = $1 AND from_path <> $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3aa40f7417abcd658c1bf4d5f516f245c629ca59c6132fa44ef549be38dd018c"
+}

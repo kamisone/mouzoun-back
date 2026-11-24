@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(max(sort_order) + 1, 0) AS \"n!\" FROM categories\n               WHERE scope = 'shop' AND parent_id IS NOT DISTINCT FROM $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "91dcce11f12550338e7899fc1a43887e4aecc2f75459277d1eb0db09547f969a"
+}

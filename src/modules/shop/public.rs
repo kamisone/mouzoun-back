@@ -20,6 +20,7 @@ use crate::{
     error::{AppError, AppResult},
     services::{
         audit::Actor,
+        shop::categories as shop_categories,
         shop::{
             cart::{self, CartRow, FulfillmentChoice},
             catalog::{self, ListQuery},
@@ -244,30 +245,189 @@ pub async fn product(
     Ok(Json(p))
 }
 
+/// Visible shop categories (active, under active parents) in order, with their published
+/// product counts including subcategories. `in_menu` is false for categories hidden from the
+/// shop sidebar and menus (their page still works).
 pub async fn categories(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
 ) -> AppResult<Json<Value>> {
     require_visible(&shop_settings(&state).await?)?;
+    let key = format!("{CATALOG_CACHE_PREFIX}categories:{}", locale.as_str());
+    if let Some(cached) = state.cache.get_json::<Value>(&key).await {
+        return Ok(Json(cached));
+    }
     let rows = sqlx::query!(
-        r#"SELECT c.id, c.parent_id, c.icon, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
+        r#"WITH vis AS (SELECT * FROM shop_visible_categories()),
+           counts AS (
+               SELECT a.id, count(DISTINCT pc.product_id) AS n
+               FROM vis a JOIN vis d ON a.id = ANY(d.path)
+               JOIN product_categories pc ON pc.category_id = d.id
+               JOIN products p ON p.id = pc.product_id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL
+               GROUP BY a.id)
+           SELECT c.id, c.parent_id, c.icon, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
                   COALESCE(t.description, d.description) AS description, m.object_key AS "image_key?",
                   COALESCE(t.seo_title, d.seo_title) AS seo_title, COALESCE(t.seo_description, d.seo_description) AS seo_description,
-                  (SELECT jsonb_object_agg(locale, slug) FROM category_translations WHERE category_id = c.id) AS slugs
-           FROM categories c
+                  (SELECT jsonb_object_agg(locale, slug) FROM category_translations WHERE category_id = c.id) AS slugs,
+                  v.in_menu AS "in_menu!", v.depth AS "depth!", COALESCE(n.n, 0) AS "product_count!"
+           FROM vis v JOIN categories c ON c.id = v.id
+           LEFT JOIN counts n ON n.id = c.id
            LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $1
            LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)
            LEFT JOIN media_assets m ON m.id = c.cover_media_id AND m.deleted_at IS NULL
-           WHERE c.scope = 'shop' AND c.is_active ORDER BY c.sort_order, 4"#,
+           ORDER BY c.sort_order, 4"#,
         locale.as_str()
     )
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(json!({ "data": rows.iter().map(|c| json!({
+    let value = json!({ "data": rows.iter().map(|c| json!({
         "id": c.id, "parent_id": c.parent_id, "icon": c.icon, "name": c.name, "slug": c.slug, "description": c.description,
         "image_url": c.image_key.as_deref().map(|k| state.media.public_url(k)), "seo_title": c.seo_title,
-        "seo_description": c.seo_description, "slugs": c.slugs,
-    })).collect::<Vec<_>>() })))
+        "seo_description": c.seo_description, "slugs": c.slugs, "in_menu": c.in_menu, "depth": c.depth,
+        "product_count": c.product_count,
+    })).collect::<Vec<_>>() });
+    state.cache.set_json(&key, &value, CATALOG_TTL).await;
+    Ok(Json(value))
+}
+
+/// A category page: `{category}` (cover, description, breadcrumbs, subcategories, SEO), or
+/// `{redirect}` with the path to send the visitor to (301): an inactive category goes to its
+/// nearest visible parent or the shop home. Old addresses (`redirects`) never reach this page:
+/// the Nuxt server answers them first (`modules::seo`).
+#[allow(clippy::too_many_lines)]
+pub async fn category(
+    State(state): State<AppState>,
+    RequestLocale(locale): RequestLocale,
+    Path(slug): Path<String>,
+) -> AppResult<Json<Value>> {
+    require_visible(&shop_settings(&state).await?)?;
+    let locale = locale.as_str();
+    let key = format!("{CATALOG_CACHE_PREFIX}category:{locale}:{slug}");
+    if let Some(cached) = state.cache.get_json::<Value>(&key).await {
+        return Ok(Json(cached));
+    }
+    let mut conn = state.db.acquire().await?;
+    let default_locale = shop_categories::default_locale(&mut conn).await?;
+    let found = sqlx::query!(
+        "SELECT c.id, c.parent_id FROM categories c JOIN category_translations t ON t.category_id = c.id
+         WHERE c.scope = 'shop' AND t.slug = $1 ORDER BY (t.locale = $2) DESC LIMIT 1",
+        slug,
+        locale
+    )
+    .fetch_optional(&mut *conn)
+    .await?;
+    // Old addresses are answered by the site-wide redirect layer before this page renders.
+    let found = found.ok_or(AppError::NotFound)?;
+    let visible: Option<(Vec<Uuid>, bool)> = sqlx::query!(
+        r#"SELECT path AS "path!", in_menu AS "in_menu!" FROM shop_visible_categories() WHERE id = $1"#,
+        found.id
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .map(|r| (r.path, r.in_menu));
+    let Some((path, in_menu)) = visible else {
+        // Hidden: the nearest visible ancestor, else the shop home.
+        let target = sqlx::query_scalar!(
+            r#"WITH RECURSIVE up AS (
+                   SELECT parent_id, 1 AS n FROM categories WHERE id = $1
+                   UNION ALL
+                   SELECT c.parent_id, up.n + 1 FROM categories c JOIN up ON c.id = up.parent_id WHERE up.n < 20)
+               SELECT COALESCE(t.slug, d.slug) AS "slug!" FROM up
+               JOIN shop_visible_categories() v ON v.id = up.parent_id
+               LEFT JOIN category_translations t ON t.category_id = v.id AND t.locale = $2
+               LEFT JOIN category_translations d ON d.category_id = v.id AND d.locale = $3
+               ORDER BY up.n LIMIT 1"#,
+            found.id,
+            locale,
+            default_locale
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        let value = json!({ "redirect": shop_categories::shop_path(locale, &default_locale, target.as_deref()) });
+        state.cache.set_json(&key, &value, CATALOG_TTL).await;
+        return Ok(Json(value));
+    };
+    let c = sqlx::query!(
+        r#"SELECT c.id, c.icon, c.default_sort, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
+                  COALESCE(t.description, d.description) AS description,
+                  COALESCE(t.seo_title, d.seo_title) AS seo_title, COALESCE(t.seo_description, d.seo_description) AS seo_description,
+                  (SELECT jsonb_object_agg(locale, slug) FROM category_translations WHERE category_id = c.id) AS "slugs!",
+                  c.cover_media_id
+           FROM categories c
+           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
+           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3
+           WHERE c.id = $1"#,
+        found.id,
+        locale,
+        default_locale
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    let crumbs = sqlx::query!(
+        r#"SELECT c.id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!"
+           FROM unnest($1::uuid[]) WITH ORDINALITY AS u(id, n) JOIN categories c ON c.id = u.id
+           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
+           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3
+           ORDER BY u.n"#,
+        &path,
+        locale,
+        default_locale
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let children = sqlx::query!(
+        r#"WITH vis AS (SELECT * FROM shop_visible_categories())
+           SELECT c.id, COALESCE(t.name, d.name) AS "name!", COALESCE(t.slug, d.slug) AS "slug!",
+                  (SELECT count(DISTINCT pc.product_id) FROM vis x JOIN product_categories pc ON pc.category_id = x.id
+                   JOIN products p ON p.id = pc.product_id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL
+                   WHERE c.id = ANY(x.path)) AS "count!"
+           FROM vis v JOIN categories c ON c.id = v.id
+           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
+           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3
+           WHERE v.parent_id = $1 AND v.in_menu ORDER BY c.sort_order, 2"#,
+        found.id,
+        locale,
+        default_locale
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let count = sqlx::query_scalar!(
+        r#"SELECT count(DISTINCT pc.product_id) AS "n!" FROM shop_visible_categories() x
+           JOIN product_categories pc ON pc.category_id = x.id
+           JOIN products p ON p.id = pc.product_id AND p.kind = 'shop_product' AND p.status = 'published' AND p.deleted_at IS NULL
+           WHERE $1 = ANY(x.path)"#,
+        found.id
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    // The cover as page sections get media: variants (srcset), blur-up, focal point, alt.
+    let cover = match c.cover_media_id {
+        Some(m) => {
+            let all: Vec<String> = sqlx::query_scalar!("SELECT code FROM locales")
+                .fetch_all(&mut *conn)
+                .await?;
+            let lang = crate::modules::pages::public::Lang {
+                locale,
+                default: &default_locale,
+                all: &all,
+            };
+            crate::modules::pages::public::media_views(&state, &[m], &lang)
+                .await?
+                .remove(&m)
+        }
+        None => None,
+    };
+    let value = json!({ "category": {
+        "id": c.id, "name": c.name, "slug": c.slug, "slugs": c.slugs, "icon": c.icon, "description": c.description,
+        "seo_title": c.seo_title, "seo_description": c.seo_description, "default_sort": c.default_sort, "in_menu": in_menu,
+        "cover": cover,
+        "breadcrumbs": crumbs.iter().map(|b| json!({ "id": b.id, "name": b.name, "slug": b.slug })).collect::<Vec<_>>(),
+        "children": children.iter().map(|b| json!({ "id": b.id, "name": b.name, "slug": b.slug, "product_count": b.count })).collect::<Vec<_>>(),
+        "product_count": count,
+        "indexable": count > 0,
+    }});
+    state.cache.set_json(&key, &value, CATALOG_TTL).await;
+    Ok(Json(value))
 }
 
 // ---- Cart ------------------------------------------------------------------------------------------
@@ -966,8 +1126,9 @@ pub struct NotifyMeBody {
     pub email: String,
 }
 
-/// "Shop opens soon": the address joins the newsletter list (source `shop`), confirmed by email
-/// (double opt-in through the existing newsletter flow).
+/// "Shop opens soon" or "tell me when this category has products": the address joins the
+/// newsletter list (source `shop`), confirmed by email (double opt-in through the existing
+/// newsletter flow).
 pub async fn notify_me(
     State(state): State<AppState>,
     RequestLocale(locale): RequestLocale,
@@ -975,7 +1136,8 @@ pub async fn notify_me(
     Json(body): Json<NotifyMeBody>,
 ) -> AppResult<StatusCode> {
     let s = shop_settings(&state).await?;
-    if s.status != ShopStatus::CatalogOnly {
+    // "Opens soon" (catalog only) and "tell me when this category has products" (open shop).
+    if s.status == ShopStatus::Closed {
         return Err(AppError::NotFound);
     }
     rate_limit(

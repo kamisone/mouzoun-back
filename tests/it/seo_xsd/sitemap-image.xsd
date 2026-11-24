@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Google image sitemap extension 1.1 (google.com/schemas/sitemap-image/1.1), transcribed for the tests. -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.google.com/schemas/sitemap-image/1.1"
+            xmlns="http://www.google.com/schemas/sitemap-image/1.1"
+            elementFormDefault="qualified">
+  <xsd:element name="image">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="loc" type="xsd:anyURI"/>
+        <xsd:element name="caption" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="geo_location" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="title" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="license" type="xsd:anyURI" minOccurs="0"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+</xsd:schema>

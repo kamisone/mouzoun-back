@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET value = to_jsonb(now()), updated_at = now() WHERE key = 'seo.sitemap_built_at'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "38af63fee1e88ccb41c98214edf7af3febf844751d368fb8d4df1a50c4b64776"
+}

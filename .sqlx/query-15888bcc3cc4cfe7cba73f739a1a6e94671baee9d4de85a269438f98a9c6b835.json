@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_categories SET sort_order = $3, is_pinned = $4 WHERE category_id = $1 AND product_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "15888bcc3cc4cfe7cba73f739a1a6e94671baee9d4de85a269438f98a9c6b835"
+}

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, COALESCE(t.name, p.code::text, p.id::text) AS \"name!\",\n                  (p.is_active AND (p.booking_window IS NULL OR upper(p.booking_window) IS NULL OR upper(p.booking_window) > now())) AS \"active!\"\n           FROM promotion_categories pc JOIN promotions p ON p.id = pc.promotion_id\n           LEFT JOIN promotion_translations t ON t.promotion_id = p.id AND t.locale = 'fr'\n           WHERE pc.category_id = $1 ORDER BY 3 DESC, 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "active!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "05f37efff0e19ed25a58851c23d8a72557593339b0239a24752d0c9f0958f6b9"
+}

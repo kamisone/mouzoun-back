@@ -1,0 +1,104 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE sub AS (\n               SELECT id AS root, id FROM categories WHERE scope = 'shop'\n               UNION ALL\n               SELECT sub.root, c.id FROM categories c JOIN sub ON c.parent_id = sub.id),\n           counts AS (\n               SELECT sub.root,\n                      count(DISTINCT pc.product_id) FILTER (WHERE pc.category_id = sub.root) AS own,\n                      count(DISTINCT pc.product_id) FILTER (WHERE pc.category_id = sub.root AND p.status = 'published') AS own_published,\n                      count(DISTINCT pc.product_id) AS total,\n                      count(DISTINCT pc.product_id) FILTER (WHERE p.status = 'published') AS published\n               FROM sub JOIN product_categories pc ON pc.category_id = sub.id\n               JOIN products p ON p.id = pc.product_id AND p.deleted_at IS NULL\n               GROUP BY sub.root)\n           SELECT c.id, c.parent_id, c.icon, c.cover_media_id, c.sort_order, c.is_active, c.show_in_menu, c.default_sort,\n                  c.first_activated_at, c.updated_at,\n                  COALESCE((SELECT jsonb_object_agg(locale, jsonb_build_object('name', name, 'slug', slug, 'description', description,\n                            'seo_title', seo_title, 'seo_description', seo_description)) FROM category_translations WHERE category_id = c.id), '{}') AS \"translations!\",\n                  COALESCE(n.own, 0) AS \"own!\", COALESCE(n.own_published, 0) AS \"own_published!\",\n                  COALESCE(n.total, 0) AS \"total!\", COALESCE(n.published, 0) AS \"published!\"\n           FROM categories c\n           LEFT JOIN counts n ON n.root = c.id\n           WHERE c.scope = 'shop' ORDER BY c.sort_order, c.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "show_in_menu",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_sort",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "first_activated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "translations!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 11,
+        "name": "own!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "own_published!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "published!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "37f3517cbe6cd71adf2dcb25b810eabf3a99666fc68f2c54ee8ff082c5b08471"
+}

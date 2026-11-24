@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE d AS (\n                   SELECT id, 1 AS n FROM pages WHERE parent_id = $1\n                   UNION ALL SELECT p.id, d.n + 1 FROM pages p JOIN d ON p.parent_id = d.id WHERE d.n < 10)\n               SELECT t.page_id, t.slug FROM page_translations t JOIN d ON d.id = t.page_id\n               WHERE t.locale = $2 AND starts_with(t.slug, $3 || '/')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e68c7ca39bbbd10b4f644bba91fa527eaeb9149348134774dd4e319310dcf2fa"
+}

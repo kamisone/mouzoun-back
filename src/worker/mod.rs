@@ -40,6 +40,10 @@ pub fn registry(
     Registry::new()
         .register(Arc::new(EmailHandler::new(pool.clone(), mailer.clone())))
         .register(Arc::new(CacheInvalidationHandler::new(cache.clone())))
+        .register(Arc::new(crate::modules::seo::SeoCacheHandler::new(
+            pool.clone(),
+            cache.clone(),
+        )))
         .register(Arc::new(
             crate::modules::pages::cache::PageCacheHandler::new(pool.clone(), cache.clone()),
         ))

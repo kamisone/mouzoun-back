@@ -33,25 +33,54 @@ async fn translate(
     Ok(())
 }
 
-async fn category(
-    tx: &mut PgConnection,
+/// locale, name, slug, description (short HTML), SEO title, SEO description.
+type CategoryText<'a> = (&'a str, &'a str, &'a str, &'a str, &'a str, &'a str);
+
+struct CategorySeed<'a> {
     sort: i32,
-    names: [(&str, &str, &str); 3],
-) -> anyhow::Result<Uuid> {
+    parent: Option<Uuid>,
+    show_in_menu: bool,
+    /// Cover: a site photo (`<photo>.jpg`, seeded with its alt texts by `pages::seed`).
+    photo: Option<&'a str>,
+    texts: [CategoryText<'a>; 3],
+}
+
+async fn category(tx: &mut PgConnection, c: CategorySeed<'_>) -> anyhow::Result<Uuid> {
     let id = Uuid::now_v7();
-    sqlx::query("INSERT INTO categories (id, scope, sort_order) VALUES ($1, 'shop', $2)")
+    let cover: Option<Uuid> = match c.photo {
+        Some(photo) => {
+            sqlx::query_scalar("SELECT id FROM media_assets WHERE original_filename = $1 LIMIT 1")
+                .bind(format!("{photo}.jpg"))
+                .fetch_optional(&mut *tx)
+                .await?
+        }
+        None => None,
+    };
+    sqlx::query(
+        "INSERT INTO categories (id, scope, parent_id, sort_order, show_in_menu, cover_media_id, default_sort)
+         VALUES ($1, 'shop', $2, $3, $4, $5, 'manual')",
+    )
+    .bind(id)
+    .bind(c.parent)
+    .bind(c.sort)
+    .bind(c.show_in_menu)
+    .bind(cover)
+    .execute(&mut *tx)
+    .await?;
+    for (locale, name, slug, description, seo_title, seo_description) in c.texts {
+        sqlx::query(
+            "INSERT INTO category_translations (category_id, locale, name, slug, description, seo_title, seo_description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        )
         .bind(id)
-        .bind(sort)
+        .bind(locale)
+        .bind(name)
+        .bind(slug)
+        .bind(format!("<p>{description}</p>"))
+        .bind(seo_title)
+        .bind(seo_description)
         .execute(&mut *tx)
         .await?;
-    for (locale, name, slug) in names {
-        sqlx::query("INSERT INTO category_translations (category_id, locale, name, slug) VALUES ($1, $2, $3, $4)")
-            .bind(id)
-            .bind(locale)
-            .bind(name)
-            .bind(slug)
-            .execute(&mut *tx)
-            .await?;
     }
     Ok(id)
 }
@@ -135,9 +164,12 @@ async fn product(tx: &mut PgConnection, p: &ProductSeed<'_>) -> anyhow::Result<U
             .await?;
         }
     }
-    sqlx::query("INSERT INTO product_categories (product_id, category_id) VALUES ($1, $2)")
-        .bind(id)
-        .bind(p.category)
+    sqlx::query(
+        "INSERT INTO product_categories (product_id, category_id, is_primary, sort_order)
+         VALUES ($1, $2, true, (SELECT COALESCE(max(sort_order) + 1, 0) FROM product_categories WHERE category_id = $2))",
+    )
+    .bind(id)
+    .bind(p.category)
         .execute(&mut *tx)
         .await?;
     sqlx::query("INSERT INTO product_taxes (product_id, tax_id) VALUES ($1, $2)")
@@ -249,55 +281,186 @@ pub async fn seed(pool: &PgPool) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let t = &mut *tx;
 
-    // Categories.
+    // Categories: five main ones, a subcategory (nesting) and a seasonal one hidden from menus.
     let dates = category(
         t,
-        1,
-        [
-            ("fr", "Dattes", "dattes"),
-            ("en", "Dates", "dates"),
-            ("ar", "التمور", "tumur"),
-        ],
+        CategorySeed {
+            sort: 1,
+            parent: None,
+            show_in_menu: true,
+            photo: Some("farm-fields"),
+            texts: [
+                ("fr", "Dattes", "dattes", "Medjool et Boufeggous de notre palmeraie de M'ssici, cueillies à la main et triées à la ferme.",
+                 "Dattes de M'ssici : Medjool et Boufeggous", "Dattes Medjool et Boufeggous de la palmeraie de M'ssici, près d'Alnif : cueillies à la main, triées à la ferme, expédiées en France."),
+                ("en", "Dates", "dates", "Medjool and Boufeggous dates from our palm grove in M'ssici, picked by hand and sorted on the farm.",
+                 "Dates from M'ssici: Medjool and Boufeggous", "Medjool and Boufeggous dates from the M'ssici palm grove near Alnif: hand-picked, sorted on the farm, shipped to France."),
+                ("ar", "التمور", "tumur", "تمور المجهول وبوفقوس من واحتنا في مسيسي، مقطوفة باليد ومفروزة في الضيعة.",
+                 "تمور مسيسي: المجهول وبوفقوس", "تمور المجهول وبوفقوس من واحة مسيسي قرب ألنيف، مقطوفة باليد ومفروزة في الضيعة."),
+            ],
+        },
+    )
+    .await?;
+    let medjool_dates = category(
+        t,
+        CategorySeed {
+            sort: 1,
+            parent: Some(dates),
+            show_in_menu: true,
+            photo: None,
+            texts: [
+                (
+                    "fr",
+                    "Dattes Medjool",
+                    "dattes-medjool",
+                    "La reine des dattes : grosse, moelleuse, au goût de caramel.",
+                    "Dattes Medjool de M'ssici",
+                    "Dattes Medjool de notre palmeraie : grosses, moelleuses, goût caramel.",
+                ),
+                (
+                    "en",
+                    "Medjool dates",
+                    "medjool-dates",
+                    "The queen of dates: large, soft, with a caramel taste.",
+                    "Medjool dates from M'ssici",
+                    "Medjool dates from our palm grove: large, soft, caramel taste.",
+                ),
+                (
+                    "ar",
+                    "تمر المجهول",
+                    "tamr-majhoul-categorie",
+                    "ملكة التمور: كبيرة وطرية بطعم الكراميل.",
+                    "تمر المجهول من مسيسي",
+                    "تمر المجهول من واحتنا: كبير وطري بطعم الكراميل.",
+                ),
+            ],
+        },
     )
     .await?;
     let oil = category(
         t,
-        2,
-        [
-            ("fr", "Huile d'olive et olives", "huile-olives"),
-            ("en", "Olive oil & olives", "olive-oil-olives"),
-            ("ar", "زيت الزيتون والزيتون", "zayt-zaytoun"),
-        ],
+        CategorySeed {
+            sort: 2,
+            parent: None,
+            show_in_menu: true,
+            photo: Some("oasis"),
+            texts: [
+                ("fr", "Huile d'olive et olives", "huile-olives", "Huile d'olive pressée à froid et olives de nos oliviers, entre dunes et oasis.",
+                 "Huile d'olive et olives de M'ssici", "Huile d'olive vierge extra pressée à froid et olives de la ferme Mouzoun, dans le sud du Maroc."),
+                ("en", "Olive oil & olives", "olive-oil-olives", "Cold-pressed olive oil and olives from our trees, between dunes and oasis.",
+                 "Olive oil and olives from M'ssici", "Cold-pressed extra virgin olive oil and olives from the Mouzoun farm in southern Morocco."),
+                ("ar", "زيت الزيتون والزيتون", "zayt-zaytoun", "زيت زيتون معصور على البارد وزيتون من أشجارنا بين الكثبان والواحة.",
+                 "زيت الزيتون والزيتون من مسيسي", "زيت زيتون بكر ممتاز معصور على البارد وزيتون من ضيعة موزون في جنوب المغرب."),
+            ],
+        },
     )
     .await?;
     let pantry = category(
         t,
-        3,
-        [
-            ("fr", "Épices et épicerie", "epices-epicerie"),
-            ("en", "Spices & pantry", "spices-pantry"),
-            ("ar", "التوابل والبقالة", "tawabil"),
-        ],
+        CategorySeed {
+            sort: 3,
+            parent: None,
+            show_in_menu: true,
+            photo: Some("mint-tea"),
+            texts: [
+                (
+                    "fr",
+                    "Épices et épicerie",
+                    "epices-epicerie",
+                    "Ras el hanout, herbes du désert et produits de l'épicerie de la ferme.",
+                    "Épices et épicerie du désert",
+                    "Ras el hanout, herbes séchées et épicerie de la ferme Mouzoun à M'ssici.",
+                ),
+                (
+                    "en",
+                    "Spices & pantry",
+                    "spices-pantry",
+                    "Ras el hanout, desert herbs and pantry goods from the farm.",
+                    "Desert spices and pantry",
+                    "Ras el hanout, dried herbs and pantry goods from the Mouzoun farm in M'ssici.",
+                ),
+                (
+                    "ar",
+                    "التوابل والبقالة",
+                    "tawabil",
+                    "رأس الحانوت وأعشاب الصحراء ومنتجات بقالة الضيعة.",
+                    "توابل وبقالة الصحراء",
+                    "رأس الحانوت والأعشاب المجففة وبقالة ضيعة موزون في مسيسي.",
+                ),
+            ],
+        },
     )
     .await?;
     let crafts = category(
         t,
-        4,
-        [
-            ("fr", "Artisanat", "artisanat"),
-            ("en", "Crafts", "crafts"),
-            ("ar", "الصناعة التقليدية", "sinaa-taqlidiya"),
-        ],
+        CategorySeed {
+            sort: 4,
+            parent: None,
+            show_in_menu: true,
+            photo: Some("ksar"),
+            texts: [
+                ("fr", "Artisanat", "artisanat", "Paniers et objets tressés par les artisanes de la région d'Alnif.",
+                 "Artisanat du sud marocain", "Paniers et objets faits main par les artisanes de la région d'Alnif et de Rissani."),
+                ("en", "Crafts", "crafts", "Baskets and woven pieces made by women artisans around Alnif.",
+                 "Crafts from southern Morocco", "Handmade baskets and woven pieces by women artisans around Alnif and Rissani."),
+                ("ar", "الصناعة التقليدية", "sinaa-taqlidiya", "سلال وقطع منسوجة من صنع حرفيات منطقة ألنيف.",
+                 "صناعة تقليدية من جنوب المغرب", "سلال وقطع يدوية من صنع حرفيات منطقة ألنيف والريصاني."),
+            ],
+        },
     )
     .await?;
     let boxes = category(
         t,
-        5,
-        [
-            ("fr", "Coffrets cadeaux", "coffrets"),
-            ("en", "Gift boxes", "gift-boxes"),
-            ("ar", "علب الهدايا", "ulab-hadaya"),
-        ],
+        CategorySeed {
+            sort: 5,
+            parent: None,
+            show_in_menu: true,
+            photo: Some("camp"),
+            texts: [
+                ("fr", "Coffrets cadeaux", "coffrets", "Des coffrets prêts à offrir : dattes, huile, épices et thé.",
+                 "Coffrets cadeaux de la ferme", "Coffrets cadeaux de la ferme Mouzoun : dattes, huile d'olive, épices et thé, prêts à offrir."),
+                ("en", "Gift boxes", "gift-boxes", "Ready-to-give boxes: dates, oil, spices and tea.",
+                 "Gift boxes from the farm", "Mouzoun farm gift boxes: dates, olive oil, spices and tea, ready to give."),
+                ("ar", "علب الهدايا", "ulab-hadaya", "علب جاهزة للإهداء: تمور وزيت وتوابل وشاي.",
+                 "علب هدايا من الضيعة", "علب هدايا من ضيعة موزون: تمور وزيت زيتون وتوابل وشاي، جاهزة للإهداء."),
+            ],
+        },
+    )
+    .await?;
+    // Seasonal (Ramadan, end of year): its page works, it is not in the sidebar or menus.
+    let seasonal = category(
+        t,
+        CategorySeed {
+            sort: 6,
+            parent: None,
+            show_in_menu: false,
+            photo: Some("night-sky"),
+            texts: [
+                (
+                    "fr",
+                    "Coffrets de saison",
+                    "coffrets-de-saison",
+                    "Nos coffrets du moment, pour le Ramadan et les fêtes de fin d'année.",
+                    "Coffrets de saison",
+                    "Coffrets de saison de la ferme Mouzoun pour le Ramadan et les fêtes.",
+                ),
+                (
+                    "en",
+                    "Seasonal boxes",
+                    "seasonal-boxes",
+                    "Our boxes of the moment, for Ramadan and the end-of-year holidays.",
+                    "Seasonal boxes",
+                    "Seasonal boxes from the Mouzoun farm for Ramadan and the holidays.",
+                ),
+                (
+                    "ar",
+                    "علب الموسم",
+                    "ulab-al-mawsim",
+                    "علبنا لهذا الموسم، لرمضان وأعياد نهاية السنة.",
+                    "علب الموسم",
+                    "علب الموسم من ضيعة موزون لرمضان والأعياد.",
+                ),
+            ],
+        },
     )
     .await?;
 
@@ -1048,6 +1211,27 @@ pub async fn seed(pool: &PgPool) -> anyhow::Result<()> {
         },
     )
     .await?;
+    // Manual order in "Dattes": Boufeggous pinned first, then Medjool. Medjool is also in its
+    // subcategory; the gift box also sits in the seasonal boxes.
+    sqlx::query("UPDATE product_categories SET is_pinned = true, sort_order = 0 WHERE category_id = $1 AND product_id = $2")
+        .bind(dates)
+        .bind(boufeggous)
+        .execute(&mut *t)
+        .await?;
+    sqlx::query(
+        "UPDATE product_categories SET sort_order = 1 WHERE category_id = $1 AND product_id = $2",
+    )
+    .bind(dates)
+    .bind(medjool)
+    .execute(&mut *t)
+    .await?;
+    for (category, product) in [(medjool_dates, medjool), (seasonal, gift)] {
+        sqlx::query("INSERT INTO product_categories (product_id, category_id, sort_order) VALUES ($1, $2, 0)")
+            .bind(product)
+            .bind(category)
+            .execute(&mut *t)
+            .await?;
+    }
     let gift_v = variant(
         t,
         gift,

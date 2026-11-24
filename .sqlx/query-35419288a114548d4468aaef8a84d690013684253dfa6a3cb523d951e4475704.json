@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM redirects WHERE id = $1 RETURNING from_path, to_path, source",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "from_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "source",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "35419288a114548d4468aaef8a84d690013684253dfa6a3cb523d951e4475704"
+}

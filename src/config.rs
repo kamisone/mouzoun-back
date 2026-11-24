@@ -54,6 +54,10 @@ pub struct Config {
     pub worker: WorkerConfig,
     pub booking: BookingConfig,
     pub translate: TranslateConfig,
+    /// Shared with the Nuxt server (`NUXT_INTERNAL_API_TOKEN`): authenticates its internal calls
+    /// (redirect and 404 hit counts). `INTERNAL_API_TOKEN`; when unset the counts are accepted from
+    /// anyone (they only feed statistics and the bounded 404 log).
+    pub internal_api_token: Option<String>,
 }
 
 /// Machine translation of admin content (the "Générer" buttons). Uses Google Translate's free
@@ -506,6 +510,7 @@ impl Config {
             worker: WorkerConfig::from_env()?,
             booking: BookingConfig::from_env()?,
             translate: TranslateConfig::from_env()?,
+            internal_api_token: optional("INTERNAL_API_TOKEN"),
         })
     }
 }
@@ -529,6 +534,13 @@ impl Config {
             }
             if !self.cookie_secure {
                 problems.push("COOKIE_SECURE must be true in production".into());
+            }
+            if self
+                .internal_api_token
+                .as_ref()
+                .is_some_and(|t| t.len() < 32)
+            {
+                problems.push("INTERNAL_API_TOKEN must be at least 32 characters".into());
             }
             for (name, url) in [
                 ("PUBLIC_SITE_URL", &self.email.public_site_url),
@@ -746,6 +758,7 @@ mod tests {
                 ..BookingConfig::default()
             },
             translate: TranslateConfig::default(),
+            internal_api_token: None,
         }
     }
 

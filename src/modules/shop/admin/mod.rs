@@ -23,7 +23,7 @@ pub mod variations;
 
 use axum::{
     Router,
-    routing::{get, patch, post, put},
+    routing::{delete, get, patch, post, put},
 };
 
 use crate::state::AppState;
@@ -66,9 +66,25 @@ pub fn routes() -> Router<AppState> {
             "/categories",
             get(categories::list).post(categories::create),
         )
+        .route("/categories/tree", put(categories::save_tree))
+        .route("/categories/suggested", post(categories::create_suggested))
         .route(
             "/categories/{id}",
-            put(categories::update).delete(categories::delete),
+            get(categories::detail)
+                .patch(categories::update)
+                .put(categories::update)
+                .delete(categories::delete),
+        )
+        .route("/categories/{id}/impact", get(categories::impact))
+        .route(
+            "/categories/{id}/products",
+            get(categories::products)
+                .put(categories::order_products)
+                .post(categories::add_products),
+        )
+        .route(
+            "/categories/{id}/products/{product_id}",
+            delete(categories::remove_product),
         )
         // Pricing
         .route(

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_categories SET is_primary = true WHERE product_id = $1 AND category_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "96ecb48a7a1d41ca1b649a3d5c838e796f41731c49a78e3b4989a52d5cd9c4dc"
+}

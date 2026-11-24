@@ -13,6 +13,7 @@
 //! account (development only; e.g. the full-stack tests' E2E_STAFF_EMAIL).
 
 mod pages;
+mod seo;
 mod shop;
 
 use anyhow::{Context, bail};
@@ -128,6 +129,10 @@ async fn main() -> anyhow::Result<()> {
     println!("home and about pages published (revision 1)");
     shop::seed(&pool).await?;
     println!("shop seeded (status catalog_only): 7 products, camp farm store, shipping zones");
+    seo::seed(&pool).await?;
+    println!(
+        "seo: an activity and a page renamed (301s), 3 manual redirects, 10 rows in the 404 log"
+    );
     let reference = demo_booking(&pool, today).await?;
     println!(
         "demo booking {reference} (pending): confirm it with `cargo run --bin seed_dev -- confirm {reference}`"

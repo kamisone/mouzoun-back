@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT 'db-' || md5(COALESCE(string_agg(from_path || '>' || to_path || ':' || status_code, ',' ORDER BY from_path), '')) AS \"v!\"\n           FROM redirects WHERE is_active",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "v!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "13a9721e59e6f204a22005645ac72986beea4574a5683544ef6a78ef55df489e"
+}

@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\", pc.is_primary\n           FROM product_categories pc JOIN categories c ON c.id = pc.category_id AND c.scope = 'shop'\n           JOIN shop_visible_categories() v ON v.id = c.id\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2\n           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE pc.product_id = $1 ORDER BY pc.is_primary DESC, v.depth DESC, c.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_primary",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "62886209112b65867b578525da589dc0314b391125c3974a2eed5d62d0940eb7"
+}

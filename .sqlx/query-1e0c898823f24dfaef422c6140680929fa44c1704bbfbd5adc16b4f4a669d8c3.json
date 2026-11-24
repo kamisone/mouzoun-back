@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM redirects WHERE from_path = $1 AND to_path = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e0c898823f24dfaef422c6140680929fa44c1704bbfbd5adc16b4f4a669d8c3"
+}

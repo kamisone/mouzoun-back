@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pc.category_id FROM product_categories pc JOIN shop_visible_categories() v ON v.id = pc.category_id\n             WHERE pc.product_id = $1 ORDER BY pc.is_primary DESC, v.depth DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "category_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cb05e997023167b091711d4f9c4e26837b40142aad81edf805bd930d45da896f"
+}

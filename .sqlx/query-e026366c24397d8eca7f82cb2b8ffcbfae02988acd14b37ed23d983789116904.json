@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH prim AS (\n               SELECT v.path FROM product_categories pc JOIN shop_visible_categories() v ON v.id = pc.category_id\n               WHERE pc.product_id = $1 ORDER BY pc.is_primary DESC, v.depth DESC LIMIT 1)\n           SELECT c.id, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\"\n           FROM prim, unnest(prim.path) WITH ORDINALITY AS u(id, n)\n           JOIN categories c ON c.id = u.id\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2\n           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           ORDER BY u.n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "e026366c24397d8eca7f82cb2b8ffcbfae02988acd14b37ed23d983789116904"
+}

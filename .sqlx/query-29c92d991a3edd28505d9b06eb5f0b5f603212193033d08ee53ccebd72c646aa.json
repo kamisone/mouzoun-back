@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.parent_id FROM categories c JOIN category_translations t ON t.category_id = c.id\n         WHERE c.scope = 'shop' AND t.slug = $1 ORDER BY (t.locale = $2) DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "29c92d991a3edd28505d9b06eb5f0b5f603212193033d08ee53ccebd72c646aa"
+}

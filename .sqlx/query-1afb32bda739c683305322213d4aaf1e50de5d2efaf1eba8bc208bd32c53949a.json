@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE up AS (\n               SELECT p.id AS page_id, p.parent_id, 0 AS n, true AS ok\n               FROM pages p WHERE ($1::uuid IS NULL OR p.id = $1)\n               UNION ALL\n               SELECT up.page_id, q.parent_id, up.n + 1,\n                      q.deleted_at IS NULL AND q.status = 'published' AND (q.publish_at IS NULL OR q.publish_at <= $2)\n                      AND EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = q.id AND r.status = 'published')\n               FROM up JOIN pages q ON q.id = up.parent_id WHERE up.n < 10)\n           SELECT p.id, p.page_type, p.status, p.publish_at, p.deleted_at, p.in_sitemap, p.cover_media_id, p.updated_at,\n                  EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published') AS \"has_revision!\",\n                  (SELECT max(r.published_at) FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published') AS published_at,\n                  COALESCE((SELECT bool_and(ok) FROM up WHERE up.page_id = p.id AND up.n > 0), true) AS \"parents_ok!\"\n           FROM pages p WHERE ($1::uuid IS NULL OR p.id = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "page_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "publish_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "in_sitemap",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "has_revision!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "parents_ok!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1afb32bda739c683305322213d4aaf1e50de5d2efaf1eba8bc208bd32c53949a"
+}

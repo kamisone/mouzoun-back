@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT alt_text FROM media_asset_translations WHERE media_asset_id = m.id AND locale = 'fr') AS alt\n               FROM media_assets m WHERE m.id = $1 AND m.deleted_at IS NULL AND m.kind = 'image'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "alt",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cdb0dc64393b13357f8b644cbf319f748cd14e12f052f149bb996ae635a11470"
+}

@@ -2,6 +2,7 @@
 
 pub mod cart;
 pub mod catalog;
+pub mod categories;
 pub mod checkout;
 pub mod emails;
 pub mod events;

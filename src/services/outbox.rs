@@ -195,6 +195,12 @@ pub enum Event {
         ref_type: String,
         ref_id: Uuid,
     },
+    /// URLs moved or changed indexability: the redirect map version is bumped (`redirects`) and
+    /// the listed sitemap files are rebuilt on their next request (see `modules::seo`).
+    SeoChanged {
+        redirects: bool,
+        sitemaps: Vec<String>,
+    },
     /// Shop events (orders, stock, carts, provider webhooks): see [`crate::services::shop::events`].
     Shop(crate::services::shop::events::ShopEvent),
 }
@@ -300,6 +306,7 @@ pub mod types {
     pub const MENU_UPDATED: &str = "menu.updated";
     pub const PAGE_UPDATED: &str = "page.updated";
     pub const CONTENT_CHANGED: &str = "content.changed";
+    pub const SEO_CHANGED: &str = "seo.changed";
 }
 
 impl Event {
@@ -347,6 +354,7 @@ impl Event {
             Self::MenuUpdated { .. } => MENU_UPDATED,
             Self::PageUpdated { .. } => PAGE_UPDATED,
             Self::ContentChanged { .. } => CONTENT_CHANGED,
+            Self::SeoChanged { .. } => SEO_CHANGED,
             Self::Shop(e) => e.event_type(),
         }
     }
@@ -549,6 +557,14 @@ impl Event {
                 "content",
                 format!("{ref_type}:{ref_id}"),
                 json!({ "ref_type": ref_type, "ref_id": ref_id }),
+            ),
+            Self::SeoChanged {
+                redirects,
+                sitemaps,
+            } => (
+                "seo",
+                "site".into(),
+                json!({ "redirects": redirects, "sitemaps": sitemaps }),
             ),
             Self::Shop(e) => e.parts(),
         }

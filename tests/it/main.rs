@@ -25,6 +25,8 @@ mod outbox;
 mod pages;
 mod passkeys;
 mod schema;
+mod seo;
 mod shop;
+mod shop_categories;
 mod stripe;
 mod translations;

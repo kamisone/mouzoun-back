@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE nav_menu_items SET category_id = NULL WHERE category_id = $1 AND link_type = 'shop'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "29335120da5b9effb09a3936a6643b0a00bf1f025f2fd8d1a6b21f117bc4c83a"
+}

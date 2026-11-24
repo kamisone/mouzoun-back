@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind, p.status, p.published_at, p.deleted_at, p.updated_at, p.cover_media_id,\n                  COALESCE(ARRAY(SELECT gi.media_id FROM gallery_items gi WHERE gi.gallery_id = p.gallery_id\n                                 ORDER BY gi.sort_order LIMIT 10), '{}') AS \"gallery!\"\n           FROM products p\n           WHERE p.kind = ANY($1) AND ($2::uuid IS NULL OR p.id = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "gallery!",
+        "type_info": "UuidArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "5a990ccaf3671e24a4af0d3bd53aa7fd07b4d9bc7438337a8f350f70686ff1da"
+}

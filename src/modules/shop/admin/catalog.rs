@@ -21,10 +21,14 @@ use crate::{
     auth::Staff,
     db::shop::{NetUnit, ShopProductType, VariantStatus},
     error::{AppError, AppResult},
+    modules::seo::{redirects as seo, routes::SHOP_PRODUCT},
     services::{
         audit,
         outbox::{self, Event},
-        shop::events::{self, ShopEvent},
+        shop::{
+            categories,
+            events::{self, ShopEvent},
+        },
     },
     state::AppState,
     web::pagination::{PageParams, Paginated},
@@ -717,13 +721,34 @@ async fn write_product(
     if bad_category > 0 {
         return Err(invalid("only shop categories can be used"));
     }
-    sqlx::query!("DELETE FROM product_categories WHERE product_id = $1", id)
+    // Only the links that changed: the others keep their manual order, pin and "primary".
+    sqlx::query!(
+        "DELETE FROM product_categories WHERE product_id = $1 AND NOT (category_id = ANY($2))",
+        id,
+        &p.category_ids
+    )
+    .execute(&mut *conn)
+    .await?;
+    for c in &p.category_ids {
+        sqlx::query!(
+            "INSERT INTO product_categories (product_id, category_id, sort_order)
+             VALUES ($1, $2, (SELECT COALESCE(max(sort_order) + 1, 0) FROM product_categories WHERE category_id = $2))
+             ON CONFLICT DO NOTHING",
+            id,
+            c
+        )
         .execute(&mut *conn)
         .await?;
-    for c in &p.category_ids {
-        sqlx::query!("INSERT INTO product_categories (product_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", id, c)
-            .execute(&mut *conn)
-            .await?;
+    }
+    // No primary left (new product, or the primary was removed): the first one chosen.
+    let has_primary = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM product_categories WHERE product_id = $1 AND is_primary) AS "x!""#,
+        id
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if !has_primary && let Some(first) = p.category_ids.first() {
+        categories::set_primary(&mut *conn, id, *first).await?;
     }
     sqlx::query!("DELETE FROM related_products WHERE product_id = $1", id)
         .execute(&mut *conn)
@@ -802,6 +827,7 @@ pub async fn create(
     if p.status == "published" {
         publish_check(&mut tx, id).await?;
     }
+    seo::after_change(&mut tx, &staff.actor(), SHOP_PRODUCT, id, None).await?;
     let after = product_json(&mut tx, &state, id).await?;
     audit::record(
         &mut tx,
@@ -827,6 +853,7 @@ pub async fn update(
     staff.require("shop.catalog")?;
     let mut tx = state.db.begin().await?;
     let before = product_json(&mut tx, &state, id).await?;
+    let urls = seo::snapshot(&mut tx, SHOP_PRODUCT, id).await?;
     validate(&mut tx, &p).await?;
     if p.status == "published" {
         let active = sqlx::query_scalar!(
@@ -846,6 +873,8 @@ pub async fn update(
     if p.status == "published" {
         publish_check(&mut tx, id).await?;
     }
+    // Slug changes redirect; unpublishing keeps an inactive redirect to its category.
+    seo::after_change(&mut tx, &staff.actor(), SHOP_PRODUCT, id, urls).await?;
     let after = product_json(&mut tx, &state, id).await?;
     audit::record(
         &mut tx,
@@ -882,6 +911,7 @@ pub async fn delete(
             "orders in progress contain this product: archive it instead",
         ));
     }
+    let urls = seo::snapshot(&mut tx, SHOP_PRODUCT, id).await?;
     let n = sqlx::query!(
         "UPDATE products SET deleted_at = now(), status = 'archived' WHERE id = $1 AND kind = 'shop_product' AND deleted_at IS NULL",
         id
@@ -892,6 +922,8 @@ pub async fn delete(
     if n == 0 {
         return Err(AppError::NotFound);
     }
+    // Deleted: its addresses go to its category (or the shop) for good.
+    seo::after_change(&mut tx, &staff.actor(), SHOP_PRODUCT, id, urls).await?;
     audit::record(
         &mut tx,
         &staff.actor(),
@@ -923,6 +955,7 @@ pub async fn bulk(
     let mut tx = state.db.begin().await?;
     let mut done = 0u64;
     for id in &b.ids {
+        let urls = seo::snapshot(&mut tx, SHOP_PRODUCT, *id).await?;
         let n = match b.action.as_str() {
             "publish" => sqlx::query!(
                 "UPDATE products SET status = 'published', published_at = COALESCE(published_at, now())
@@ -943,15 +976,13 @@ pub async fn bulk(
             .rows_affected(),
             "set_category" => {
                 let c = b.category_id.ok_or_else(|| invalid("category_id required"))?;
-                sqlx::query!("INSERT INTO product_categories (product_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", id, c)
-                    .execute(&mut *tx)
-                    .await?
-                    .rows_affected()
+                categories::link_products(&mut tx, c, &[*id]).await?
             }
             _ => return Err(invalid("unknown action")),
         };
         if n > 0 {
             done += 1;
+            seo::after_change(&mut tx, &staff.actor(), SHOP_PRODUCT, *id, urls).await?;
             changed(&mut tx, *id).await?;
         }
     }

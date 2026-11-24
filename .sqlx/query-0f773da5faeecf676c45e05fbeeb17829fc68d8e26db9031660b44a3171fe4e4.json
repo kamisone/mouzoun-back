@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO redirects (from_path, to_path, status_code, source, entity_type, entity_id, locale, is_active, note)\n         VALUES ($1, $2, 301, 'auto', $3, $4, $5, $6, $7)\n         ON CONFLICT (from_path) DO UPDATE SET to_path = EXCLUDED.to_path, status_code = 301, source = 'auto',\n             entity_type = EXCLUDED.entity_type, entity_id = EXCLUDED.entity_id, locale = EXCLUDED.locale,\n             is_active = EXCLUDED.is_active, note = EXCLUDED.note, updated_at = now()\n         WHERE redirects.source = 'auto' OR NOT redirects.is_active",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f773da5faeecf676c45e05fbeeb17829fc68d8e26db9031660b44a3171fe4e4"
+}

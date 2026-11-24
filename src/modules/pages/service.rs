@@ -28,6 +28,7 @@ use crate::{
     db::types::TsRange,
     error::{AppError, AppResult},
     infra::cache::Cache,
+    modules::seo::{redirects as seo, routes::PAGE},
     services::{audit, audit::Actor, outbox, outbox::Event},
 };
 
@@ -329,7 +330,11 @@ async fn apply(
     }
     repo::soft_delete_others(conn, page.id, &block_ids, user).await?;
     if let Some(texts) = &texts {
-        repo::write_page_texts(conn, page.id, texts).await?;
+        let actor = match mode {
+            Mode::Edit(staff) => staff.actor(),
+            Mode::Restore => Actor::system(),
+        };
+        write_texts(conn, &actor, page.id, texts).await?;
     }
     let version = sqlx::query_scalar!(
         "UPDATE pages SET draft_version = draft_version + 1, has_unpublished_changes = true
@@ -339,6 +344,52 @@ async fn apply(
     .fetch_one(&mut *conn)
     .await?;
     Ok(version)
+}
+
+/// Page texts, with their URLs: a slug change redirects the old address (site-wide redirect
+/// layer), and nested pages (`a/b` under `a`) follow their parent, each with its own redirect.
+async fn write_texts(
+    conn: &mut PgConnection,
+    actor: &Actor,
+    page_id: Uuid,
+    texts: &BTreeMap<String, PageText>,
+) -> sqlx::Result<()> {
+    let before = seo::snapshot(conn, PAGE, page_id).await?;
+    let old = repo::page_texts(conn, page_id).await?;
+    repo::write_page_texts(conn, page_id, texts).await?;
+    for (locale, t) in texts {
+        let Some(o) = old.get(locale) else { continue };
+        let (from, to) = (o.slug.trim().to_string(), t.slug.trim().to_string());
+        if from == to {
+            continue;
+        }
+        let children = sqlx::query!(
+            r#"WITH RECURSIVE d AS (
+                   SELECT id, 1 AS n FROM pages WHERE parent_id = $1
+                   UNION ALL SELECT p.id, d.n + 1 FROM pages p JOIN d ON p.parent_id = d.id WHERE d.n < 10)
+               SELECT t.page_id, t.slug FROM page_translations t JOIN d ON d.id = t.page_id
+               WHERE t.locale = $2 AND starts_with(t.slug, $3 || '/')"#,
+            page_id,
+            locale,
+            from
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+        for c in children {
+            let before_child = seo::snapshot(conn, PAGE, c.page_id).await?;
+            let slug = format!("{to}{}", &c.slug[from.len()..]);
+            sqlx::query!(
+                "UPDATE page_translations SET slug = $3, updated_at = now() WHERE page_id = $1 AND locale = $2",
+                c.page_id,
+                locale,
+                slug
+            )
+            .execute(&mut *conn)
+            .await?;
+            seo::after_change(conn, actor, PAGE, c.page_id, before_child).await?;
+        }
+    }
+    seo::after_change(conn, actor, PAGE, page_id, before).await
 }
 
 /// Content-level change (the permission of a section type is checked only for those).
@@ -933,6 +984,10 @@ async fn go_live(conn: &mut PgConnection, page_id: Uuid, now: DateTime<Utc>) -> 
     .execute(&mut *conn)
     .await?;
     outbox::enqueue(conn, &Event::PageUpdated { page_id }).await?;
+    // Live content wins: redirects starting at this page's addresses go.
+    if let Some(urls) = seo::snapshot(conn, PAGE, page_id).await? {
+        seo::record_republish(conn, &Actor::system(), &urls.paths).await?;
+    }
     Ok(())
 }
 

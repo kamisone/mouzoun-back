@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM pages p WHERE p.page_type = 'home' AND p.deleted_at IS NULL AND p.status = 'published'\n                 AND EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published') LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2b55cfa23f2f7db88c46e25545bfe636843315146d603e07de187b892f216738"
+}

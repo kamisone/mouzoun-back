@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"products!\",\n                  count(*) FILTER (WHERE NOT EXISTS (\n                      SELECT 1 FROM product_categories o JOIN categories oc ON oc.id = o.category_id AND oc.scope = 'shop'\n                      WHERE o.product_id = pc.product_id AND o.category_id <> $1)) AS \"orphans!\"\n           FROM product_categories pc JOIN products p ON p.id = pc.product_id AND p.deleted_at IS NULL\n           WHERE pc.category_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "products!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "orphans!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "82fd92b4a97a0673a7a3d8ffdcf88d16d8119681ac04063abd8f29d39ece9bb1"
+}

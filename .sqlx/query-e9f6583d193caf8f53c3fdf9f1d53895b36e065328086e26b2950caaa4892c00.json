@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM not_found_log WHERE last_seen_at < now() - interval '90 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e9f6583d193caf8f53c3fdf9f1d53895b36e065328086e26b2950caaa4892c00"
+}

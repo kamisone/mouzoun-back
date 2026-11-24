@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE redirects SET from_path = $2, to_path = $3, status_code = $4, note = $5, is_active = $6,\n                source = CASE WHEN $7 THEN 'manual' ELSE source END, updated_at = now()\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int2",
+        "Text",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b5345ebf6edca9bdbb19854dd1bb385503d9d649c04a457fb6f80000cbf2925f"
+}

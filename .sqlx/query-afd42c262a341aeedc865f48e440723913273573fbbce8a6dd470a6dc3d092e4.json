@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, COALESCE(t.name, '') AS \"name!\" FROM categories c\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = 'fr'\n           WHERE c.parent_id = $1 ORDER BY c.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "afd42c262a341aeedc865f48e440723913273573fbbce8a6dd470a6dc3d092e4"
+}

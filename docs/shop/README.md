@@ -34,6 +34,53 @@ variation or value used by a product cannot be deleted (409 `variation_in_use`),
 (no longer offered to new products). Not taken from vitecamio: computed prices at read time
 (prices stay stored per variant, for the price history), per-variant slugs, quantity tiers.
 
+## Categories
+
+Managed in **Admin › Boutique › Catégories** (`/admin/shop/categories`, form at `/admin/shop/categories/{id}`;
+migration `0031_shop_categories`; API `modules/shop/admin/categories.rs`, rules `services/shop/categories.rs`).
+Viewing needs `shop.read`, every change `shop.catalog`. Shipping, promotions, the variation library and the
+product editor only *pick* categories (`MzCategoryPicker`); nothing edits them elsewhere. The old
+`/admin/shop/shipping?tab=categories` link redirects to the new page.
+
+- **Tree rules**: no cycle, parent in the same scope, at most `shop.category_max_depth` levels (default 3).
+  Checked by the API before writing and by the deferred constraint trigger `categories_tree_check` at commit, so
+  `PUT /admin/shop/categories/tree` (one call per drag-and-drop or keyboard move, rows `{id, parent_id,
+  sort_order}`) is validated on the final tree. The call carries the tree `version` (an md5 of ids, parents and
+  orders) and gets **409 `tree_changed`** if someone else changed the tree since it was read.
+- **Visibility**: `is_active = false` hides the category *and its subtree* from the shop (sidebar, facets, the
+  `/shop/categories` tree, listings through it); its page answers `{redirect}` → **301** to the nearest visible
+  parent, or the shop home. `show_in_menu = false` only removes it from the sidebar and menus: its page works
+  (seasonal or campaign categories). SQL helper: `shop_visible_categories()`.
+- **Slugs and redirects**: slugs are generated from the name (same rule as product slugs, `utils/slug.ts` on the
+  front), deduplicated with `-2`, `-3`, and locked in the form once the category was active once
+  (`first_activated_at`). Changing a slug (or deleting the category) inserts a 301 in `redirects` from the old
+  path to the new one per language (`/boutique/…`, `/en/shop/…`, `/ar/boutique/…`), rewrites older redirects
+  that ended on the old path (no chains) and drops any redirect that started on the new path (no loops).
+  The category page endpoint `GET /shop/categories/{slug}` resolves these redirects; nothing else reads
+  `redirects` yet.
+- **Delete**: `GET /{id}/impact` lists products (and those that would be left without a category),
+  subcategories, promotions, shipping rules (none use categories today), variation library entries and menu
+  links. Delete is refused (409 `category_in_use`) while an *active* promotion targets the category. `DELETE
+  /{id}` (body `products_to`, `subcategories_to`, `menu_links: replace|remove`, `confirm_name` when products or
+  subcategories are affected) runs in one transaction: moves or unlinks products (a moved primary link stays
+  primary on the replacement; products always keep exactly one primary category while they have any), moves
+  subcategories (default: to the parent), re-points variation entries and menu links to the replacement (or
+  removes them), creates the 301s, writes one audit entry with the impact. Deactivating is offered first.
+- **Product order**: `product_categories.sort_order` and `is_pinned`. With `default_sort = manual` the category
+  lists pinned products first, then the manual order (products of subcategories after its own); other defaults
+  (`best_selling`, `newest`, `price_asc`, `price_desc`, `name`) sort automatically, pinned first. A sort chosen
+  by the visitor overrides both. Parent categories list their subcategories' products too. The product editor
+  only adds or removes links (orders and pins are kept); its first category becomes primary when none is.
+- **Caching**: the public tree (`catalog:shop:categories:{locale}`), category pages
+  (`catalog:shop:category:{locale}:{slug}`) and product lists live under `catalog:shop:`; every admin write
+  (create, edit, tree move, product order, delete) clears `catalog:shop:` and `menus:` after commit and emits
+  `content.changed` for the pages that show categories.
+- **Public page**: cover (`media_views`, eager, ratio reserved), description (three lines on phones), subcategory
+  chips, breadcrumbs (also on product pages, through the primary category) with `BreadcrumbList`,
+  `CollectionPage` JSON-LD, canonical without filters (`page` kept), `noindex` while it has no published product
+  (`indexable`), and a "Prévenez-moi" newsletter form when empty (the `notify-me` endpoint now also works
+  while the shop is open).
+
 ## Inventory ledger rules
 
 1. `on_hand` changes **only** through `inventory::apply_movement`, which writes **exactly one**

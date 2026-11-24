@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE up AS (\n                   SELECT parent_id, 1 AS n FROM categories WHERE id = $1\n                   UNION ALL SELECT c.parent_id, up.n + 1 FROM categories c JOIN up ON c.id = up.parent_id WHERE up.n < 20)\n               SELECT up.parent_id AS \"id!\" FROM up JOIN shop_visible_categories() v ON v.id = up.parent_id ORDER BY up.n LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "af242a9e2b0fc95c23a4d22c30ed267d949608dc725bf24bdc1088087a9c09c3"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, m.code::text || ' · ' || COALESCE(t.label, i.link_type) AS \"name!\"\n           FROM nav_menu_items i JOIN nav_menus m ON m.id = i.menu_id\n           LEFT JOIN nav_menu_item_translations t ON t.nav_menu_item_id = i.id AND t.locale = 'fr'\n           WHERE i.category_id = $1 ORDER BY m.code, i.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "14f371da0d2cfb6690e1660740e248a0e37beec303004a9b26c68e7748143fbe"
+}

@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.parent_id, c.icon, c.cover_media_id, c.sort_order, c.is_active, c.show_in_menu, c.default_sort,\n                  c.first_activated_at, c.created_at, c.updated_at,\n                  COALESCE((SELECT jsonb_object_agg(locale, alt_text) FROM media_asset_translations\n                            WHERE media_asset_id = c.cover_media_id AND alt_text IS NOT NULL), '{}') AS \"cover_alt!\",\n                  COALESCE((SELECT jsonb_object_agg(locale, jsonb_build_object('name', name, 'slug', slug, 'description', description,\n                            'seo_title', seo_title, 'seo_description', seo_description)) FROM category_translations WHERE category_id = c.id), '{}') AS \"translations!\"\n           FROM categories c WHERE c.id = $1 AND c.scope = 'shop'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "show_in_menu",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_sort",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "first_activated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "cover_alt!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "translations!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "3aa7677806bffe1a46203134d64b31f71a8343a673784789c19a0d8ed03e0011"
+}

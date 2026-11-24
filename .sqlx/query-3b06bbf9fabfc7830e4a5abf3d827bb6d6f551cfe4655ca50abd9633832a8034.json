@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.icon, c.default_sort, COALESCE(t.name, d.name) AS \"name!\", COALESCE(t.slug, d.slug) AS \"slug!\",\n                  COALESCE(t.description, d.description) AS description,\n                  COALESCE(t.seo_title, d.seo_title) AS seo_title, COALESCE(t.seo_description, d.seo_description) AS seo_description,\n                  (SELECT jsonb_object_agg(locale, slug) FROM category_translations WHERE category_id = c.id) AS \"slugs!\",\n                  c.cover_media_id\n           FROM categories c\n           LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2\n           LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3\n           WHERE c.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "default_sort",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "seo_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "seo_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "slugs!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "3b06bbf9fabfc7830e4a5abf3d827bb6d6f551cfe4655ca50abd9633832a8034"
+}

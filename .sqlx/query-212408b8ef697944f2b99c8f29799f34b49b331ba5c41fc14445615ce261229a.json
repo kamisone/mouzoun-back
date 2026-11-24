@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM not_found_log WHERE path IN (\n             SELECT path FROM not_found_log ORDER BY hits DESC, last_seen_at DESC OFFSET $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "212408b8ef697944f2b99c8f29799f34b49b331ba5c41fc14445615ce261229a"
+}

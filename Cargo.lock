@@ -2377,6 +2377,7 @@ dependencies = [
  "lettre",
  "minijinja",
  "mouzoun-api",
+ "percent-encoding",
  "proptest",
  "rand 0.9.5",
  "redis",
@@ -2397,6 +2398,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "unicode-normalization",
  "uuid",
  "validator",
 ]

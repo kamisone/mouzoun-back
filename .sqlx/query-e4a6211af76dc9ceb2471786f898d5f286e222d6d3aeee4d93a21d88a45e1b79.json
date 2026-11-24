@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE categories SET parent_id = $2, sort_order = $3 + sort_order WHERE parent_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4a6211af76dc9ceb2471786f898d5f286e222d6d3aeee4d93a21d88a45e1b79"
+}
