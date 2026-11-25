@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(zt.name, zf.name, z.code::text) AS \"zone!\" FROM shipping_zones z\n           LEFT JOIN shipping_zone_translations zt ON zt.zone_id = z.id AND zt.locale = $1\n           LEFT JOIN shipping_zone_translations zf ON zf.zone_id = z.id AND zf.locale = 'fr'\n           WHERE z.is_active AND z.requires_customs\n             AND EXISTS (SELECT 1 FROM shipping_rates r WHERE r.zone_id = z.id AND r.is_active AND NOT r.is_placeholder)\n           ORDER BY z.sort_order",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "zone!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "eb2aee9b24c3703c06f34cd9084ed8b56821711eb8bdfa127628b97fd78224b7"
+}

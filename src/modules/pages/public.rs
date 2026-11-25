@@ -243,6 +243,19 @@ pub async fn render(
         sections.push(section);
         json_ld.extend(ld);
     }
+    // Legal pages: tokens filled from the data (seller identity, mediator, settings...).
+    if snapshot.page.page_type == "legal" {
+        let mut conn = state.db.acquire().await?;
+        let urls = crate::services::shop::legal_pages::Urls {
+            site: &state.config.email.public_site_url,
+            api: &state.config.booking.api_public_url,
+        };
+        let values =
+            crate::services::shop::legal_pages::values(&mut conn, lang.locale, &urls).await?;
+        for s in &mut sections {
+            crate::services::shop::legal_pages::render_content(&mut s.content, &values);
+        }
+    }
     let page = page_meta(state, snapshot, revision, lang).await?;
     let site = public_settings(state, &["site.opening_date", "site.status"]).await?;
     let variables = json!({ "opening_date": site.get("site.opening_date"), "site_status": site.get("site.status") });

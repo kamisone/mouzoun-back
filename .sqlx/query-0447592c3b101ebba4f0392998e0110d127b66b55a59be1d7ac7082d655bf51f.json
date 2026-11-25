@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE legal_entities SET legal_name = $2, legal_form = $3, share_capital_minor = $4,\n                address = address || $5, country_code = $6, registration = registration || $7,\n                email = $8::text::citext, phone = $9, publication_director = $10\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Jsonb",
+        "Bpchar",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0447592c3b101ebba4f0392998e0110d127b66b55a59be1d7ac7082d655bf51f"
+}

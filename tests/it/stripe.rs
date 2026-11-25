@@ -113,6 +113,7 @@ async fn mock() -> (StripeGateway, Log) {
             publishable_key: "pk_test_mock".into(),
             webhook_secret: "whsec_mock".into(),
             api_base: format!("http://{addr}"),
+            app_tag: "mouzoun".into(),
         },
         reqwest::Client::new(),
     );

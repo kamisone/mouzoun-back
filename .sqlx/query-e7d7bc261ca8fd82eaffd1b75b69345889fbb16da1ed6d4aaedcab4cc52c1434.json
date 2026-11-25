@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_rates (zone_id, profile_id, code, kind, carrier, amount_minor, min_weight_grams,\n                                             max_weight_grams, free_over_minor, delivery_days_min, delivery_days_max,\n                                             delivery_type, sort_order, is_placeholder)\n                 VALUES ($1, $2, $3::text::citext, 'flat', $4, $5, $6, $7, $8, $9, $10, $11, $12, true)\n                 ON CONFLICT (zone_id, profile_id, code) DO NOTHING RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e7d7bc261ca8fd82eaffd1b75b69345889fbb16da1ed6d4aaedcab4cc52c1434"
+}

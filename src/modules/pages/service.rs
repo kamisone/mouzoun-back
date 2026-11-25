@@ -947,6 +947,16 @@ pub async fn publish(
     }
     if page.page_type == "legal" {
         french_complete(&snapshot)?;
+        let blocks = serde_json::to_value(&snapshot.blocks).map_err(anyhow::Error::from)?;
+        let unknown = crate::services::shop::legal_pages::unknown_tokens(&blocks);
+        if !unknown.is_empty() {
+            return Err(AppError::domain(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "unknown_tokens",
+                format!("unknown tokens: {}", unknown.join(", ")),
+            )
+            .with_details(json!({ "tokens": unknown })));
+        }
     }
     let number = next_revision_number(&mut tx, page_id).await?;
     let scheduled = req.publish_at.filter(|at| *at > now);

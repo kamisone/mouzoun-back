@@ -8,7 +8,8 @@ fulfilments, returns and refunds as their own records, and every money and stock
 - Migration: `migrations/0027_shop.{up,down}.sql` (the spec called it 0014, already taken).
 - Rust: `src/services/shop/*` (rules), `src/modules/shop/*` (HTTP), `src/db/shop.rs` (enums).
 - Nuxt: `front/app/pages/shop/*` (public), `front/app/pages/admin/shop/*` (back office).
-- Stripe: [stripe.md](stripe.md).
+- Stripe: [stripe.md](stripe.md) (account shared with another site: tags and webhook filter).
+- Legal launch (legal entity edited in the admin, legal pages in the builder, placeholder rates, owner to-do): [legal-launch.md](legal-launch.md).
 
 ## Catalogue: product → variant → stock
 

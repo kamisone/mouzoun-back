@@ -142,7 +142,7 @@ pub async fn update(
         return Err(AppError::domain(
             StatusCode::CONFLICT,
             "stripe_not_configured",
-            "Stripe keys are missing: set STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY and STRIPE_WEBHOOK_SECRET on the server first",
+            "Stripe keys are missing: set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY on the server first",
         ));
     }
     if let Some(s) = body.get("shop.status").and_then(Value::as_str)

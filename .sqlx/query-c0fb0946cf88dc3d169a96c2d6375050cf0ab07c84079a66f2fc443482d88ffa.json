@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sp.withdrawal_exemption AS \"exemption!\",\n                  COALESCE(NULLIF(btrim(t.name), ''), NULLIF(btrim(f.name), ''), p.id::text) AS \"name!\"\n           FROM shop_products sp JOIN products p ON p.id = sp.product_id\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $1\n           LEFT JOIN product_translations f ON f.product_id = p.id AND f.locale = 'fr'\n           WHERE p.status = 'published' AND p.deleted_at IS NULL AND sp.withdrawal_exemption <> 'none'\n           ORDER BY 1, 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exemption!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "c0fb0946cf88dc3d169a96c2d6375050cf0ab07c84079a66f2fc443482d88ffa"
+}

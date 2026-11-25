@@ -30,12 +30,13 @@ impl StripeGateway {
         form: &[(String, String)],
         idempotency_key: &str,
     ) -> Result<Value, GatewayError> {
+        let form = tag_form(path, form, &self.config.app_tag);
         let response = self
             .http
             .post(format!("{}/v1/{path}", self.config.api_base))
             .basic_auth(&self.config.secret_key, Some(""))
             .header("Idempotency-Key", idempotency_key)
-            .form(form)
+            .form(&form)
             .send()
             .await
             .map_err(|e| GatewayError::Unavailable(e.to_string()))?;
@@ -337,6 +338,64 @@ impl PaymentGateway for StripeGateway {
     }
 }
 
+/// Objects Mouzoun creates carry `metadata[app]` (the Stripe account is shared with another
+/// site; its webhook events are told apart by this tag). Checkout Sessions also tag their
+/// payment intent, so the charge and refund events can be traced back.
+pub fn tag_form(path: &str, form: &[(String, String)], tag: &str) -> Vec<(String, String)> {
+    let mut out = form.to_vec();
+    let creates = matches!(
+        path,
+        "payment_intents"
+            | "customers"
+            | "refunds"
+            | "coupons"
+            | "setup_intents"
+            | "checkout/sessions"
+    );
+    if creates && !out.iter().any(|(k, _)| k == "metadata[app]") {
+        out.push(("metadata[app]".into(), tag.to_string()));
+    }
+    if path == "checkout/sessions"
+        && !out
+            .iter()
+            .any(|(k, _)| k == "payment_intent_data[metadata][app]")
+    {
+        out.push(("payment_intent_data[metadata][app]".into(), tag.to_string()));
+    }
+    out
+}
+
+/// The `metadata.app` an event is about: its object's own tag, or (charges, refunds, disputes)
+/// the tag of the payment intent they belong to, fetched with `fetch_intent`.
+pub async fn event_app_tag<F, Fut>(event: &Value, fetch_intent: F) -> Option<String>
+where
+    F: FnOnce(String) -> Fut,
+    Fut: std::future::Future<Output = Option<Value>>,
+{
+    let object = &event["data"]["object"];
+    if let Some(tag) = object["metadata"]["app"].as_str() {
+        return Some(tag.to_string());
+    }
+    let intent = object["payment_intent"].as_str()?;
+    fetch_intent(intent.to_string()).await?["metadata"]["app"]
+        .as_str()
+        .map(str::to_string)
+}
+
+/// Reads a payment intent (webhook filter of a shared account). `None` on any error.
+pub async fn fetch_intent(config: &crate::config::StripeConfig, id: &str) -> Option<Value> {
+    let res = reqwest::Client::new()
+        .get(format!("{}/v1/payment_intents/{id}", config.api_base))
+        .basic_auth(&config.secret_key, Some(""))
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    res.json().await.ok()
+}
+
 /// `Stripe-Signature: t=<unix>,v1=<hex hmac of "t.body">[,v1=...]`.
 pub fn verify_signature(
     header: &str,
@@ -345,6 +404,13 @@ pub fn verify_signature(
     now: i64,
 ) -> Result<(), GatewayError> {
     let invalid = |m: &str| GatewayError::InvalidWebhook(m.into());
+    // No signing secret (STRIPE_WEBHOOK_SECRET not set yet): every event is refused, never
+    // checked against an empty key (anyone could sign with it).
+    if secret.trim().is_empty() {
+        return Err(invalid(
+            "STRIPE_WEBHOOK_SECRET is not set: webhooks are refused",
+        ));
+    }
     let mut timestamp = None;
     let mut signatures = Vec::new();
     for part in header.split(',') {

@@ -150,7 +150,7 @@ async fn product(tx: &mut PgConnection, p: &ProductSeed<'_>) -> anyhow::Result<U
         for (locale, text) in ing {
             sqlx::query(
                 "INSERT INTO shop_product_translations (product_id, locale, ingredients, storage_instructions, producer_name)
-                 VALUES ($1, $2, $3, $4, 'Ferme de Mouzoun, M''ssici, Alnif (Maroc) — importé par MOUZOUN SAS (adresse à compléter)')",
+                 VALUES ($1, $2, $3, $4, 'Ferme de Mouzoun, M''ssici, Alnif (Maroc) — importateur : MOUZOUN SAS, adresse à confirmer')",
             )
             .bind(id)
             .bind(locale)

@@ -14,6 +14,7 @@
 pub mod catalog;
 pub mod categories;
 pub mod france;
+pub mod legal_entity;
 pub mod orders;
 pub mod pricing;
 pub mod reports;
@@ -98,6 +99,10 @@ pub fn routes() -> Router<AppState> {
         .route("/shipping/zones", post(pricing::create_zone))
         .route("/shipping/zones/{id}", put(pricing::update_zone))
         .route("/shipping/rates", post(pricing::create_rate))
+        .route(
+            "/shipping/rates/confirm-placeholders",
+            post(pricing::confirm_placeholders),
+        )
         .route(
             "/shipping/rates/{id}",
             put(pricing::update_rate).delete(pricing::delete_rate),

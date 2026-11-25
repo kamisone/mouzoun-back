@@ -409,7 +409,7 @@ pub async fn shipping(
            FROM shipping_rates r
            LEFT JOIN shipping_rate_translations t ON t.rate_id = r.id AND t.locale = $1
            LEFT JOIN shipping_rate_translations d ON d.rate_id = r.id AND d.locale = (SELECT code FROM locales WHERE is_default)
-           WHERE r.is_active ORDER BY r.sort_order, r.id"#,
+           WHERE r.is_active AND NOT r.is_placeholder ORDER BY r.sort_order, r.id"#,
         locale
     )
     .fetch_all(&mut *conn)

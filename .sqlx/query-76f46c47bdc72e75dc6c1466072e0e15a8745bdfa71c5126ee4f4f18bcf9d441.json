@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_profiles (code, name, is_default) VALUES ('standard', 'Standard', true) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "76f46c47bdc72e75dc6c1466072e0e15a8745bdfa71c5126ee4f4f18bcf9d441"
+}

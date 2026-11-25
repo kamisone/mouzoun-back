@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shipping_rates SET is_placeholder = false WHERE is_placeholder AND id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1da0a0f09c768d6710ef25140278ae81ad9a2842a55a298d4f89aca30131a3bd"
+}

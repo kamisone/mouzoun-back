@@ -1237,3 +1237,35 @@ pub async fn receive_stripe_shop_event(state: &AppState, event: &Value) -> AppRe
     }
     Ok(true)
 }
+
+/// `GET /shop/legal/withdrawal-form.pdf`: the model withdrawal form (annex to R221-1) addressed
+/// to the seller, linked from the "Right of withdrawal" page. Public, like the page.
+pub async fn withdrawal_form(State(state): State<AppState>) -> AppResult<axum::response::Response> {
+    use axum::response::IntoResponse;
+    let seller = sqlx::query!(
+        r#"SELECT legal_name, address, email::text AS email FROM legal_entities WHERE id = shop_entity_id()"#
+    )
+    .fetch_optional(&state.db)
+    .await?
+    .map(|e| json!({ "legal_name": e.legal_name, "address": e.address, "email": e.email }))
+    .unwrap_or_else(|| json!({}));
+    let pdf = crate::services::shop::legal::withdrawal_form_pdf(&seller, "....................");
+    Ok((
+        [
+            (
+                axum::http::header::CONTENT_TYPE,
+                "application/pdf".to_string(),
+            ),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                format!("inline; filename=\"{}\"", pdf.filename),
+            ),
+            (
+                axum::http::header::CACHE_CONTROL,
+                "public, max-age=300".to_string(),
+            ),
+        ],
+        pdf.bytes,
+    )
+        .into_response())
+}

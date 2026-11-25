@@ -269,14 +269,22 @@ impl StripeCheckout {
     ) -> Result<Value, GatewayError> {
         let mut req = self
             .http
-            .request(method, format!("{}/v1/{path}", self.config.api_base))
+            .request(
+                method.clone(),
+                format!("{}/v1/{path}", self.config.api_base),
+            )
             .basic_auth(&self.config.secret_key, Some(""))
             .header("Stripe-Version", STRIPE_API_VERSION);
         if let Some(key) = idempotency_key {
             req = req.header("Idempotency-Key", key);
         }
+        let form = if method == reqwest::Method::POST {
+            stripe_gateway::tag_form(path, form, &self.config.app_tag)
+        } else {
+            form.to_vec()
+        };
         if !form.is_empty() {
-            req = req.form(form);
+            req = req.form(&form);
         }
         let response = req
             .send()
@@ -299,6 +307,38 @@ impl StripeCheckout {
         } else {
             Err(GatewayError::Declined(message))
         }
+    }
+}
+
+/// The card statement suffix Stripe accepts: Latin letters, digits and spaces, upper case,
+/// accents removed, at most 22 characters (`payments.stripe.statement_descriptor`, default
+/// `MOUZOUN`). Stripe prints it after the account's prefix, so customers recognise the charge.
+pub fn descriptor_suffix(raw: &str) -> String {
+    let mapped: String = raw
+        .chars()
+        .map(|c| match c {
+            'à' | 'â' | 'ä' | 'á' | 'À' | 'Â' | 'Ä' => 'A',
+            'é' | 'è' | 'ê' | 'ë' | 'É' | 'È' | 'Ê' | 'Ë' => 'E',
+            'î' | 'ï' | 'Î' | 'Ï' => 'I',
+            'ô' | 'ö' | 'Ô' | 'Ö' => 'O',
+            'ù' | 'û' | 'ü' | 'Ù' | 'Û' | 'Ü' => 'U',
+            'ç' | 'Ç' => 'C',
+            c => c,
+        })
+        .filter(|c| c.is_ascii_alphanumeric() || *c == ' ')
+        .collect::<String>()
+        .to_ascii_uppercase();
+    let trimmed: String = mapped.split_whitespace().collect::<Vec<_>>().join(" ");
+    let out: String = trimmed
+        .chars()
+        .take(22)
+        .collect::<String>()
+        .trim_end()
+        .to_string();
+    if out.is_empty() {
+        "MOUZOUN".into()
+    } else {
+        out
     }
 }
 
@@ -333,7 +373,7 @@ pub fn checkout_form(req: &CheckoutRequest, coupon: Option<&str>) -> Vec<(String
     if let Some(d) = &req.statement_descriptor {
         f.push((
             "payment_intent_data[statement_descriptor_suffix]".into(),
-            d.chars().take(22).collect(),
+            descriptor_suffix(d),
         ));
     }
     if req.embedded {
@@ -724,6 +764,38 @@ mod tests {
             statement_descriptor: Some("MOUZOUN".into()),
             embedded: false,
         }
+    }
+
+    #[test]
+    fn the_statement_suffix_is_latin_and_short() {
+        assert_eq!(descriptor_suffix("Mouzoun Épicerie"), "MOUZOUN EPICERIE");
+        assert_eq!(
+            descriptor_suffix("Ferme M'ssici — dattes & huile!!"),
+            "FERME MSSICI DATTES HU"
+        );
+        assert_eq!(descriptor_suffix("موزون"), "MOUZOUN");
+        assert!(descriptor_suffix(&"X".repeat(40)).len() <= 22);
+    }
+
+    #[test]
+    fn every_object_is_tagged_for_the_shared_account() {
+        let form =
+            stripe_gateway::tag_form("checkout/sessions", &checkout_form(&req(), None), "mouzoun");
+        let get = |k: &str| form.iter().find(|(a, _)| a == k).map(|(_, v)| v.as_str());
+        assert_eq!(get("metadata[app]"), Some("mouzoun"));
+        assert_eq!(get("payment_intent_data[metadata][app]"), Some("mouzoun"));
+        assert_eq!(
+            get("payment_intent_data[statement_descriptor_suffix]"),
+            Some("MOUZOUN")
+        );
+        let refund =
+            stripe_gateway::tag_form("refunds", &[("amount".into(), "100".into())], "mouzoun");
+        assert!(refund.contains(&("metadata[app]".into(), "mouzoun".into())));
+        // Reads and actions on existing objects take no metadata.
+        assert_eq!(
+            stripe_gateway::tag_form("checkout/sessions/cs_1/expire", &[], "mouzoun"),
+            vec![]
+        );
     }
 
     #[test]

@@ -24,7 +24,7 @@ use crate::{
     services::{
         audit,
         pdf::{Document, Style},
-        shop::{invoices, legal, settings as shop_settings},
+        shop::{invoices, legal, legal_entity, settings as shop_settings},
     },
     state::AppState,
 };
@@ -82,42 +82,25 @@ pub struct EntityInput {
     pub invoice_footer: std::collections::HashMap<String, String>,
 }
 
-/// Field problems of a French entity's identity (empty when complete).
-pub fn entity_gaps(
-    country: &str,
-    legal_name: &str,
-    address: &Value,
-    registration: &Value,
-    email: Option<&str>,
-) -> Vec<&'static str> {
+/// Names of the fields (one level into `address`, `registration`, `host`) that differ: the audit
+/// keeps no values.
+fn changed_fields(before: &Value, after: &Value) -> Vec<String> {
     let mut out = Vec::new();
-    let s = |v: &Value, k: &str| v[k].as_str().unwrap_or("").trim().to_string();
-    if legal_name.trim().is_empty() || legal_name.contains("compléter") {
-        out.push("legal_name");
-    }
-    if s(address, "line1").is_empty()
-        || s(address, "line1").contains("COMPLÉTER")
-        || s(address, "postal_code").is_empty()
-    {
-        out.push("address");
-    }
-    if email.is_none_or(|e| !e.contains('@')) {
-        out.push("email");
-    }
-    if country == "FR" {
-        let digits = |x: &str, n: usize| x.len() == n && x.chars().all(|c| c.is_ascii_digit());
-        if !digits(&s(registration, "siren"), 9) {
-            out.push("registration.siren");
+    for (k, v) in after.as_object().into_iter().flatten() {
+        if k == "updated_at" {
+            continue;
         }
-        if !digits(&s(registration, "siret"), 14) {
-            out.push("registration.siret");
-        }
-        if s(registration, "rcs_city").is_empty() {
-            out.push("registration.rcs_city");
-        }
-        let vat = s(registration, "vat_number");
-        if !(vat.starts_with("FR") && vat.len() == 13) {
-            out.push("registration.vat_number");
+        match (v, &before[k]) {
+            (Value::Object(a), Value::Object(b)) => {
+                let keys: std::collections::BTreeSet<&String> = a.keys().chain(b.keys()).collect();
+                out.extend(
+                    keys.into_iter()
+                        .filter(|x| a.get(*x) != b.get(*x))
+                        .map(|x| format!("{k}.{x}")),
+                );
+            }
+            (a, b) if a != b => out.push(k.clone()),
+            _ => {}
         }
     }
     out
@@ -145,6 +128,39 @@ pub async fn update_entity(
     .await?
     .flatten()
     .ok_or(AppError::NotFound)?;
+    // A French entity follows the same rules as Admin › Settings › Legal entity.
+    if before["country_code"] == "FR" {
+        let text = |v: &Value, k: &str| v[k].as_str().unwrap_or("").to_string();
+        let form = legal_entity::LegalEntityForm {
+            legal_name: b.legal_name.clone(),
+            legal_form: b.legal_form.clone(),
+            share_capital_minor: b.share_capital_minor,
+            country_code: "FR".into(),
+            email: b.email.clone().unwrap_or_default(),
+            address: legal_entity::Address {
+                postal_code: text(&b.address, "postal_code"),
+                ..Default::default()
+            },
+            registration: legal_entity::Registration {
+                siren: text(&b.registration, "siren"),
+                siret: text(&b.registration, "siret"),
+                vat_number: text(&b.registration, "vat_number"),
+                ape_code: text(&b.registration, "ape_code"),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+        .normalized();
+        let errors = form.errors();
+        if !errors.is_empty() {
+            return Err(AppError::domain(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "invalid_fields",
+                "some fields are not valid",
+            )
+            .with_details(json!({ "fields": errors })));
+        }
+    }
     sqlx::query!(
         "UPDATE legal_entities SET legal_name = $2, legal_form = $3, share_capital_minor = $4, address = $5,
                 registration = $6, email = NULLIF(btrim($7), '')::citext, phone = NULLIF(btrim($8), ''),
@@ -163,6 +179,10 @@ pub async fn update_entity(
     )
     .execute(&mut *tx)
     .await?;
+    let after = sqlx::query_scalar!("SELECT to_jsonb(e) FROM legal_entities e WHERE id = $1", id)
+        .fetch_one(&mut *tx)
+        .await?
+        .unwrap_or(Value::Null);
     for (locale, footer) in &b.invoice_footer {
         sqlx::query!(
             "INSERT INTO legal_entity_translations (legal_entity_id, locale, invoice_footer) VALUES ($1, $2, $3)
@@ -180,7 +200,7 @@ pub async fn update_entity(
         "legal_entity.updated",
         "legal_entity",
         &id.to_string(),
-        json!({ "before": before }),
+        json!({ "fields": changed_fields(&before, &after) }),
     )
     .await?;
     tx.commit().await?;
@@ -425,6 +445,9 @@ pub async fn oss_status(state: &AppState) -> AppResult<Value> {
 
 // ---- Compliance checklist ----------------------------------------------------------------------
 
+/// Where the seller identity and the mediator are edited (front-end path).
+pub const LEGAL_ENTITY_FORM: &str = "/admin/settings/legal-entity";
+
 /// Checks that must pass before `shop.status` can be set to `open`.
 pub async fn checklist(conn: &mut PgConnection, state: &AppState) -> AppResult<Vec<Value>> {
     let s = shop_settings::load(&mut *conn).await?;
@@ -433,32 +456,18 @@ pub async fn checklist(conn: &mut PgConnection, state: &AppState) -> AppResult<V
         out.push(json!({ "code": code, "ok": ok, "detail": detail }))
     };
 
-    let entity = sqlx::query!(
-        r#"SELECT legal_name, address, registration, email::text AS email, country_code::text AS "country!" FROM legal_entities WHERE id = shop_entity_id()"#
-    )
-    .fetch_optional(&mut *conn)
-    .await?;
-    match &entity {
-        Some(e) => {
-            let gaps = entity_gaps(
-                &e.country,
-                &e.legal_name,
-                &e.address,
-                &e.registration,
-                e.email.as_deref(),
-            );
-            check(
-                "seller_identity",
-                gaps.is_empty(),
-                json!({ "missing": gaps }),
-            );
-        }
-        None => check(
-            "seller_identity",
-            false,
-            json!({ "missing": ["shop.legal_entity"] }),
-        ),
-    }
+    // The seller identity and the mediator are edited in Admin › Settings › Legal entity: the
+    // details list the missing fields (codes, shown as labels) and link to that form.
+    let identity = legal_entity::load(&mut *conn).await.ok().map(|(_, f)| f);
+    let missing: Vec<&str> = match &identity {
+        Some(f) => f.missing(),
+        None => vec!["shop.legal_entity"],
+    };
+    check(
+        "seller_identity",
+        missing.is_empty(),
+        json!({ "missing": missing, "link": LEGAL_ENTITY_FORM }),
+    );
     let unconfirmed = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM tax_rates WHERE is_active AND NOT is_confirmed
              AND country_code = (SELECT country_code FROM legal_entities WHERE id = shop_entity_id())"#
@@ -500,13 +509,15 @@ pub async fn checklist(conn: &mut PgConnection, state: &AppState) -> AppResult<V
         missing_pages.is_empty(),
         json!({ "missing": missing_pages }),
     );
-    let mediator_ok = s.consumer_mediator["name"]
-        .as_str()
-        .is_some_and(|n| !n.trim().is_empty())
-        && s.consumer_mediator["url"]
-            .as_str()
-            .is_some_and(|n| !n.trim().is_empty());
-    check("consumer_mediator", mediator_ok, Value::Null);
+    let mediator_missing = identity
+        .as_ref()
+        .map(|f| f.mediator_missing())
+        .unwrap_or_else(|| vec!["mediator.name", "mediator.url"]);
+    check(
+        "consumer_mediator",
+        mediator_missing.is_empty(),
+        json!({ "missing": mediator_missing, "link": LEGAL_ENTITY_FORM }),
+    );
     let label = shop_settings::ShopSettings::localized(&s.checkout_button_label, "fr");
     let label_ok = s.checkout_button_label["fr"]
         .as_str()
@@ -515,7 +526,30 @@ pub async fn checklist(conn: &mut PgConnection, state: &AppState) -> AppResult<V
     check(
         "card_payment",
         s.payments.stripe_enabled && state.shop_payments.card_available(),
-        Value::Null,
+        json!({ "enabled": s.payments.stripe_enabled, "keys": state.shop_payments.card_available() }),
+    );
+    // Mouzoun's own webhook endpoint (the Stripe account is shared): its signing secret is set and
+    // at least one of our events arrived through it.
+    let secret_set = state
+        .config
+        .booking
+        .stripe
+        .as_ref()
+        .is_some_and(|c| !c.webhook_secret.trim().is_empty());
+    let received = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM payment_webhook_events WHERE provider = 'stripe' AND status = 'received') AS "x!""#
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    // The simulated provider (PAYMENTS_FAKE, development only) has no webhook to configure.
+    let simulated =
+        !state.shop_payments.stripe_configured() && state.shop_payments.card_available();
+    check(
+        "stripe_webhook",
+        simulated || (secret_set && received),
+        json!({ "reason": if !secret_set { Some("STRIPE_WEBHOOK_SECRET is not set: add Mouzoun's endpoint in the Stripe Dashboard and paste its signing secret") }
+                          else if !received { Some("no Stripe event received yet on Mouzoun's endpoint") } else { None },
+                "secret_set": secret_set, "event_received": received }),
     );
 
     let incomplete = sqlx::query_scalar!(
@@ -535,16 +569,23 @@ pub async fn checklist(conn: &mut PgConnection, state: &AppState) -> AppResult<V
         json!({ "product_ids": bad }),
     );
 
-    let shipping = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM shipping_rates r JOIN shipping_zones z ON z.id = r.zone_id
+    let shipping = sqlx::query!(
+        r#"SELECT count(*) FILTER (WHERE NOT r.is_placeholder) AS "rates!", count(*) FILTER (WHERE r.is_placeholder) AS "placeholders!"
+           FROM shipping_rates r JOIN shipping_zones z ON z.id = r.zone_id
            WHERE r.is_active AND z.is_active AND 'FR' = ANY(z.country_codes)"#
     )
     .fetch_one(&mut *conn)
     .await?;
     check(
         "shipping_rates_france",
-        shipping > 0,
-        json!({ "rates": shipping }),
+        shipping.rates > 0,
+        json!({ "rates": shipping.rates, "placeholders": shipping.placeholders }),
+    );
+    let food = crate::services::shop::legal::food_info_gaps(&mut *conn).await?;
+    check(
+        "food_information",
+        food.is_empty(),
+        json!({ "missing": food.len(), "products": food }),
     );
     let stock = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM stock_locations WHERE is_active AND fulfills_online_orders AND legal_entity_id = shop_entity_id()"#

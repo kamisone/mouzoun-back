@@ -107,6 +107,7 @@ mod tests {
                 publishable_key: "pk_live_x".into(),
                 webhook_secret: "whsec_x".into(),
                 api_base: "https://api.stripe.com".into(),
+                app_tag: "mouzoun".into(),
             }),
             ..BookingConfig::default()
         };

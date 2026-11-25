@@ -43,17 +43,27 @@ pub async fn revision_text(
     conn: &mut PgConnection,
     revision_id: Uuid,
     locale: &str,
+    site_url: &str,
 ) -> sqlx::Result<Option<(String, String, i32)>> {
     let Some(r) = sqlx::query!(
         "SELECT snapshot, revision_number, published_at FROM page_revisions WHERE id = $1",
         revision_id
     )
-    .fetch_optional(conn)
+    .fetch_optional(&mut *conn)
     .await?
     else {
         return Ok(None);
     };
-    let snap = &r.snapshot;
+    // Legal pages hold tokens ({{seller.legal_name}}...): the PDF shows the values.
+    let mut snapshot = r.snapshot;
+    let api = format!("{}/api", site_url.trim_end_matches('/'));
+    let urls = super::legal_pages::Urls {
+        site: site_url,
+        api: &api,
+    };
+    let values = super::legal_pages::values(conn, locale, &urls).await?;
+    super::legal_pages::render_content(&mut snapshot["blocks"], &values);
+    let snap = &snapshot;
     let title = snap["page"]["translations"][locale]["title"]
         .as_str()
         .or_else(|| snap["page"]["translations"]["fr"]["title"].as_str())
@@ -91,8 +101,10 @@ pub async fn terms_pdf(
     conn: &mut PgConnection,
     revision_id: Uuid,
     seller: &Value,
+    site_url: &str,
 ) -> sqlx::Result<Option<Attachment>> {
-    let Some((title, body, number)) = revision_text(conn, revision_id, "fr").await? else {
+    let Some((title, body, number)) = revision_text(conn, revision_id, "fr", site_url).await?
+    else {
         return Ok(None);
     };
     let mut d = Document::new();
@@ -208,6 +220,32 @@ pub fn email_template_french_ok(
     !FRENCH_REQUIRED_TEMPLATES.contains(&code)
         || (fr_subject.is_some_and(|s| !s.trim().is_empty())
             && fr_body.is_some_and(|b| !b.trim().is_empty()))
+}
+
+/// Published food products whose page lacks information the INCO regulation (EU 1169/2011)
+/// requires in French: ingredients, storage, the food business operator, and on every active
+/// variant the net quantity and the country of origin. Texts still holding a placeholder ("à
+/// compléter", "à confirmer", "to confirm") count as missing. Allergens are a list that may
+/// rightly be empty, so they are not counted. Returns the French names (or ids) of the products concerned.
+pub async fn food_info_gaps(conn: &mut PgConnection) -> sqlx::Result<Vec<String>> {
+    sqlx::query_scalar!(
+        r#"SELECT COALESCE(NULLIF(btrim(t.name), ''), p.id::text) AS "name!"
+           FROM shop_products sp
+           JOIN products p ON p.id = sp.product_id
+           LEFT JOIN product_translations t ON t.product_id = sp.product_id AND t.locale = 'fr'
+           LEFT JOIN shop_product_translations st ON st.product_id = sp.product_id AND st.locale = 'fr'
+           WHERE p.status = 'published' AND p.deleted_at IS NULL
+             AND sp.product_type IN ('food', 'drink', 'gift_box')
+             AND (COALESCE(btrim(st.ingredients), '') ~* '^$|compléter|à confirmer|to confirm'
+                  OR COALESCE(btrim(st.storage_instructions), '') ~* '^$|compléter|à confirmer|to confirm'
+                  OR COALESCE(btrim(st.producer_name), '') ~* '^$|compléter|à confirmer|to confirm'
+                  OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = sp.product_id
+                               AND v.status = 'active' AND v.deleted_at IS NULL
+                               AND (v.net_quantity IS NULL OR v.net_unit IS NULL OR v.country_of_origin IS NULL)))
+           ORDER BY 1"#
+    )
+    .fetch_all(conn)
+    .await
 }
 
 #[cfg(test)]

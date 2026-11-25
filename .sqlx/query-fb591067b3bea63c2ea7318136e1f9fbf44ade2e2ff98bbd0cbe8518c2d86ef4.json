@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_zones (code, country_codes, postal_code_patterns, sort_order)\n                 VALUES ('france_metro', '{FR}', $1, 0) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fb591067b3bea63c2ea7318136e1f9fbf44ade2e2ff98bbd0cbe8518c2d86ef4"
+}

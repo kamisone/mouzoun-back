@@ -10,8 +10,13 @@ a lawyer and an accountant before opening**: the code implements the mechanics, 
 - `legal_entities`: legal name, form, capital, address, country, registration (`siren`,
   `siret`, `rcs_city`, `vat_number`, `ape_code` for FR; `ice`, `if`, `rc`, `patente`, `cnss`
   for MA), email, phone, invoice prefix (`F` for France), publication director, host;
-  `legal_entity_translations.invoice_footer`. Edited in **Admin › Boutique › Conformité France**
-  (with a specimen invoice PDF). Seeded identity is a placeholder ("à compléter").
+  `legal_entity_translations.invoice_footer`. The French seller's identity and the consumer
+  mediator are **edited in the admin**, Admin › Settings › Legal entity
+  (`GET`/`PUT /v1/admin/settings/legal-entity`, permission `settings.write`): SIREN and SIRET
+  Luhn keys, French VAT key and postal code checked, errors per field, audit row with the changed
+  field names only. No environment variable holds them. Invoice footer, host and the Moroccan
+  entity stay in **Admin › Boutique › Conformité France** (with a specimen invoice PDF). Issued
+  invoices keep their `seller_snapshot`. Seeded identity is a placeholder ("à compléter").
 - `orders`, `invoices`, `payments` carry `legal_entity_id` (backfill: shop → FR, bookings → MA;
   defaults `shop_entity_id()` / `booking_entity_id()`).
 - Stock: `stock_locations.country_code` and `legal_entity_id`. The shop sells only the stock of
@@ -105,8 +110,10 @@ the invoice, VAT prorated), PDF rendered by the API, stored privately in the buc
 
 `GET /v1/admin/shop/compliance`; setting `shop.status = open` is refused (409
 `compliance_checklist`) until all pass: seller identity complete, French VAT rates confirmed,
-legal pages published, mediator set, button wording, card payment on, published products
-complete in French, French shipping rates, a French warehouse, French emails complete.
+legal pages published, mediator set, button wording, card payment on, Stripe webhook received,
+published products complete in French, food information complete, French shipping rates (not
+counting placeholders), a French warehouse, French emails complete. Nothing else is needed to
+open. "Seller identity" and "mediator" list the missing fields and link to the Legal entity form.
 
 ## Accounting exports (CSV, `;`, UTF-8 BOM)
 

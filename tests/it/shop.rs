@@ -1383,6 +1383,24 @@ struct Mock {
 
 type MockState = Arc<Mutex<Mock>>;
 
+/// Reads: payment intents (the webhook filter looks up the tag of a charge's intent).
+async fn mock_stripe_get(Path(path): Path<String>) -> (StatusCode, Json<Value>) {
+    match path.as_str() {
+        "payment_intents/pi_test_1" => (
+            StatusCode::OK,
+            Json(json!({ "id": "pi_test_1", "metadata": { "app": "mouzoun" } })),
+        ),
+        p if p.starts_with("payment_intents/") => (
+            StatusCode::OK,
+            Json(json!({ "id": "pi_other", "metadata": { "app": "vitecamio" } })),
+        ),
+        _ => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": { "message": "no such object" } })),
+        ),
+    }
+}
+
 async fn mock_stripe(
     State(m): State<MockState>,
     Path(path): Path<String>,
@@ -1442,7 +1460,7 @@ async fn mock_stripe(
 async fn stripe_app(db: &PgPool) -> (TestApp, MockState) {
     let mock: MockState = Arc::default();
     let router = Router::new()
-        .route("/v1/{*path}", post(mock_stripe))
+        .route("/v1/{*path}", post(mock_stripe).get(mock_stripe_get))
         .with_state(mock.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -1454,6 +1472,7 @@ async fn stripe_app(db: &PgPool) -> (TestApp, MockState) {
             publishable_key: "pk_test_shop".into(),
             webhook_secret: WEBHOOK_SECRET.into(),
             api_base: format!("http://{addr}"),
+            app_tag: "mouzoun".into(),
         });
     })
     .await;
@@ -1477,7 +1496,7 @@ async fn send_event(app: &TestApp, event: &Value, secret: &str) -> StatusCode {
 
 fn session_event(id: &str, kind: &str, session: &str, amount: i64, extra: Value) -> Value {
     let mut object = json!({ "id": session, "object": "checkout.session", "payment_status": "paid", "amount_total": amount,
-                             "currency": "eur", "payment_intent": "pi_test_1" });
+                             "currency": "eur", "payment_intent": "pi_test_1", "metadata": { "app": "mouzoun" } });
     if let (Some(o), Some(e)) = (object.as_object_mut(), extra.as_object()) {
         o.extend(e.clone());
     }
@@ -1604,7 +1623,7 @@ async fn an_expired_session_releases_the_stock_and_a_wrong_amount_is_flagged(db:
     let (app, _) = stripe_app(&db).await;
     let s = shop(&db).await;
     let (id, session, _) = card_order(&app, &s, "card-exp").await;
-    let event = json!({ "id": "evt_exp", "type": "checkout.session.expired", "data": { "object": { "id": session, "payment_status": "unpaid" } } });
+    let event = json!({ "id": "evt_exp", "type": "checkout.session.expired", "data": { "object": { "id": session, "payment_status": "unpaid", "metadata": { "app": "mouzoun" } } } });
     assert_eq!(
         send_event(&app, &event, WEBHOOK_SECRET).await,
         StatusCode::OK
@@ -1646,7 +1665,7 @@ async fn a_refund_event_before_the_payment_event_ends_in_the_right_state(db: PgP
         .await
         .unwrap();
     let refund = json!({ "id": "evt_refund", "type": "charge.refunded", "data": { "object": {
-        "id": "ch_1", "payment_intent": "pi_test_1", "amount_refunded": 500, "metadata": { "order_id": id, "payment_id": payment_id } } } });
+        "id": "ch_1", "payment_intent": "pi_test_1", "amount_refunded": 500, "metadata": { "app": "mouzoun", "order_id": id, "payment_id": payment_id } } } });
     assert_eq!(
         send_event(&app, &refund, WEBHOOK_SECRET).await,
         StatusCode::OK
@@ -1784,3 +1803,125 @@ async fn editors_never_see_orders_and_reception_cannot_refund(db: PgPool) {
 
 #[path = "shop_france.rs"]
 mod france;
+
+/// The Stripe account is shared with another site: its events are answered 200, kept as
+/// `ignored_foreign` (id and type only) and never reach the orders or the worker. A charge event
+/// without metadata of its own is told apart by its payment intent's tag.
+#[sqlx::test(migrations = "./migrations")]
+async fn events_of_the_other_site_sharing_stripe_are_ignored(db: PgPool) {
+    let (app, mock) = stripe_app(&db).await;
+    let s = shop(&db).await;
+    let (id, session, total) = card_order(&app, &s, "card-foreign").await;
+    {
+        // Our objects carry the tag, the descriptor and our ids.
+        let m = mock.lock().unwrap();
+        let (_, _, form) = m.calls.iter().find(|c| c.0 == "checkout/sessions").unwrap();
+        let get = |k: &str| form.iter().find(|(a, _)| a == k).map(|(_, v)| v.as_str());
+        assert_eq!(get("metadata[app]"), Some("mouzoun"));
+        assert_eq!(get("payment_intent_data[metadata][app]"), Some("mouzoun"));
+        assert_eq!(get("metadata[order_id]"), Some(id.to_string().as_str()));
+        assert!(get("metadata[payment_id]").is_some());
+        assert_eq!(
+            get("payment_intent_data[statement_descriptor_suffix]"),
+            Some("MOUZOUN")
+        );
+    }
+    let outbox_before: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox_events")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let foreign = json!({ "id": "evt_vitecamio", "type": "checkout.session.completed", "data": { "object": {
+        "id": "cs_vitecamio", "object": "checkout.session", "payment_status": "paid", "amount_total": total,
+        "customer_details": { "email": "someone@example.com" }, "metadata": { "app": "vitecamio", "order_id": Uuid::now_v7() } } } });
+    assert_eq!(
+        send_event(&app, &foreign, WEBHOOK_SECRET).await,
+        StatusCode::OK
+    );
+    let untagged_charge = json!({ "id": "evt_vitecamio_charge", "type": "charge.refunded", "data": { "object": {
+        "id": "ch_x", "object": "charge", "payment_intent": "pi_vitecamio", "amount_refunded": 100 } } });
+    assert_eq!(
+        send_event(&app, &untagged_charge, WEBHOOK_SECRET).await,
+        StatusCode::OK
+    );
+    let rows: Vec<(String, String, Value)> = sqlx::query_as(
+        "SELECT event_id, status, payload FROM payment_webhook_events WHERE status = 'ignored_foreign' ORDER BY event_id",
+    )
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    assert_eq!(rows.len(), 2);
+    assert!(
+        rows.iter()
+            .all(|(_, _, p)| !p.to_string().contains("someone@example.com")),
+        "no customer data kept"
+    );
+    let outbox_after: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox_events")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(outbox_before, outbox_after, "nothing queued for the worker");
+    drain(&db, Utc::now()).await;
+    assert_eq!(
+        order_row(&db, id).await.0,
+        "pending",
+        "the order is untouched"
+    );
+
+    // Our own event is processed.
+    let ours = session_event(
+        "evt_ours",
+        "checkout.session.completed",
+        &session,
+        total,
+        json!({}),
+    );
+    assert_eq!(
+        send_event(&app, &ours, WEBHOOK_SECRET).await,
+        StatusCode::OK
+    );
+    let status: String =
+        sqlx::query_scalar("SELECT status FROM payment_webhook_events WHERE event_id = 'evt_ours'")
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    assert_eq!(status, "received");
+    drain(&db, Utc::now()).await;
+    assert_ne!(order_row(&db, id).await.0, "pending");
+}
+
+/// Without the webhook signing secret every event is refused, and the checklist says why.
+#[sqlx::test(migrations = "./migrations")]
+async fn without_the_webhook_secret_events_are_refused_and_the_checklist_fails(db: PgPool) {
+    let app = TestApp::with_config(db.clone(), |c| {
+        c.booking.fake_payments = false;
+        c.booking.stripe = Some(StripeConfig {
+            secret_key: "sk_test_x".into(),
+            publishable_key: "pk_test_x".into(),
+            webhook_secret: String::new(),
+            api_base: "http://127.0.0.1:9".into(),
+            app_tag: "mouzoun".into(),
+        });
+    })
+    .await;
+    let event = json!({ "id": "evt_1", "type": "checkout.session.completed", "data": { "object": { "metadata": { "app": "mouzoun" } } } });
+    // An empty secret must not verify an empty-key signature.
+    assert_eq!(send_event(&app, &event, "").await, StatusCode::BAD_REQUEST);
+    let (status, body) = app
+        .admin(Method::GET, "/v1/admin/shop/compliance", None)
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let item = body["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["code"] == "stripe_webhook")
+        .unwrap()
+        .clone();
+    assert_eq!(item["ok"], json!(false));
+    assert!(
+        item["detail"]["reason"]
+            .as_str()
+            .unwrap()
+            .contains("STRIPE_WEBHOOK_SECRET")
+    );
+}

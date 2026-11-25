@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payment_webhook_events (provider, event_id, event_type, payload, status, processed_at)\n         VALUES ('stripe', $1, $2, $3, 'ignored_foreign', now()) ON CONFLICT (provider, event_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a30f2cf16c8c9275968057b25298a60585369904c14676c781111a00668306f"
+}

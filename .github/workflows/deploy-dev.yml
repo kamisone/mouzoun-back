@@ -143,6 +143,9 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          # Optional: shared with the front (NUXT_INTERNAL_API_TOKEN, same value) to authenticate the
+          # redirect / 404 visit counts it sends to POST /v1/seo/hits.
+          INTERNAL_API_TOKEN: ${{ secrets.INTERNAL_API_TOKEN }}
           # Optional: bot protection, Google / Apple sign-in.
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
@@ -211,7 +214,7 @@ jobs:
               "GUEST_DATA_KEY=$GUEST_DATA_KEY" "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY" \
               "TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY" \
               "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" "STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY" \
-              "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" \
+              "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" "INTERNAL_API_TOKEN=$INTERNAL_API_TOKEN" \
               "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
               "APPLE_CLIENT_ID=$APPLE_CLIENT_ID" "APPLE_TEAM_ID=$APPLE_TEAM_ID" "APPLE_KEY_ID=$APPLE_KEY_ID" \
               "APPLE_PRIVATE_KEY=${APPLE_PRIVATE_KEY//$'\n'/\\n}"

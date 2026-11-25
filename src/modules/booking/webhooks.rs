@@ -37,6 +37,25 @@ pub async fn receive(
         tracing::warn!(provider = name, error = %e, "webhook refused");
         AppError::BadRequest("invalid webhook".into())
     })?;
+    // The Stripe account is shared with another site: its events (no `metadata.app` of ours on
+    // the object or its payment intent) are kept as `ignored_foreign` and never processed.
+    if name == "stripe"
+        && let Some(config) = state.config.booking.stripe.as_ref()
+    {
+        let tag = stripe::event_app_tag(&event.payload, |id| async move {
+            stripe::fetch_intent(config, &id).await
+        })
+        .await;
+        if tag.as_deref() != Some(config.app_tag.as_str())
+            && !known_ids(&state, &event.payload).await?
+        {
+            ignore_foreign(&state, &event).await?;
+            return Ok((
+                StatusCode::OK,
+                Json(json!({ "received": true, "ignored": "foreign" })),
+            ));
+        }
+    }
     // One Stripe endpoint for both: shop order events are stored, queued and answered at once.
     if name == "stripe"
         && crate::modules::shop::public::receive_stripe_shop_event(&state, &event.payload).await?
@@ -46,6 +65,46 @@ pub async fn receive(
     // Processing errors answer 500: the provider retries, and the stored event is reprocessed.
     payments::handle_webhook(&state.db, &state.payments, name, &event, Utc::now()).await?;
     Ok((StatusCode::OK, Json(json!({ "received": true }))))
+}
+
+/// Objects created before the tag existed: ours when their metadata names one of our payments,
+/// bookings or orders (UUIDs: another site cannot collide).
+async fn known_ids(state: &AppState, payload: &Value) -> AppResult<bool> {
+    let m = &payload["data"]["object"]["metadata"];
+    let id = |k: &str| m[k].as_str().and_then(|s| s.parse::<Uuid>().ok());
+    let (payment, booking, order) = (id("payment_id"), id("booking_id"), id("order_id"));
+    if payment.is_none() && booking.is_none() && order.is_none() {
+        return Ok(false);
+    }
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM payments WHERE id = $1)
+               OR EXISTS (SELECT 1 FROM bookings WHERE id = $2)
+               OR EXISTS (SELECT 1 FROM orders WHERE id = $3) AS "x!""#,
+        payment,
+        booking,
+        order
+    )
+    .fetch_one(&state.db)
+    .await?)
+}
+
+/// Keeps a trace of an event of another site (id and type only: never its customer data).
+async fn ignore_foreign(
+    state: &AppState,
+    event: &payments::gateway::WebhookEvent,
+) -> AppResult<()> {
+    let object = &event.payload["data"]["object"];
+    sqlx::query!(
+        "INSERT INTO payment_webhook_events (provider, event_id, event_type, payload, status, processed_at)
+         VALUES ('stripe', $1, $2, $3, 'ignored_foreign', now()) ON CONFLICT (provider, event_id) DO NOTHING",
+        event.event_id,
+        event.event_type,
+        json!({ "object": object["object"], "object_id": object["id"] })
+    )
+    .execute(&state.db)
+    .await?;
+    tracing::debug!(event_id = %event.event_id, "stripe event of another site ignored");
+    Ok(())
 }
 
 /// `PAYMENTS_FAKE=true` only: plays the provider's part for a fake payment

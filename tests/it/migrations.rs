@@ -93,3 +93,50 @@ async fn later_migrations_convert_the_first_production_schema(db: PgPool) {
     // Running everything again changes nothing (0020 is idempotent by design, SQLx skips it).
     ALL.run(&db).await.unwrap();
 }
+
+/// 0035 drops the review status of legal pages: reviewed and draft pages both survive, unchanged,
+/// and the migration reverts.
+#[sqlx::test(migrations = false)]
+async fn the_review_columns_go_and_the_pages_stay(db: PgPool) {
+    up_to(34).run(&db).await.unwrap();
+    // One draft page (the default) and one marked reviewed.
+    let reviewed = uuid::Uuid::now_v7();
+    for id in [reviewed, uuid::Uuid::now_v7()] {
+        sqlx::query("INSERT INTO pages (id, page_type, status) VALUES ($1, 'legal', 'published')")
+            .bind(id)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+    sqlx::query(&format!(
+        "DO $$ DECLARE c text; BEGIN
+           SELECT column_name INTO c FROM information_schema.columns
+            WHERE table_name = 'pages' AND column_name LIKE 'legal_review%';
+           EXECUTE format('UPDATE pages SET %I = ''reviewed'' WHERE id = %L', c, '{reviewed}');
+         END $$"
+    ))
+    .execute(&db)
+    .await
+    .unwrap();
+    let review_columns = || async {
+        sqlx::query_scalar::<_, i64>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'pages'
+               AND (column_name LIKE 'legal_review%' OR column_name LIKE 'reviewed%')",
+        )
+        .fetch_one(&db)
+        .await
+        .unwrap()
+    };
+    assert_eq!(review_columns().await, 3);
+
+    ALL.run(&db).await.unwrap();
+    assert_eq!(review_columns().await, 0);
+    let legal: i64 = sqlx::query_scalar("SELECT count(*) FROM pages WHERE page_type = 'legal'")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert_eq!(legal, 2);
+
+    ALL.undo(&db, 34).await.unwrap();
+    assert_eq!(review_columns().await, 3);
+}

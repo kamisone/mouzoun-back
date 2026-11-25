@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(NULLIF(btrim(t.name), ''), p.id::text) AS \"name!\"\n           FROM shop_products sp\n           JOIN products p ON p.id = sp.product_id\n           LEFT JOIN product_translations t ON t.product_id = sp.product_id AND t.locale = 'fr'\n           LEFT JOIN shop_product_translations st ON st.product_id = sp.product_id AND st.locale = 'fr'\n           WHERE p.status = 'published' AND p.deleted_at IS NULL\n             AND sp.product_type IN ('food', 'drink', 'gift_box')\n             AND (COALESCE(btrim(st.ingredients), '') ~* '^$|compléter|à confirmer|to confirm'\n                  OR COALESCE(btrim(st.storage_instructions), '') ~* '^$|compléter|à confirmer|to confirm'\n                  OR COALESCE(btrim(st.producer_name), '') ~* '^$|compléter|à confirmer|to confirm'\n                  OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = sp.product_id\n                               AND v.status = 'active' AND v.deleted_at IS NULL\n                               AND (v.net_quantity IS NULL OR v.net_unit IS NULL OR v.country_of_origin IS NULL)))\n           ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "af32b64461ec8ccfd031f61022778f525cf8310efec696027b097a8acfe112b9"
+}

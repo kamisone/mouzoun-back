@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipping_rates (id, zone_id, profile_id, code, kind, carrier, amount_minor, per_kg_minor, min_weight_grams,\n                                     max_weight_grams, min_subtotal_minor, max_subtotal_minor, free_over_minor, delivery_days_min,\n                                     delivery_days_max, allows_cash_on_delivery, cod_fee_minor, is_active, sort_order)\n         VALUES ($1, $2, $3, $4::text::citext, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)\n         ON CONFLICT (id) DO UPDATE SET zone_id = $2, profile_id = $3, code = $4::text::citext, kind = $5, carrier = $6,\n             amount_minor = $7, per_kg_minor = $8, min_weight_grams = $9, max_weight_grams = $10, min_subtotal_minor = $11,\n             max_subtotal_minor = $12, free_over_minor = $13, delivery_days_min = $14, delivery_days_max = $15,\n             allows_cash_on_delivery = $16, cod_fee_minor = $17, is_active = $18, sort_order = $19,\n             is_placeholder = false",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Int8",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d40372004177fb67c731373c6d960a57cb138107164c9ab6fef713978e258fe"
+}

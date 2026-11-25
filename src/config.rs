@@ -137,13 +137,20 @@ pub struct AppleClient {
     pub private_key: String,
 }
 
+pub const DEFAULT_STRIPE_APP_TAG: &str = "mouzoun";
+
 #[derive(Clone)]
 pub struct StripeConfig {
     pub secret_key: String,
     pub publishable_key: String,
+    /// Empty until the endpoint is added in the Stripe Dashboard: payments can be created, every
+    /// webhook is refused (and the shop checklist says so).
     pub webhook_secret: String,
     /// `STRIPE_API_BASE` (tests point it at a mock), default https://api.stripe.com.
     pub api_base: String,
+    /// `STRIPE_APP_TAG` (default `mouzoun`): `metadata.app` of every object Mouzoun creates. The
+    /// Stripe account is shared with another site: webhook events without it are ignored.
+    pub app_tag: String,
 }
 
 /// Live or test keys (from the key prefixes).
@@ -179,7 +186,7 @@ impl StripeConfig {
         {
             out.push("STRIPE_PUBLISHABLE_KEY must start with pk_test_ or pk_live_".into());
         }
-        if !self.webhook_secret.starts_with("whsec_") {
+        if !self.webhook_secret.is_empty() && !self.webhook_secret.starts_with("whsec_") {
             out.push("STRIPE_WEBHOOK_SECRET must start with whsec_ (Stripe dashboard → Webhooks → signing secret)".into());
         }
         if secret_ok
@@ -217,25 +224,24 @@ impl fmt::Debug for BookingConfig {
 
 impl BookingConfig {
     pub fn from_env() -> Result<Self> {
-        // Stripe is optional until online payments are wanted; its three secrets go together.
+        // Stripe is optional until online payments are wanted. The two API keys go together; the
+        // webhook signing secret may follow later (it belongs to one endpoint URL).
         let stripe_keys = [
             "STRIPE_SECRET_KEY",
             "STRIPE_PUBLISHABLE_KEY",
             "STRIPE_WEBHOOK_SECRET",
         ];
         let stripe = match stripe_keys.map(optional) {
-            [
-                Some(secret_key),
-                Some(publishable_key),
-                Some(webhook_secret),
-            ] => Some(StripeConfig {
+            [Some(secret_key), Some(publishable_key), webhook_secret] => Some(StripeConfig {
                 secret_key,
                 publishable_key,
-                webhook_secret,
+                webhook_secret: webhook_secret.unwrap_or_default(),
                 api_base: optional("STRIPE_API_BASE")
                     .unwrap_or_else(|| "https://api.stripe.com".into())
                     .trim_end_matches('/')
                     .to_string(),
+                app_tag: optional("STRIPE_APP_TAG")
+                    .unwrap_or_else(|| DEFAULT_STRIPE_APP_TAG.into()),
             }),
             [None, None, None] => None,
             values => {
@@ -768,6 +774,7 @@ mod tests {
             publishable_key: publishable.into(),
             webhook_secret: webhook.into(),
             api_base: "https://api.stripe.com".into(),
+            app_tag: "mouzoun".into(),
         })
     }
 

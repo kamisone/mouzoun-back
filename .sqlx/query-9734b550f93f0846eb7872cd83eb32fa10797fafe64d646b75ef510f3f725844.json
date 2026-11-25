@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, legal_name, legal_form, share_capital_minor, address, country_code::text AS \"country_code!\",\n                  registration, email::text AS email, phone, publication_director\n           FROM legal_entities WHERE id = shop_entity_id()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "legal_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "legal_form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "share_capital_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "country_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "registration",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "publication_director",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "9734b550f93f0846eb7872cd83eb32fa10797fafe64d646b75ef510f3f725844"
+}

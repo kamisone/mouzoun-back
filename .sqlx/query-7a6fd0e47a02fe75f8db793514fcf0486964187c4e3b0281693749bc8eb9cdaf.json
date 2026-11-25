@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE settings SET value = $1, updated_at = now() WHERE key = 'shop.consumer_mediator'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a6fd0e47a02fe75f8db793514fcf0486964187c4e3b0281693749bc8eb9cdaf"
+}

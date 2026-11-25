@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.has_unpublished_changes, COALESCE(t.slug, p.id::text) AS \"slug!\",\n                  EXISTS (SELECT 1 FROM page_revisions r WHERE r.page_id = p.id AND r.status = 'published'\n                          AND strpos(r.snapshot::text, $1) > 0) AS \"published_has_notes!\"\n           FROM pages p LEFT JOIN page_translations t ON t.page_id = p.id AND t.locale = 'fr'\n           WHERE p.page_type = 'legal' AND p.deleted_at IS NULL ORDER BY 3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "has_unpublished_changes",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "published_has_notes!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "c67318cb61fccc3207435cbca2c2e21e4c5f5b950158398e7cccbc8680657120"
+}

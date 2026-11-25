@@ -39,6 +39,7 @@ pub fn admin_routes() -> Router<AppState> {
         .route("/section-types", get(handlers::section_types))
         .route("/section-types/{code}", patch(handlers::patch_section_type))
         .route("/pages", get(handlers::pages).post(handlers::create_page))
+        .route("/pages/legal-tokens", get(handlers::legal_tokens))
         .route(
             "/pages/{id}/builder",
             get(handlers::builder).put(handlers::save_builder),

@@ -341,6 +341,15 @@ pub async fn publish(
     Ok((StatusCode::CREATED, Json(json!({ "revision": rev }))))
 }
 
+/// `GET /pages/legal-tokens`: the tokens a legal page may use (the builder's "Insert company
+/// field" picker), so the editor only inserts names the renderer knows.
+pub async fn legal_tokens(staff: Staff) -> AppResult<Json<Value>> {
+    staff.require(READ)?;
+    Ok(Json(
+        json!({ "tokens": crate::services::shop::legal_pages::KNOWN_TOKENS }),
+    ))
+}
+
 pub async fn publish_check(
     State(state): State<AppState>,
     staff: Staff,
@@ -548,7 +557,11 @@ async fn serve(
         false,
     )
     .await?;
-    let ttl = public::ttl_until_next_boundary(&snapshot.blocks, now);
+    let mut ttl = public::ttl_until_next_boundary(&snapshot.blocks, now);
+    // Legal pages show live data (seller identity, shipping rates...): kept 5 minutes at most.
+    if snapshot.page.page_type == "legal" {
+        ttl = ttl.min(std::time::Duration::from_secs(300));
+    }
     state.cache.set_json(&key, &page, ttl).await;
     Ok(Json(page).into_response())
 }

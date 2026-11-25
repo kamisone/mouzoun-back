@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.id, r.zone_id, r.profile_id, r.code::text AS \"code!\", r.kind AS \"kind: ShippingRateKind\", r.carrier,\n                  r.amount_minor, r.per_kg_minor, r.min_weight_grams, r.max_weight_grams, r.min_subtotal_minor,\n                  r.max_subtotal_minor, r.free_over_minor, r.delivery_days_min, r.delivery_days_max,\n                  r.allows_cash_on_delivery, r.cod_fee_minor, r.sort_order, r.delivery_type AS \"delivery_type: DeliveryType\",\n                  COALESCE(t.name, d.name, r.code::text) AS \"name!\"\n           FROM shipping_rates r\n           LEFT JOIN shipping_rate_translations t ON t.rate_id = r.id AND t.locale = $1\n           LEFT JOIN shipping_rate_translations d ON d.rate_id = r.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE r.is_active ORDER BY r.sort_order, r.id",
+  "query": "SELECT r.id, r.zone_id, r.profile_id, r.code::text AS \"code!\", r.kind AS \"kind: ShippingRateKind\", r.carrier,\n                  r.amount_minor, r.per_kg_minor, r.min_weight_grams, r.max_weight_grams, r.min_subtotal_minor,\n                  r.max_subtotal_minor, r.free_over_minor, r.delivery_days_min, r.delivery_days_max,\n                  r.allows_cash_on_delivery, r.cod_fee_minor, r.sort_order, r.delivery_type AS \"delivery_type: DeliveryType\",\n                  COALESCE(t.name, d.name, r.code::text) AS \"name!\"\n           FROM shipping_rates r\n           LEFT JOIN shipping_rate_translations t ON t.rate_id = r.id AND t.locale = $1\n           LEFT JOIN shipping_rate_translations d ON d.rate_id = r.id AND d.locale = (SELECT code FROM locales WHERE is_default)\n           WHERE r.is_active AND NOT r.is_placeholder ORDER BY r.sort_order, r.id",
   "describe": {
     "columns": [
       {
@@ -132,5 +132,5 @@
       null
     ]
   },
-  "hash": "b0a8eb5ce1efd727c0d107ba05021bc3bb32fbf11cbb7e116e3fd6256d05dab9"
+  "hash": "ffbd5a9b322562a4b85993822f738f7c212b8a0869b76efbcd5a7a120b3aba5d"
 }

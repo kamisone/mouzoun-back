@@ -269,6 +269,7 @@ pub async fn shipping(State(state): State<AppState>, staff: Staff) -> AppResult<
         r#"SELECT r.id, r.zone_id, r.profile_id, r.code::text AS "code!", r.kind, r.carrier, r.amount_minor, r.per_kg_minor,
                   r.min_weight_grams, r.max_weight_grams, r.min_subtotal_minor, r.max_subtotal_minor, r.free_over_minor,
                   r.delivery_days_min, r.delivery_days_max, r.allows_cash_on_delivery, r.cod_fee_minor, r.is_active, r.sort_order,
+                  r.is_placeholder, r.delivery_type,
                   COALESCE((SELECT jsonb_object_agg(locale, jsonb_build_object('name', name, 'description', description))
                             FROM shipping_rate_translations WHERE rate_id = r.id), '{}') AS "translations!"
            FROM shipping_rates r ORDER BY r.sort_order, r.code"#
@@ -285,7 +286,8 @@ pub async fn shipping(State(state): State<AppState>, staff: Staff) -> AppResult<
             "max_weight_grams": r.max_weight_grams, "min_subtotal_minor": r.min_subtotal_minor, "max_subtotal_minor": r.max_subtotal_minor,
             "free_over_minor": r.free_over_minor, "delivery_days_min": r.delivery_days_min, "delivery_days_max": r.delivery_days_max,
             "allows_cash_on_delivery": r.allows_cash_on_delivery, "cod_fee_minor": r.cod_fee_minor, "is_active": r.is_active,
-            "sort_order": r.sort_order, "translations": r.translations })).collect::<Vec<_>>(),
+            "sort_order": r.sort_order, "is_placeholder": r.is_placeholder, "delivery_type": r.delivery_type,
+            "translations": r.translations })).collect::<Vec<_>>(),
     })))
 }
 
@@ -491,7 +493,8 @@ async fn save_rate(
          ON CONFLICT (id) DO UPDATE SET zone_id = $2, profile_id = $3, code = $4::text::citext, kind = $5, carrier = $6,
              amount_minor = $7, per_kg_minor = $8, min_weight_grams = $9, max_weight_grams = $10, min_subtotal_minor = $11,
              max_subtotal_minor = $12, free_over_minor = $13, delivery_days_min = $14, delivery_days_max = $15,
-             allows_cash_on_delivery = $16, cod_fee_minor = $17, is_active = $18, sort_order = $19",
+             allows_cash_on_delivery = $16, cod_fee_minor = $17, is_active = $18, sort_order = $19,
+             is_placeholder = false",
         id,
         r.zone_id,
         r.profile_id,
@@ -710,4 +713,54 @@ pub async fn update_tax(
     body: Json<TaxInput>,
 ) -> AppResult<Json<Value>> {
     save_tax(state, staff, Some(id), body).await
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConfirmRates {
+    /// The placeholder rates the admin opened and checked (all of them are required).
+    pub ids: Vec<Uuid>,
+}
+
+/// `POST /shipping/rates/confirm-placeholders`: the admin confirms the placeholder rates as real
+/// prices. Every placeholder must be listed (the screen only enables the button once each row
+/// was opened), so none is confirmed unseen.
+pub async fn confirm_placeholders(
+    State(state): State<AppState>,
+    staff: Staff,
+    Json(body): Json<ConfirmRates>,
+) -> AppResult<Json<Value>> {
+    staff.require("shop.pricing")?;
+    let mut tx = state.db.begin().await?;
+    let pending: Vec<Uuid> = sqlx::query_scalar!(
+        "SELECT id FROM shipping_rates WHERE is_placeholder ORDER BY id FOR UPDATE"
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    let unseen: Vec<&Uuid> = pending.iter().filter(|id| !body.ids.contains(id)).collect();
+    if !unseen.is_empty() {
+        return Err(AppError::domain(
+            StatusCode::CONFLICT,
+            "placeholders_unseen",
+            "open every placeholder rate before confirming them",
+        )
+        .with_details(json!({ "unseen": unseen })));
+    }
+    let n = sqlx::query!(
+        "UPDATE shipping_rates SET is_placeholder = false WHERE is_placeholder AND id = ANY($1)",
+        &body.ids
+    )
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    audit::record(
+        &mut tx,
+        &staff.actor(),
+        "shipping_rates.placeholders_confirmed",
+        "shipping_rate",
+        "*",
+        json!({ "count": n }),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(Json(json!({ "confirmed": n })))
 }

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(zt.name, zf.name, z.code::text) AS \"zone!\",\n                  COALESCE(rt.name, rf.name, r.code::text) AS \"name!\",\n                  r.carrier, r.delivery_type, r.kind, r.amount_minor, r.per_kg_minor,\n                  r.min_weight_grams, r.max_weight_grams, r.free_over_minor,\n                  r.delivery_days_min, r.delivery_days_max\n           FROM shipping_rates r JOIN shipping_zones z ON z.id = r.zone_id\n           LEFT JOIN shipping_zone_translations zt ON zt.zone_id = z.id AND zt.locale = $1\n           LEFT JOIN shipping_zone_translations zf ON zf.zone_id = z.id AND zf.locale = 'fr'\n           LEFT JOIN shipping_rate_translations rt ON rt.rate_id = r.id AND rt.locale = $1\n           LEFT JOIN shipping_rate_translations rf ON rf.rate_id = r.id AND rf.locale = 'fr'\n           WHERE r.is_active AND z.is_active AND NOT r.is_placeholder\n           ORDER BY z.sort_order, r.sort_order, r.min_weight_grams NULLS FIRST",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "zone!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "carrier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "delivery_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "per_kg_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "min_weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_weight_grams",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "free_over_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "delivery_days_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "delivery_days_max",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a86da8db159bb4c5a6ed17bee9598bd0a3dd86c6684a9b2d42a03d0d5faee079"
+}

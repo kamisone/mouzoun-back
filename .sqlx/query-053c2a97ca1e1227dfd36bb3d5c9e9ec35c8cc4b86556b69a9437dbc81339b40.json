@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT legal_name, address, registration, email::text AS email, country_code::text AS \"country!\" FROM legal_entities WHERE id = shop_entity_id()",
+  "query": "SELECT legal_name, address, email::text AS email FROM legal_entities WHERE id = shop_entity_id()",
   "describe": {
     "columns": [
       {
@@ -15,17 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "registration",
-        "type_info": "Jsonb"
-      },
-      {
-        "ordinal": 3,
         "name": "email",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
-        "name": "country!",
         "type_info": "Text"
       }
     ],
@@ -35,10 +25,8 @@
     "nullable": [
       false,
       false,
-      false,
-      null,
       null
     ]
   },
-  "hash": "02f1105445ce9c34a52ffd8a15945e355fae5cc1a64c18cfec05447a7444b1d9"
+  "hash": "053c2a97ca1e1227dfd36bb3d5c9e9ec35c8cc4b86556b69a9437dbc81339b40"
 }

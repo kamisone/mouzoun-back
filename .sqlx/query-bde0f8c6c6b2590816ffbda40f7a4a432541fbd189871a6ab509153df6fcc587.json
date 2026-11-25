@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM shipping_zones WHERE 'FR' = ANY(country_codes) AND NOT is_export ORDER BY is_active DESC, sort_order LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bde0f8c6c6b2590816ffbda40f7a4a432541fbd189871a6ab509153df6fcc587"
+}

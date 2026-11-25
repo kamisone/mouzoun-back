@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM payments WHERE id = $1)\n               OR EXISTS (SELECT 1 FROM bookings WHERE id = $2)\n               OR EXISTS (SELECT 1 FROM orders WHERE id = $3) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "62910f0de756220b2806b8d3391d8fc07a295953ba072dc328cc1575f1ecf7c0"
+}

@@ -49,6 +49,10 @@ pub fn public_routes(state: &AppState) -> Router<AppState> {
     Router::new()
         .merge(buying)
         .route("/shop/config", get(public::config))
+        .route(
+            "/shop/legal/withdrawal-form.pdf",
+            get(public::withdrawal_form),
+        )
         .route("/shop/relay-points", get(public::relay_points))
         .route("/shop/products", get(public::products))
         .route("/shop/products/by-slug/{slug}", get(public::product))
@@ -82,5 +86,8 @@ pub fn public_routes(state: &AppState) -> Router<AppState> {
 }
 
 pub fn admin_routes() -> Router<AppState> {
-    Router::new().nest("/shop", admin::routes())
+    Router::new().nest("/shop", admin::routes()).route(
+        "/settings/legal-entity",
+        get(admin::legal_entity::get).put(admin::legal_entity::update),
+    )
 }

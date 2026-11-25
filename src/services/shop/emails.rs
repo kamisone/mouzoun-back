@@ -248,9 +248,14 @@ impl ShopEmailHandler {
         let mut attachments = Vec::new();
         if let Some(rev) = f.terms_revision_id {
             let mut conn = self.pool.acquire().await.map_err(retry)?;
-            if let Some(a) = super::legal::terms_pdf(&mut conn, rev, &f.seller)
-                .await
-                .map_err(retry)?
+            if let Some(a) = super::legal::terms_pdf(
+                &mut conn,
+                rev,
+                &f.seller,
+                &self.mailer.settings().public_site_url,
+            )
+            .await
+            .map_err(retry)?
             {
                 attachments.push(a);
             }

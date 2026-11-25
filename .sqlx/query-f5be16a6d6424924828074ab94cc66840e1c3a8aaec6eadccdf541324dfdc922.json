@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM pages p JOIN page_translations t ON t.page_id = p.id\n                     WHERE p.page_type = 'legal' AND p.deleted_at IS NULL AND t.locale = 'fr' AND t.slug = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f5be16a6d6424924828074ab94cc66840e1c3a8aaec6eadccdf541324dfdc922"
+}

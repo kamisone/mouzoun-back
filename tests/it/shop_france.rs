@@ -705,3 +705,398 @@ async fn a_reduction_refers_to_the_lowest_price_of_the_last_30_days(db: PgPool) 
     assert_eq!(v["reference_price_minor"], 1290);
     assert_eq!(v["lowest_30d_minor"], 990);
 }
+
+// ---- Launch: legal pages, seller identity from the environment, placeholder rates -------------
+
+async fn install_pages(app: &TestApp) {
+    let email = format!("lawyer-{}@mouzoun.test", Uuid::now_v7());
+    crate::common::create_user(&app.db, &email, "x", true, Some("super_admin")).await;
+    let staff = mouzoun_api::services::shop::launch::staff_for(&app.db, Some(&email))
+        .await
+        .unwrap();
+    mouzoun_api::services::shop::launch::install_legal_pages(
+        &app.db,
+        &app.state.sections,
+        &staff,
+        false,
+    )
+    .await
+    .unwrap();
+}
+
+async fn page_body(app: &TestApp, slug: &str) -> String {
+    let (st, page) = app
+        .request(
+            Method::GET,
+            &format!("/v1/pages/by-slug/{slug}?locale=fr"),
+            None,
+            None,
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK, "{page}");
+    page["sections"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["content"]["body"].as_str().unwrap_or("").to_string())
+        .collect()
+}
+
+/// The withdrawal page lists the exempt products from the data (perishable, unsealed), never
+/// the others; tokens are filled; the cookie and delivery tables come from the data.
+#[sqlx::test(migrations = "./migrations")]
+async fn the_legal_pages_render_from_the_data(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let _s = shop_fr(&db).await;
+    install_pages(&app).await;
+    let body = page_body(&app, "droit-de-retractation").await;
+    assert!(!body.contains("{{"), "every token is filled");
+    let perishable = body.find("détériorer").expect("perishable exemption");
+    let unsealed = body.find("descellés").expect("unsealed exemption");
+    assert!(body[perishable..].contains("Dattes fraiches"));
+    assert!(body[unsealed..].contains("Dattes Medjool"));
+    assert!(!body.contains("Panier osier") && !body.contains("Coffret cadeau"));
+    assert!(body.contains("withdrawal-form.pdf"));
+    assert!(body.contains("Formulaire") || body.contains("formulaire"));
+    // The cookie policy is the generated inventory.
+    let cookies = page_body(&app, "cookies").await;
+    assert!(cookies.contains("__Host-mz_shop_cart") && cookies.contains("mz-consent"));
+    // The delivery page shows the rates of the data.
+    let shipping = page_body(&app, "livraison-et-retours").await;
+    assert!(
+        shipping.contains("<table>") && shipping.contains("7,90"),
+        "{shipping}"
+    );
+}
+
+/// The builder's picker lists exactly the tokens the renderer knows.
+#[sqlx::test(migrations = "./migrations")]
+async fn the_token_picker_offers_known_tokens(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let (st, body) = app
+        .admin(Method::GET, "/v1/admin/pages/legal-tokens", None)
+        .await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let tokens: Vec<String> = serde_json::from_value(body["tokens"].clone()).unwrap();
+    assert!(
+        tokens.contains(&"seller.legal_name".to_string())
+            && tokens.contains(&"mediator.url".to_string())
+    );
+    let known = mouzoun_api::services::shop::legal_pages::KNOWN_TOKENS;
+    assert!(tokens.iter().all(|t| known.contains(&t.as_str())));
+}
+
+/// A legal page cannot be published with a token the renderer does not know.
+#[sqlx::test(migrations = "./migrations")]
+async fn an_unknown_token_fails_publication(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    install_pages(&app).await;
+    let page: Uuid = sqlx::query_scalar(
+        "SELECT p.id FROM pages p JOIN page_translations t ON t.page_id = p.id WHERE t.slug = 'mentions-legales'",
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let (st, tree) = app
+        .admin(
+            Method::GET,
+            &format!("/v1/admin/pages/{page}/builder"),
+            None,
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK, "{tree}");
+    let mut blocks = tree["blocks"].clone();
+    blocks[0]["content"]["fr"]["body"] =
+        json!("<p>Éditeur : {{seller.legal_name}}, surnom {{seller.nickname}}</p>");
+    let (st, _, saved) = app
+        .send(
+            Method::PUT,
+            &format!("/v1/admin/pages/{page}/builder"),
+            Some(json!({ "blocks": blocks })),
+            &[
+                ("authorization", format!("Bearer {}", app.admin_token)),
+                ("if-match", format!("\"{}\"", tree["draft_version"])),
+            ],
+        )
+        .await;
+    assert!(st.is_success(), "save: {st} {saved}");
+    let (st, e) = app
+        .admin(
+            Method::POST,
+            &format!("/v1/admin/pages/{page}/publish"),
+            Some(json!({})),
+        )
+        .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{e}");
+    assert_eq!(e["error"]["code"], "unknown_tokens");
+    assert_eq!(e["error"]["details"]["tokens"], json!(["seller.nickname"]));
+}
+
+/// Placeholder rates are never offered, do not count for the checklist, and are confirmed only
+/// all together once each was seen.
+#[sqlx::test(migrations = "./migrations")]
+async fn placeholder_rates_are_not_offered_until_confirmed(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let s = shop_fr(&db).await;
+    sqlx::query("DELETE FROM shipping_rates")
+        .execute(&db)
+        .await
+        .unwrap();
+    let launch = mouzoun_api::services::shop::launch::seed_placeholder_shipping;
+    assert_eq!(launch(&db).await.unwrap(), 10);
+    assert_eq!(launch(&db).await.unwrap(), 0, "idempotent");
+
+    let mut v = Visitor::new(&app);
+    v.add(s.dates, 1).await;
+    let (st, cart) = ship_to(&mut v, serde_json::from_str(PARIS).unwrap()).await;
+    assert!(
+        !cart.to_string().contains("fr_colissimo_0_1kg"),
+        "a placeholder is never offered ({st}): {cart}"
+    );
+    let shipping_item = |c: &Value| {
+        c["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["code"] == "shipping_rates_france")
+            .cloned()
+            .unwrap()
+    };
+    let (_, c) = app
+        .admin(Method::GET, "/v1/admin/shop/compliance", None)
+        .await;
+    let item = shipping_item(&c);
+    assert_eq!(item["ok"], json!(false));
+    assert_eq!(item["detail"]["placeholders"], json!(10));
+
+    let ids: Vec<Uuid> =
+        sqlx::query_scalar("SELECT id FROM shipping_rates WHERE is_placeholder ORDER BY code")
+            .fetch_all(&db)
+            .await
+            .unwrap();
+    let (st, e) = app
+        .admin(
+            Method::POST,
+            "/v1/admin/shop/shipping/rates/confirm-placeholders",
+            Some(json!({ "ids": &ids[..9] })),
+        )
+        .await;
+    assert_eq!(
+        (st, e["error"]["code"].as_str()),
+        (StatusCode::CONFLICT, Some("placeholders_unseen"))
+    );
+    let (st, r) = app
+        .admin(
+            Method::POST,
+            "/v1/admin/shop/shipping/rates/confirm-placeholders",
+            Some(json!({ "ids": ids })),
+        )
+        .await;
+    assert_eq!((st, r["confirmed"].clone()), (StatusCode::OK, json!(10)));
+    let (_, c) = app
+        .admin(Method::GET, "/v1/admin/shop/compliance", None)
+        .await;
+    assert_eq!(shipping_item(&c)["ok"], json!(true));
+    let (_, cart) = ship_to(&mut v, serde_json::from_str(PARIS).unwrap()).await;
+    assert!(cart.to_string().contains("fr_colissimo_0_1kg"), "{cart}");
+}
+
+// ---- Admin › Settings › Legal entity ------------------------------------------------------------
+
+fn company(name: &str) -> Value {
+    json!({
+        "legal_name": name, "legal_form": "SAS", "share_capital_minor": 250_000,
+        "address": { "line1": "9 rue de l'Essai", "line2": "", "postal_code": "75011", "city": "Paris" },
+        "country_code": "FR", "email": "boutique@essai.test", "phone": "+33 1 23 45 67 89",
+        "registration": { "siren": "732829320", "siret": "73282932000074", "rcs_city": "Paris",
+                          "vat_number": "FR44732829320", "ape_code": "01.25Z" },
+        "publication_director": "Camille Essai",
+        "mediator": { "name": "Médiateur Essai", "url": "https://mediateur.essai.test", "address": "1 place de l'Essai, 75001 Paris" },
+    })
+}
+
+const FORM: &str = "/v1/admin/settings/legal-entity";
+
+/// Wrong identifiers come back as field errors (rule codes, never the values); a valid form is
+/// saved with an audit row naming the fields; the checklist lines pass and link to the form;
+/// staff without the settings permission can neither read nor edit it.
+#[sqlx::test(migrations = "./migrations")]
+async fn the_legal_entity_form_validates_and_saves(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let (st, before) = app.admin(Method::GET, FORM, None).await;
+    assert_eq!(st, StatusCode::OK, "{before}");
+    let checklist = |c: &Value, code: &str| {
+        c["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["code"] == code)
+            .cloned()
+            .unwrap()
+    };
+    let (_, c) = app
+        .admin(Method::GET, "/v1/admin/shop/compliance", None)
+        .await;
+    let identity = checklist(&c, "seller_identity");
+    assert_eq!(identity["ok"], json!(false));
+    assert_eq!(identity["detail"]["link"], "/admin/settings/legal-entity");
+    assert!(
+        identity["detail"]["missing"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("email"))
+    );
+    assert_eq!(
+        checklist(&c, "consumer_mediator")["detail"]["missing"],
+        json!(["mediator.name", "mediator.url"])
+    );
+
+    let mut bad = company("ESSAI ALPHA SAS");
+    bad["registration"]["siren"] = json!("123456789");
+    bad["registration"]["siret"] = json!("12345678900011");
+    bad["registration"]["vat_number"] = json!("FR00123456789");
+    bad["address"]["postal_code"] = json!("7501");
+    let (st, e) = app.admin(Method::PUT, FORM, Some(bad)).await;
+    assert_eq!(
+        (st, e["error"]["code"].as_str()),
+        (StatusCode::UNPROCESSABLE_ENTITY, Some("invalid_fields")),
+        "{e}"
+    );
+    let fields = &e["error"]["details"]["fields"];
+    assert_eq!(fields["registration.siren"], "luhn");
+    assert_eq!(fields["registration.siret"], "luhn");
+    assert!(fields["registration.vat_number"].is_string());
+    assert_eq!(fields["address.postal_code"], "postal_code");
+    assert!(
+        !e.to_string().contains("123456789"),
+        "no value in the answer"
+    );
+
+    let (st, saved) = app
+        .admin(Method::PUT, FORM, Some(company("ESSAI ALPHA SAS")))
+        .await;
+    assert_eq!(st, StatusCode::OK, "{saved}");
+    assert!(
+        saved["changed"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("registration.siren"))
+    );
+    assert_eq!(saved["missing"], json!([]));
+    let audits: Vec<Value> =
+        sqlx::query_scalar("SELECT changes FROM audit_logs WHERE action = 'legal_entity.updated'")
+            .fetch_all(&db)
+            .await
+            .unwrap();
+    assert_eq!(audits.len(), 1, "one row for the valid save only");
+    let audit = audits[0].to_string();
+    assert!(audit.contains("mediator.url") && audit.contains("legal_name"));
+    for value in [
+        "ESSAI ALPHA SAS",
+        "732829320",
+        "boutique@essai.test",
+        "Médiateur Essai",
+    ] {
+        assert!(!audit.contains(value), "a value in the audit log");
+    }
+    // Saving the same form again changes nothing.
+    let (_, again) = app
+        .admin(Method::PUT, FORM, Some(company("ESSAI ALPHA SAS")))
+        .await;
+    assert_eq!(again["changed"], json!([]));
+
+    let (_, c) = app
+        .admin(Method::GET, "/v1/admin/shop/compliance", None)
+        .await;
+    assert_eq!(checklist(&c, "seller_identity")["ok"], json!(true));
+    assert_eq!(checklist(&c, "consumer_mediator")["ok"], json!(true));
+    assert!(
+        c["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|i| i.get("severity").is_none()),
+        "no review step left in the checklist"
+    );
+
+    let reception =
+        crate::common::create_user(&db, "desk@mouzoun.test", "x", true, Some("reception")).await;
+    let reception =
+        mouzoun_api::auth::jwt::issue(crate::common::JWT_SECRET, reception, true, 60).unwrap();
+    let (st, _) = app.request(Method::GET, FORM, None, Some(&reception)).await;
+    assert_eq!(st, StatusCode::FORBIDDEN);
+    let (st, _) = app
+        .request(
+            Method::PUT,
+            FORM,
+            Some(company("PIRATE SAS")),
+            Some(&reception),
+        )
+        .await;
+    assert_eq!(st, StatusCode::FORBIDDEN);
+}
+
+/// A new company name shows at once on the legal pages and in the footer data, while an invoice
+/// already issued keeps the identity it was issued with.
+#[sqlx::test(migrations = "./migrations")]
+async fn a_company_change_reaches_the_pages_but_not_issued_invoices(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let s = shop_fr(&db).await;
+    let (st, _) = app
+        .admin(Method::PUT, FORM, Some(company("ANCIEN NOM SAS")))
+        .await;
+    assert_eq!(st, StatusCode::OK);
+    // An invoice issued under the old name.
+    let mut v = Visitor::new(&app);
+    v.add(s.dates, 1).await;
+    ship_to(&mut v, serde_json::from_str(PARIS).unwrap()).await;
+    let (st, out) = order_fr(&mut v, "rename-1", json!({ "terms_revision_id": s.terms })).await;
+    assert_eq!(st, StatusCode::OK, "{out}");
+    let id = order_id(&db, out["order"]["number"].as_str().unwrap()).await;
+    let total: i64 = sqlx::query_scalar("SELECT total_minor FROM orders WHERE id = $1")
+        .bind(id)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    pay_and_deliver(&app, id, total).await;
+    drain_with_emails(&db, &Arc::new(RecordingSender::default())).await;
+    let snapshot_name = || async {
+        sqlx::query_scalar::<_, String>(
+            "SELECT seller_snapshot->>'legal_name' FROM invoices WHERE order_id = $1 AND kind = 'invoice'",
+        )
+        .bind(id)
+        .fetch_one(&db)
+        .await
+        .unwrap()
+    };
+    assert_eq!(snapshot_name().await, "ANCIEN NOM SAS");
+
+    install_pages(&app).await;
+    assert!(
+        page_body(&app, "mentions-legales")
+            .await
+            .contains("ANCIEN NOM SAS")
+    );
+    let (st, _) = app
+        .admin(Method::PUT, FORM, Some(company("NOUVEAU NOM SAS")))
+        .await;
+    assert_eq!(st, StatusCode::OK);
+
+    let notice = page_body(&app, "mentions-legales").await;
+    assert!(
+        notice.contains("NOUVEAU NOM SAS") && !notice.contains("ANCIEN NOM SAS"),
+        "the cached page was dropped"
+    );
+    let (_, config) = app
+        .request(Method::GET, "/v1/shop/config", None, None)
+        .await;
+    assert_eq!(
+        config["seller"]["legal_name"], "NOUVEAU NOM SAS",
+        "footer data"
+    );
+    assert_eq!(
+        snapshot_name().await,
+        "ANCIEN NOM SAS",
+        "an issued invoice never changes"
+    );
+}

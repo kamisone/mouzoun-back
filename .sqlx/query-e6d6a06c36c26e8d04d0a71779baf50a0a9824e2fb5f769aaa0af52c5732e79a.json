@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT legal_name, legal_form, share_capital_minor, address, registration, email::text AS email, phone,\n                  publication_director, host\n           FROM legal_entities WHERE id = shop_entity_id()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "legal_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "legal_form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "share_capital_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "address",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "registration",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "publication_director",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "host",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "e6d6a06c36c26e8d04d0a71779baf50a0a9824e2fb5f769aaa0af52c5732e79a"
+}
