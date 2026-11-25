@@ -430,6 +430,137 @@ fn walk<'a>(
     }
 }
 
+// ---- Restricted references ---------------------------------------------------------------------
+
+/// A picked id whose field restricts what it may point to: `x-kinds` (product kinds) or
+/// `x-scope` (category scope). Checked against the database when a page is saved or published.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Restricted {
+    pub path: String,
+    /// `product` or `category`.
+    pub ref_type: String,
+    pub id: Uuid,
+    pub allowed: Vec<String>,
+}
+
+fn allowed_of(root: &Value, node: &Value) -> Option<(String, Vec<String>)> {
+    let t = target(root, node);
+    let get = |k: &str| node.get(k).or_else(|| t.get(k));
+    if let Some(kinds) = get("x-kinds").and_then(Value::as_array) {
+        return Some((
+            "product".into(),
+            kinds
+                .iter()
+                .filter_map(|k| k.as_str().map(String::from))
+                .collect(),
+        ));
+    }
+    get("x-scope")
+        .and_then(Value::as_str)
+        .map(|scope| ("category".to_string(), vec![scope.to_string()]))
+}
+
+fn walk_restricted(
+    root: &Value,
+    node: &Value,
+    value: &Value,
+    path: &str,
+    out: &mut Vec<Restricted>,
+) {
+    if let Some((ref_type, allowed)) = allowed_of(root, node) {
+        let ids: Vec<(String, &Value)> = match value {
+            Value::Array(items) => items
+                .iter()
+                .enumerate()
+                .map(|(j, v)| (format!("{path}/{j}"), v))
+                .collect(),
+            other => vec![(path.to_string(), other)],
+        };
+        for (p, v) in ids {
+            if let Some(id) = v.as_str().and_then(|s| s.parse().ok()) {
+                out.push(Restricted {
+                    path: p,
+                    ref_type: ref_type.clone(),
+                    id,
+                    allowed: allowed.clone(),
+                });
+            }
+        }
+        return;
+    }
+    let t = target(root, node);
+    if let (Value::Object(map), Some(props)) =
+        (value, t.get("properties").and_then(Value::as_object))
+    {
+        for (k, v) in map {
+            if let Some(child) = props.get(k) {
+                walk_restricted(
+                    root,
+                    child,
+                    v,
+                    &format!("{path}/{}", escape_pointer(k)),
+                    out,
+                );
+            }
+        }
+    }
+}
+
+/// Every restricted id of a list of sections (placements of shared sections are skipped: the
+/// shared section is checked when it is saved).
+pub fn restricted_refs(
+    reg: &SectionRegistry,
+    blocks: &[BlockDraft],
+    base: &str,
+) -> Vec<Restricted> {
+    let mut out = vec![];
+    for (i, b) in blocks.iter().enumerate() {
+        if b.shared_block_id.is_some() {
+            continue;
+        }
+        let Some(t) = reg.get(&b.block_type) else {
+            continue;
+        };
+        walk_restricted(
+            &t.settings_schema,
+            &t.settings_schema,
+            &b.settings,
+            &format!("{base}/{i}/settings"),
+            &mut out,
+        );
+    }
+    out
+}
+
+/// Errors for restricted ids that point elsewhere. `found` maps an id to its product kind or
+/// category scope (ids missing from it no longer exist and are left to the other checks).
+pub fn restricted_errors(refs: &[Restricted], found: &HashMap<Uuid, String>) -> Vec<FieldError> {
+    refs.iter()
+        .filter_map(|r| {
+            let actual = found.get(&r.id)?;
+            if r.allowed.iter().any(|a| a == actual) {
+                return None;
+            }
+            Some(if r.ref_type == "product" {
+                FieldError::new(
+                    r.path.clone(),
+                    "kind_not_allowed",
+                    format!(
+                        "this section only shows {} (not {actual})",
+                        r.allowed.join(", ")
+                    ),
+                )
+            } else {
+                FieldError::new(
+                    r.path.clone(),
+                    "scope_not_allowed",
+                    format!("choose a {} category (not {actual})", r.allowed.join(", ")),
+                )
+            })
+        })
+        .collect()
+}
+
 // ---- References ------------------------------------------------------------------------------
 
 /// Ids referenced by a value (fields marked `x-ref`, and links to pages, products...).
@@ -509,6 +640,8 @@ pub fn rule_sources(block: &BlockDraft) -> Vec<&'static str> {
     let s = &block.settings;
     let source_mode = s.pointer("/source/mode").and_then(Value::as_str);
     match block.block_type.as_str() {
+        // The shop's cards follow prices, stock and promotions of any shop product.
+        "shop_products" => vec!["shop_catalog"],
         "product_carousel" if source_mode == Some("rule") => vec!["product"],
         "product_carousel" | "offers" => vec!["product", "promotion"],
         "category_tiles" if source_mode == Some("rule") => vec!["category"],
@@ -810,6 +943,83 @@ mod tests {
             let errors = check(&[block], &["content.html"], true);
             assert!(errors.is_empty(), "{}: {errors:#?}", t.code);
         }
+    }
+
+    #[test]
+    fn shop_and_bookable_product_sections_only_take_their_own_kinds() {
+        let reg = reg();
+        let (activity, honey, cat_shop, cat_post) = (
+            Uuid::from_u128(1),
+            Uuid::from_u128(2),
+            Uuid::from_u128(3),
+            Uuid::from_u128(4),
+        );
+        let found: HashMap<Uuid, String> = [
+            (activity, "activity".to_string()),
+            (honey, "shop_product".to_string()),
+            (cat_shop, "shop".to_string()),
+            (cat_post, "post".to_string()),
+        ]
+        .into();
+        // An activity hand-picked in "Produits de la boutique".
+        let mut shop = from_preset(&reg, "shop_products");
+        shop.settings["source"]["mode"] = json!("manual");
+        shop.settings["source"]["ids"] = json!([honey, activity]);
+        // A shop product hand-picked in "Hébergements et activités" (product_carousel v2).
+        let mut carousel = from_preset(&reg, "product_carousel");
+        carousel.settings["source"] = json!({ "mode": "manual", "ids": [activity, honey] });
+        let refs = restricted_refs(&reg, &[shop, carousel], "/blocks");
+        let errors = restricted_errors(&refs, &found);
+        let got: Vec<(&str, &str)> = errors
+            .iter()
+            .map(|e| (e.path.as_str(), e.code.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("/blocks/0/settings/source/ids/1", "kind_not_allowed"),
+                ("/blocks/1/settings/source/ids/1", "kind_not_allowed"),
+            ]
+        );
+        // A category of another scope.
+        let mut by_category = from_preset(&reg, "shop_products");
+        by_category.settings["source"]["rule"]["category_id"] = json!(cat_post);
+        let errors = restricted_errors(
+            &restricted_refs(&reg, &[by_category.clone()], "/blocks"),
+            &found,
+        );
+        assert_eq!(errors[0].path, "/blocks/0/settings/source/rule/category_id");
+        assert_eq!(errors[0].code, "scope_not_allowed");
+        by_category.settings["source"]["rule"]["category_id"] = json!(cat_shop);
+        assert!(
+            restricted_errors(&restricted_refs(&reg, &[by_category], "/blocks"), &found).is_empty()
+        );
+        // product_carousel v2 no longer offers the shop kind by rule.
+        let mut old = from_preset(&reg, "product_carousel");
+        old.settings["source"]["rule"]["kind"] = json!("shop_product");
+        let errors = check(&[old], &[], true);
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.path.starts_with("/blocks/0/settings/source")),
+            "{errors:#?}"
+        );
+    }
+
+    #[test]
+    fn the_category_order_needs_a_category() {
+        let reg = reg();
+        let mut shop = from_preset(&reg, "shop_products");
+        shop.settings["source"]["rule"]["sort"] = json!("category_order");
+        let errors = check(std::slice::from_ref(&shop), &[], true);
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.path.starts_with("/blocks/0/settings/source")),
+            "{errors:#?}"
+        );
+        shop.settings["source"]["rule"]["category_id"] = json!(Uuid::from_u128(3));
+        assert!(check(&[shop], &[], true).is_empty());
     }
 
     #[test]

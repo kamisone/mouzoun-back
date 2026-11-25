@@ -28,6 +28,10 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../../../section_types/product_carousel.json"),
     ),
     (
+        "shop_products",
+        include_str!("../../../section_types/shop_products.json"),
+    ),
+    (
         "category_tiles",
         include_str!("../../../section_types/category_tiles.json"),
     ),
@@ -453,7 +457,7 @@ mod tests {
     #[test]
     fn the_library_loads_and_only_heroes_render_the_h1() {
         let reg = SectionRegistry::load();
-        assert_eq!(reg.all().count(), 24);
+        assert_eq!(reg.all().count(), 25);
         let h1: Vec<&str> = reg
             .all()
             .filter(|t| t.renders_h1)

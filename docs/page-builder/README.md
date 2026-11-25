@@ -72,6 +72,8 @@ crate. Every schema gets the `$defs` of `_defs.json` (`media_id`, `link`, `cta`)
 |---|---|
 | `x-widget` | form widget: `text`, `textarea`, `richtext`, `html`, `number`, `toggle`, `select` (multi for arrays), `color_scheme`, `icon`, `media`, `media_list`, `link`, `cta`, `source`, `product_picker`, `category_picker`, `place_picker`, `faq_picker`, `promotion_picker`, `gallery_picker`, `datetime` |
 | `x-ref` | `content_block_refs.ref_type` of the id(s) the field holds: media, product, category, place, page, faq, gallery, promotion, review |
+| `x-kinds` | product pickers: the product kinds the field accepts (e.g. `["shop_product"]`). The picker lists only those kinds and a save or publish refuses another kind (`kind_not_allowed`, path of the id) |
+| `x-scope` | category pickers: the category scope the field accepts (e.g. `"shop"`). Same rules (`scope_not_allowed`) |
 | `x-group` | form tab: `content`, `layout`, `source`, `advanced` (the gallery uses `preview` and `viewer` in its own form) |
 | `x-media-kinds` | media picker filter (`image`, `video`) |
 | `x-renders-h1` | (root of settings) the type renders the page's `<h1>`: at most one per page |
@@ -225,6 +227,38 @@ A compact preview on the page (Airbnb / Booking style), the full set in a full-s
    `admin.builder.gallery.layouts.<value>` (fr, en, ar).
 5. Tests: `gallery::tests::a_manual_preview_needs_the_number_of_photos_of_its_layout` and
    `tests/components/Gallery.spec.ts` (fixed height).
+
+## Shop products section (`shop_products`)
+
+"Produits de la boutique" shows farm-shop products with **the shop's own card** (`MzShopCard`, the
+component of the shop listing), like Shopify's featured collection. The API builds its cards with
+`services::shop::catalog::listing`, the function behind `GET /v1/shop/products`: one DTO
+(`ProductCard`: `url` from the route registry, `cover` / `secondary_image` media, `price_minor`,
+`compare_at_price_minor`, `price_is_from`, `unit_price`, `availability`, `variant_count`,
+`default_variant_id` for single-variant products, `max_quantity`, `badges`, `rating`).
+
+- **Source**: hand-picked shop products (`x-kinds: ["shop_product"]`, order kept, up to 24), or a
+  rule: shop category (`x-scope: shop`, with or without subcategories), featured / in stock / on sale
+  only, sort `category_order` (pinned first, then the category's manual order: needs a category),
+  `featured`, `newest`, `price_asc`, `price_desc`, `best_selling`, up to 24.
+- **Data**: `{products, view_all_url, shop_status}`. `view_all_url` is the rule's category page, else
+  the shop home, both from the route registry. Products without a page in the language, outside
+  their season, unpublished or without an active variant are skipped. `shop.status = closed`: the
+  section is left out (also in the preview); an empty list is left out of the public page, the
+  builder preview explains why.
+- **Card buttons** follow `shop_status` and `quick_add`: add to cart (one variant in stock), "Choisir
+  les options" (several variants), "Me prévenir" (sold out), "Bientôt disponible" (`catalog_only`),
+  none (`quick_add` off). No wishlist heart.
+- **Cache**: `rule_sources: ["shop_catalog"]`: pages with the section are dropped on
+  `product.updated` / `variant.updated` of a shop product, `promotion.updated` of a `shop` or `all`
+  promotion, and `stock.changed` only when the product's availability status differs from the one
+  last shown (memo `shop_shown:{product}` in Redis, written when the section renders).
+- No `Product` JSON-LD here: the product page owns it.
+
+`product_carousel` ("Hébergements et activités", schema version 2) is for bookable products only:
+its kinds are `accommodation`, `activity`, `extra`, `package`; cards carry `url` (route registry,
+products without a page are skipped) and `wishlistable` (stays, activities, packages). Shop products
+found in an older block are skipped. Migration `0033_shop_products_section` converted draft blocks.
 
 ## Caching and invalidation
 

@@ -23,6 +23,7 @@ use crate::{
     db::{catalog::ProductKind, types::TsRange},
     error::AppResult,
     modules::booking::catalog::{ProductCard, cards},
+    modules::seo::routes,
     state::AppState,
 };
 
@@ -232,7 +233,11 @@ pub async fn render(
     let mut json_ld = Vec::new();
     for b in &blocks {
         let (section, ld) = render_section(state, reg, b, lang, now).await?;
-        if renders_nothing(&section) {
+        // In the builder preview an empty shop section stays, to explain why it is empty.
+        let explained = preview
+            && section.block_type == "shop_products"
+            && section.data.get("shop_status").and_then(Value::as_str) != Some("closed");
+        if renders_nothing(&section) && !explained {
             continue;
         }
         sections.push(section);
@@ -261,6 +266,10 @@ pub fn renders_nothing(s: &RenderedSection) -> bool {
     };
     match s.block_type.as_str() {
         "product_carousel" => empty("products"),
+        // A closed shop shows nothing, even in the builder preview.
+        "shop_products" => {
+            s.data.get("shop_status").and_then(Value::as_str) == Some("closed") || empty("products")
+        }
         "offers" => empty("promotions") && empty("products"),
         "testimonials" => empty("reviews"),
         "faq" => empty("faqs"),
@@ -582,6 +591,11 @@ async fn link_targets(
             .collect()
     };
     let prefix = lang.prefix(lang.locale);
+    // Addresses come from the route registry (`modules::seo::routes`), never built here.
+    let ctx = {
+        let mut conn = state.db.acquire().await?;
+        routes::Ctx::load(&mut conn, Utc::now()).await?
+    };
     let pages = of("page");
     if !pages.is_empty() {
         for r in sqlx::query!(
@@ -598,30 +612,17 @@ async fn link_targets(
         .fetch_all(&state.db)
         .await?
         {
-            let path = if r.page_type == "home" {
-                if prefix.is_empty() { "/".to_string() } else { prefix.clone() }
-            } else {
-                match r.slug {
-                    Some(s) => format!("{prefix}/{s}"),
-                    None => continue,
-                }
+            let kind = if r.page_type == "home" { routes::HOME } else { routes::PAGE };
+            let Some(path) = ctx.path(kind, lang.locale, r.slug.as_deref().unwrap_or_default()) else {
+                continue;
             };
+            if kind == routes::PAGE && r.slug.is_none() {
+                continue;
+            }
             out.insert(("page".to_string(), r.id), path);
         }
     }
     let products = of("product");
-    // Shop products live under the shop prefix of each language (`shop.route_prefix`).
-    let shop_prefix = if products.is_empty() {
-        String::new()
-    } else {
-        let prefixes =
-            sqlx::query_scalar!("SELECT value FROM settings WHERE key = 'shop.route_prefix'")
-                .fetch_optional(&state.db)
-                .await?
-                .unwrap_or_default();
-        let p = crate::services::shop::settings::ShopSettings::localized(&prefixes, lang.locale);
-        if p.is_empty() { "shop".to_string() } else { p }
-    };
     if !products.is_empty() {
         for r in sqlx::query!(
             r#"SELECT p.id, p.kind, COALESCE(t.slug, d.slug) AS "slug?"
@@ -636,26 +637,18 @@ async fn link_targets(
         .fetch_all(&state.db)
         .await?
         {
-            let shop_base = format!("{shop_prefix}/p");
-            let base = match r.kind.as_str() {
-                "accommodation" => "stays",
-                "activity" => "activities",
-                "package" => "packages",
-                "shop_product" => shop_base.as_str(),
-                _ => continue,
-            };
-            if let Some(slug) = r.slug {
-                out.insert(
-                    ("product".to_string(), r.id),
-                    format!("{prefix}/{base}/{slug}"),
-                );
+            let path = routes::product_entity(&r.kind)
+                .zip(r.slug.as_deref())
+                .and_then(|(kind, slug)| ctx.path(kind, lang.locale, slug));
+            if let Some(path) = path {
+                out.insert(("product".to_string(), r.id), path);
             }
         }
     }
     let categories = of("category");
     if !categories.is_empty() {
         for r in sqlx::query!(
-            r#"SELECT c.id, COALESCE(t.slug, d.slug) AS "slug?"
+            r#"SELECT c.id, c.scope, COALESCE(t.slug, d.slug) AS "slug?"
                FROM categories c
                LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = $2
                LEFT JOIN category_translations d ON d.category_id = c.id AND d.locale = $3
@@ -668,10 +661,16 @@ async fn link_targets(
         .await?
         {
             if let Some(slug) = r.slug {
-                out.insert(
-                    ("category".to_string(), r.id),
-                    format!("{prefix}/activities?category={slug}"),
-                );
+                // Shop categories have their own page; other scopes filter the activities list
+                // (a query string, not a page of the registry).
+                let path = if r.scope == "shop" {
+                    ctx.path(routes::SHOP_CATEGORY, lang.locale, &slug)
+                } else {
+                    Some(format!("{prefix}/activities?category={slug}"))
+                };
+                if let Some(path) = path {
+                    out.insert(("category".to_string(), r.id), path);
+                }
             }
         }
     }
@@ -795,6 +794,7 @@ async fn section_data(
     let mut ld = Vec::new();
     let data = match b.block_type.as_str() {
         "product_carousel" => json!({ "products": products(state, s, lang).await? }),
+        "shop_products" => shop_products(state, s, lang).await?,
         "offers" => {
             if str_of(s, "/source") == Some("products") {
                 let ids = ids_of(s.get("product_ids"));
@@ -1064,7 +1064,101 @@ async fn section_data(
     Ok((data, ld))
 }
 
+/// Redis memo of the availability status last shown for a shop product: a stock change that
+/// keeps the status leaves cached pages alone (see `cache::PageCacheHandler`).
+pub const SHOWN_AVAILABILITY_PREFIX: &str = "shop_shown:";
+
+/// `shop_products`: the shop's own cards (the same [`listing`] as `GET /shop/products`), the
+/// "view all" address (the rule's category, else the shop home) from the route registry, and
+/// the shop status the cards follow. A closed shop: no products.
+///
+/// [`listing`]: crate::services::shop::catalog::listing
+async fn shop_products(state: &AppState, s: &Value, lang: &Lang<'_>) -> AppResult<Value> {
+    use crate::services::shop::{catalog, settings::ShopStatus};
+    let settings = crate::modules::shop::public::shop_settings(state).await?;
+    let status = serde_json::to_value(settings.status).unwrap_or(Value::Null);
+    if settings.status == ShopStatus::Closed {
+        return Ok(json!({ "products": [], "view_all_url": null, "shop_status": status }));
+    }
+    let mut q = catalog::ListQuery {
+        section: true,
+        ..Default::default()
+    };
+    let category = str_of(s, "/source/rule/category_id").and_then(|c| c.parse::<Uuid>().ok());
+    if str_of(s, "/source/mode") == Some("manual") {
+        let ids = ids_of(s.pointer("/source/ids"));
+        q.per_page = Some(ids.len().clamp(1, 24) as i64);
+        q.ids = Some(ids);
+    } else {
+        let flag = |k: &str, default: bool| {
+            s.pointer(&format!("/source/rule/{k}"))
+                .and_then(Value::as_bool)
+                .unwrap_or(default)
+        };
+        q.category = category.map(|c| c.to_string());
+        q.without_subcategories = !flag("include_subcategories", true);
+        q.featured = flag("featured_only", false);
+        q.in_stock = flag("in_stock_only", true);
+        q.on_sale = flag("on_sale_only", false);
+        q.sort = Some(
+            match str_of(s, "/source/rule/sort").unwrap_or("featured") {
+                // The category's manual order (pinned first): the listing's `manual` sort.
+                "category_order" => "manual",
+                other => other,
+            }
+            .to_string(),
+        );
+        q.per_page = Some(int_of(s, "/source/rule/limit", 8).clamp(1, 24));
+    }
+    let list = catalog::listing(state, &settings, &q, lang.locale).await?;
+    let products: Vec<catalog::ProductCard> = list
+        .data
+        .into_iter()
+        .filter(|c| !c.url.is_empty())
+        .collect();
+    for c in &products {
+        state
+            .cache
+            .set_json(
+                &format!("{SHOWN_AVAILABILITY_PREFIX}{}", c.id),
+                &c.availability,
+                Duration::from_secs(30 * 24 * 3600),
+            )
+            .await;
+    }
+    let mut conn = state.db.acquire().await?;
+    let ctx = routes::Ctx::load(&mut conn, Utc::now()).await?;
+    let view_all = match category.filter(|_| str_of(s, "/source/mode") != Some("manual")) {
+        Some(c) => routes::path_for(&mut conn, &ctx, routes::SHOP_CATEGORY, c, lang.locale).await?,
+        None => ctx.path(routes::LISTING_SHOP, lang.locale, ""),
+    };
+    Ok(json!({ "products": products, "view_all_url": view_all, "shop_status": status }))
+}
+
+/// `product_carousel` (v2: bookable kinds only): cards with their registry `url`. Shop products
+/// (an older block, or hand-picked before v2) are skipped: they have their own section.
 async fn products(state: &AppState, s: &Value, lang: &Lang<'_>) -> AppResult<Vec<ProductCard>> {
+    let mut list = carousel_cards(state, s, lang).await?;
+    let ctx = {
+        let mut conn = state.db.acquire().await?;
+        routes::Ctx::load(&mut conn, Utc::now()).await?
+    };
+    list.retain_mut(|c| {
+        if c.kind == ProductKind::ShopProduct {
+            return false;
+        }
+        c.url =
+            routes::product_entity(c.kind.as_str()).and_then(|t| ctx.path(t, lang.locale, &c.slug));
+        c.url.is_some()
+    });
+    Ok(list)
+}
+
+async fn carousel_cards(
+    state: &AppState,
+    s: &Value,
+    lang: &Lang<'_>,
+) -> AppResult<Vec<ProductCard>> {
     let locale = lang.locale;
     if str_of(s, "/source/mode") == Some("manual") {
         let ids = ids_of(s.pointer("/source/ids"));
@@ -1072,6 +1166,9 @@ async fn products(state: &AppState, s: &Value, lang: &Lang<'_>) -> AppResult<Vec
         return Ok(in_order(&ids, found, |c| c.id));
     }
     let kind = str_of(s, "/source/rule/kind");
+    if kind == Some("shop_product") {
+        return Ok(vec![]);
+    }
     let category = str_of(s, "/source/rule/category_id").and_then(|c| c.parse::<Uuid>().ok());
     let featured = s
         .pointer("/source/rule/featured_only")

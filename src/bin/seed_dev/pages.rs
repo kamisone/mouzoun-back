@@ -645,6 +645,19 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
         ),
     );
     fields.anchor_id = Some("farm".into());
+    // The farm's products, right after its fields: the shop's own cards (featured products).
+    let farm_shop = block(
+        "shop_products",
+        json!({"source": {"mode": "rule", "ids": [], "rule": {"category_id": null, "include_subcategories": true, "featured_only": true,
+                         "in_stock_only": true, "on_sale_only": false, "sort": "featured", "limit": 8}},
+               "layout": "carousel", "columns_mobile": 2, "image_ratio": "square", "show_secondary_image": true,
+               "show_unit_price": true, "show_rating": false, "quick_add": true, "show_view_all": true}),
+        text(
+            json!({"eyebrow": "Du champ à votre table", "title": "Produits de la ferme", "view_all_label": "Voir toute la boutique"}),
+            json!({"eyebrow": "From our fields to your table", "title": "Farm products", "view_all_label": "Shop all"}),
+            json!({"eyebrow": "من حقولنا إلى مائدتكم", "title": "منتجات الضيعة", "view_all_label": "تصفح المتجر"}),
+        ),
+    );
     let calendar = block(
         "seasonal_calendar",
         json!({"source": "farm_crops", "highlight_current_month": true}),
@@ -756,6 +769,7 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
             stays,
             activities,
             fields,
+            farm_shop,
             calendar,
             gallery,
             offers,

@@ -54,6 +54,11 @@ pub struct ProductCard {
     pub from_price_unit: Option<String>,
     pub rating: Option<Rating>,
     pub facts: Value,
+    /// Its page in the request language, from the route registry (set by page-builder sections).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Can go in a wishlist (stays, activities, packages: what the wishlist pages show).
+    pub wishlistable: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,6 +177,11 @@ pub(crate) async fn cards(
         .into_iter()
         .map(|r| ProductCard {
             id: r.id,
+            url: None,
+            wishlistable: matches!(
+                r.kind,
+                ProductKind::Accommodation | ProductKind::Activity | ProductKind::Package
+            ),
             kind: r.kind,
             slug: r.slug,
             name: r.name,

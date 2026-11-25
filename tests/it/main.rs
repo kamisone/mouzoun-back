@@ -28,5 +28,6 @@ mod schema;
 mod seo;
 mod shop;
 mod shop_categories;
+mod shop_section;
 mod stripe;
 mod translations;

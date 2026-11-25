@@ -1,10 +1,10 @@
 {
   "code": "product_carousel",
-  "name": "Products",
-  "description": "Product cards picked by hand or by a rule.",
+  "name": "Stays & activities",
+  "description": "Stays, activities and packages picked by hand or by a rule (bookable products). Farm-shop products have their own section.",
   "icon": "i-lucide-tent",
   "category": "listing",
-  "schema_version": 1,
+  "schema_version": 2,
   "sort_order": 40,
   "min_items": 0,
   "max_items": null,
@@ -45,7 +45,13 @@
             },
             "x-widget": "product_picker",
             "x-ref": "product",
-            "title": "Hand-picked"
+            "title": "Hand-picked",
+            "x-kinds": [
+              "accommodation",
+              "activity",
+              "extra",
+              "package"
+            ]
           },
           "rule": {
             "type": "object",
@@ -57,8 +63,7 @@
                   "accommodation",
                   "activity",
                   "extra",
-                  "package",
-                  "shop_product"
+                  "package"
                 ],
                 "title": "Kind"
               },

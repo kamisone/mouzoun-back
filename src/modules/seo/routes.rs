@@ -294,6 +294,11 @@ async fn pages(conn: &mut PgConnection, ctx: &Ctx, id: Option<Uuid>) -> sqlx::Re
         .collect())
 }
 
+/// Entity type of a product kind (`None`: no page of its own, e.g. extras).
+pub fn product_entity(kind: &str) -> Option<&'static str> {
+    product_sitemap(kind).map(|(t, _)| t)
+}
+
 fn product_sitemap(kind: &str) -> Option<(&'static str, &'static str)> {
     Some(match kind {
         "accommodation" => (ACCOMMODATION, "accommodations"),

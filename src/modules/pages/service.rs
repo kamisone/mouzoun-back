@@ -223,6 +223,7 @@ async fn apply(
             shared: &shared,
         };
         errors.extend(validate::validate_blocks(reg, &blocks, &ctx, "/blocks"));
+        errors.extend(restricted_ref_errors(conn, reg, &blocks, "/blocks").await?);
         let kept: HashSet<Uuid> = blocks.iter().map(|b| b.id).collect();
         for old in before.values().filter(|b| !kept.contains(&b.id)) {
             if let Some(permission) = reg
@@ -390,6 +391,45 @@ async fn write_texts(
         }
     }
     seo::after_change(conn, actor, PAGE, page_id, before).await
+}
+
+/// Picked products and categories of the right kind / scope (`x-kinds`, `x-scope` in the schema).
+async fn restricted_ref_errors(
+    conn: &mut PgConnection,
+    reg: &SectionRegistry,
+    blocks: &[BlockDraft],
+    base: &str,
+) -> sqlx::Result<Vec<FieldError>> {
+    let refs = validate::restricted_refs(reg, blocks, base);
+    if refs.is_empty() {
+        return Ok(vec![]);
+    }
+    let ids = |t: &str| {
+        refs.iter()
+            .filter(|r| r.ref_type == t)
+            .map(|r| r.id)
+            .collect::<Vec<_>>()
+    };
+    let mut found: HashMap<Uuid, String> = sqlx::query!(
+        "SELECT id, kind FROM products WHERE id = ANY($1)",
+        &ids("product")
+    )
+    .fetch_all(&mut *conn)
+    .await?
+    .into_iter()
+    .map(|r| (r.id, r.kind))
+    .collect();
+    found.extend(
+        sqlx::query!(
+            "SELECT id, scope FROM categories WHERE id = ANY($1)",
+            &ids("category")
+        )
+        .fetch_all(&mut *conn)
+        .await?
+        .into_iter()
+        .map(|r| (r.id, r.scope)),
+    );
+    Ok(validate::restricted_errors(&refs, &found))
 }
 
 /// Content-level change (the permission of a section type is checked only for those).
@@ -844,6 +884,7 @@ async fn draft_snapshot(
         shared: &shared,
     };
     let mut errors = validate::validate_blocks(reg, &blocks, &ctx, "/blocks");
+    errors.extend(restricted_ref_errors(conn, reg, &blocks, "/blocks").await?);
     // Rules that need the galleries (photos, alt texts): before publishing, not on every autosave.
     errors.extend(
         super::gallery::check_blocks(conn, &blocks, &default_locale, &locales)
@@ -1465,6 +1506,15 @@ pub async fn shared_save(
     // Validated as a one-section list, then paths are made relative to the section.
     errors.extend(
         validate::validate_blocks(reg, std::slice::from_ref(&block), &ctx, "")
+            .into_iter()
+            .map(|e| FieldError {
+                path: e.path.trim_start_matches("/0").to_string(),
+                ..e
+            }),
+    );
+    errors.extend(
+        restricted_ref_errors(&mut tx, reg, std::slice::from_ref(&block), "")
+            .await?
             .into_iter()
             .map(|e| FieldError {
                 path: e.path.trim_start_matches("/0").to_string(),

@@ -1051,7 +1051,7 @@ pub async fn seed(pool: &PgPool) -> anyhow::Result<()> {
             tax: tva_food,
             place: fields,
             crop: olive_crop,
-            featured: false,
+            featured: true,
             ingredients: Some(size(
                 "Olives, eau, sel, citron, herbes, conservateur (sulfites).",
                 "Olives, water, salt, lemon, herbs, preservative (sulphites).",

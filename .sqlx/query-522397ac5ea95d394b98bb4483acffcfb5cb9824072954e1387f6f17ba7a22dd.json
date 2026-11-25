@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, t.name AS \"label?\", p.kind || ' · ' || p.status AS hint, p.kind, m.object_key AS \"image_key?\",\n                          (SELECT min(v.price_minor) FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL) AS price,\n                          (SELECT bool_or(NOT v.track_inventory) OR COALESCE(sum(l.on_hand - l.reserved) FILTER (WHERE v.track_inventory), 0) > 0\n                           FROM product_variants v LEFT JOIN inventory_levels l ON l.variant_id = v.id\n                           WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL) AS in_stock\n                   FROM products p\n                   LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n                   LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL\n                   WHERE p.deleted_at IS NULL AND ($4::text[] IS NULL OR p.kind = ANY($4))\n                     AND (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR p.sku ILIKE $3) END)\n                   ORDER BY p.kind, p.sort_order, t.name LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "image_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "price",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "in_stock",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "522397ac5ea95d394b98bb4483acffcfb5cb9824072954e1387f6f17ba7a22dd"
+}

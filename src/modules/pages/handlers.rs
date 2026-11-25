@@ -618,6 +618,10 @@ pub struct LookupQuery {
     pub q: Option<String>,
     /// Comma-separated ids to resolve (labels of the current value).
     pub ids: Option<String>,
+    /// Products: comma-separated kinds the field allows (`x-kinds`).
+    pub kinds: Option<String>,
+    /// Categories: the scope the field allows (`x-scope`).
+    pub scope: Option<String>,
 }
 
 /// Options of the entity pickers of the form generator: `[{id, label, hint}]` in the default
@@ -642,20 +646,48 @@ pub async fn lookup(
             .filter(|s| !s.is_empty())
             .map(|s| format!("%{s}%"));
     let by_ids = !ids.is_empty();
+    let kinds: Option<Vec<String>> = q.kinds.as_deref().map(|k| {
+        k.split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    });
+    // Shop products also carry their cover, lowest price and stock status (the picker shows them).
+    let mut extra: std::collections::HashMap<Uuid, Value> = std::collections::HashMap::new();
     let rows: Vec<(Uuid, Option<String>, Option<String>)> = match kind.as_str() {
-        "product" => sqlx::query!(
-            r#"SELECT p.id, t.name AS "label?", p.kind || ' · ' || p.status AS hint FROM products p
-               LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)
-               WHERE p.deleted_at IS NULL AND (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR p.sku ILIKE $3) END)
-               ORDER BY p.kind, p.sort_order, t.name LIMIT 30"#,
-            by_ids, &ids, search
-        ).fetch_all(&state.db).await?.into_iter().map(|r| (r.id, r.label, r.hint)).collect(),
+        "product" => {
+            let found = sqlx::query!(
+                r#"SELECT p.id, t.name AS "label?", p.kind || ' · ' || p.status AS hint, p.kind, m.object_key AS "image_key?",
+                          (SELECT min(v.price_minor) FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL) AS price,
+                          (SELECT bool_or(NOT v.track_inventory) OR COALESCE(sum(l.on_hand - l.reserved) FILTER (WHERE v.track_inventory), 0) > 0
+                           FROM product_variants v LEFT JOIN inventory_levels l ON l.variant_id = v.id
+                           WHERE v.product_id = p.id AND v.status = 'active' AND v.deleted_at IS NULL) AS in_stock
+                   FROM products p
+                   LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)
+                   LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL
+                   WHERE p.deleted_at IS NULL AND ($4::text[] IS NULL OR p.kind = ANY($4))
+                     AND (CASE WHEN $1 THEN p.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR p.sku ILIKE $3) END)
+                   ORDER BY p.kind, p.sort_order, t.name LIMIT 30"#,
+                by_ids, &ids, search, kinds.as_deref()
+            ).fetch_all(&state.db).await?;
+            for r in &found {
+                if r.kind == "shop_product" {
+                    extra.insert(r.id, json!({
+                        "image_url": r.image_key.as_deref().map(|k| state.media.public_url(k)),
+                        "price_minor": r.price,
+                        "availability": match r.in_stock { Some(true) => "in_stock", Some(false) => "out_of_stock", None => "out_of_stock" },
+                    }));
+                }
+            }
+            found.into_iter().map(|r| (r.id, r.label, r.hint)).collect()
+        }
         "category" => sqlx::query!(
             r#"SELECT c.id, t.name AS "label?", c.scope AS hint FROM categories c
                LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = (SELECT code FROM locales WHERE is_default)
-               WHERE (CASE WHEN $1 THEN c.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3) END)
+               WHERE ($4::text IS NULL OR c.scope = $4)
+                 AND (CASE WHEN $1 THEN c.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3) END)
                ORDER BY c.scope, c.sort_order, t.name LIMIT 30"#,
-            by_ids, &ids, search
+            by_ids, &ids, search, q.scope.as_deref().filter(|s| !s.is_empty())
         ).fetch_all(&state.db).await?.into_iter().map(|r| (r.id, r.label, Some(r.hint))).collect(),
         "place" => sqlx::query!(
             r#"SELECT p.id, t.name AS "label?", p.kind AS hint FROM places p
@@ -694,7 +726,12 @@ pub async fn lookup(
         _ => return Err(AppError::NotFound),
     };
     Ok(Json(
-        json!({ "options": rows.into_iter().map(|(id, label, hint)| json!({
-        "id": id, "label": label.unwrap_or_else(|| id.to_string()), "hint": hint })).collect::<Vec<_>>() }),
+        json!({ "options": rows.into_iter().map(|(id, label, hint)| {
+            let mut o = json!({ "id": id, "label": label.unwrap_or_else(|| id.to_string()), "hint": hint });
+            if let (Some(extra), Some(map)) = (extra.get(&id).and_then(Value::as_object), o.as_object_mut()) {
+                map.extend(extra.clone());
+            }
+            o
+        }).collect::<Vec<_>>() }),
     ))
 }

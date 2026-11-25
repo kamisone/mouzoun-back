@@ -33,11 +33,38 @@ pub struct ListQuery {
     pub per_page: Option<i64>,
     /// Opaque cursor (the next page), same as `page`.
     pub cursor: Option<String>,
+    /// Featured products only.
+    #[serde(default)]
+    pub featured: bool,
+    /// Products with a compare-at price or an active automatic shop promotion.
+    #[serde(default)]
+    pub on_sale: bool,
+    /// Hand-picked products, in this order (page-builder `shop_products` section).
+    #[serde(skip)]
+    pub ids: Option<Vec<Uuid>>,
+    /// The category alone, without its subcategories.
+    #[serde(skip)]
+    pub without_subcategories: bool,
+    /// Page-builder sections: only products inside their season and translated in the language
+    /// (the card links to that language's page), and no facets.
+    #[serde(skip)]
+    pub section: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+/// `{average, count}` of approved reviews.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CardRating {
+    pub average: f64,
+    pub count: i64,
+}
+
+/// The shop's product card: the shop listing (`GET /shop/products`) and the page-builder
+/// `shop_products` section both get it from [`listing`], so they never differ.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductCard {
     pub id: Uuid,
+    /// Its page in the request language (route registry).
+    pub url: String,
     pub slug: String,
     pub name: String,
     pub short_description: Option<String>,
@@ -55,6 +82,25 @@ pub struct ProductCard {
     pub rating_avg: Option<f64>,
     pub rating_count: i64,
     pub is_featured: bool,
+    /// Cover and second photo (media variants, blur-up, focal point, alt), set by [`listing`].
+    pub cover: Option<crate::modules::pages::public::MediaView>,
+    pub secondary_image: Option<crate::modules::pages::public::MediaView>,
+    #[serde(skip)]
+    pub cover_media_id: Option<Uuid>,
+    #[serde(skip)]
+    pub secondary_media_id: Option<Uuid>,
+    /// Lowest active variant.
+    pub price_minor: i64,
+    pub compare_at_price_minor: Option<i64>,
+    /// Variants have different prices ("à partir de").
+    pub price_is_from: bool,
+    /// `{amount_minor, unit}` of the lowest-priced variant (per kg, L or piece).
+    pub unit_price: Option<Value>,
+    /// Most units of the default variant one order line may take.
+    pub max_quantity: i64,
+    /// `sale`, `new` (published in the last 30 days), `seasonal`, `sold_out`.
+    pub badges: Vec<String>,
+    pub rating: Option<CardRating>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -139,16 +185,87 @@ async fn category_scope(
     }))
 }
 
+/// The availability status a card shows for one product (same rule as the listing), `None` when
+/// the product is not listed (unpublished, no active variant...).
+pub async fn availability_status(
+    db: &sqlx::PgPool,
+    product: Uuid,
+) -> anyhow::Result<Option<Availability>> {
+    let s = super::settings::load(db).await?;
+    let mut conn = db.acquire().await?;
+    let q = ListQuery {
+        ids: Some(vec![product]),
+        section: false,
+        per_page: Some(1),
+        ..Default::default()
+    };
+    let list = list(
+        &mut conn,
+        &q,
+        "fr",
+        s.low_stock_threshold,
+        s.max_quantity_per_line,
+        &|_| String::new(),
+        Utc::now(),
+    )
+    .await?;
+    Ok(list.data.first().map(|c| c.availability))
+}
+
+/// Shop product cards with their photos: the one function behind the shop listing and the
+/// page-builder `shop_products` section.
+pub async fn listing(
+    state: &crate::state::AppState,
+    settings: &super::settings::ShopSettings,
+    q: &ListQuery,
+    locale: &str,
+) -> crate::error::AppResult<ProductList> {
+    let mut conn = state.db.acquire().await?;
+    let public_url = |k: &str| state.media.public_url(k);
+    let mut out = list(
+        &mut conn,
+        q,
+        locale,
+        settings.low_stock_threshold,
+        settings.max_quantity_per_line,
+        &public_url,
+        state.clock.now(),
+    )
+    .await?;
+    let media: Vec<Uuid> = out
+        .data
+        .iter()
+        .flat_map(|c| [c.cover_media_id, c.secondary_media_id])
+        .flatten()
+        .collect();
+    if !media.is_empty() {
+        let (default, all) = crate::modules::pages::service::locales(&mut conn).await?;
+        let lang = crate::modules::pages::public::Lang {
+            locale,
+            default: &default,
+            all: &all,
+        };
+        let views = crate::modules::pages::public::media_views(state, &media, &lang).await?;
+        for c in &mut out.data {
+            c.cover = c.cover_media_id.and_then(|m| views.get(&m).cloned());
+            c.secondary_image = c.secondary_media_id.and_then(|m| views.get(&m).cloned());
+        }
+    }
+    Ok(out)
+}
+
 #[allow(clippy::too_many_lines)]
 pub async fn list(
     conn: &mut PgConnection,
     q: &ListQuery,
     locale: &str,
     low_threshold: i64,
+    max_per_line: i64,
     public_url: &(dyn Fn(&str) -> String + Sync),
     now: DateTime<Utc>,
 ) -> sqlx::Result<ProductList> {
     let (page, per_page) = page_of(q);
+    let ctx = crate::modules::seo::routes::Ctx::load(conn, now).await?;
     let scope = match q.category.as_deref().filter(|c| !c.is_empty()) {
         Some(c) => match category_scope(conn, c, locale).await? {
             Some(s) if !s.ids.is_empty() => Some(s),
@@ -166,7 +283,13 @@ pub async fn list(
         },
         None => None,
     };
-    let categories = scope.as_ref().map(|s| s.ids.clone());
+    let categories = scope.as_ref().map(|s| {
+        if q.without_subcategories {
+            vec![s.root]
+        } else {
+            s.ids.clone()
+        }
+    });
     let search = q.q.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let option_filters: Vec<String> = q
         .options
@@ -187,7 +310,7 @@ pub async fn list(
         .unwrap_or("featured")
         .to_string();
     // In a category, its pinned products come first unless the visitor picked a sort.
-    let pinned_first = scope.is_some() && chosen.is_none();
+    let pinned_first = scope.is_some() && (chosen.is_none() || chosen == Some("manual"));
     let rows = sqlx::query!(
         r#"WITH base AS (
                SELECT p.id, p.is_featured, p.sort_order, p.published_at, p.created_at, sp.product_type,
@@ -200,6 +323,17 @@ pub async fn list(
                        WHERE oi.product_id = p.id AND o.status IN ('open', 'completed')) AS sold,
                       r.avg AS rating_avg, COALESCE(r.n, 0) AS rating_count,
                       rc.is_pinned AS pinned, rc.sort_order AS manual_order,
+                      p.cover_media_id, sp.max_per_order, upper(sp.available_period) AS season_end,
+                      (SELECT gi.media_id FROM gallery_items gi WHERE gi.gallery_id = p.gallery_id
+                         AND gi.media_id IS DISTINCT FROM p.cover_media_id ORDER BY gi.sort_order LIMIT 1) AS second_media,
+                      v.unit_quantity, v.unit_name,
+                      EXISTS (SELECT 1 FROM promotions pr
+                              WHERE pr.code IS NULL AND pr.is_active AND pr.scope IN ('shop', 'all')
+                                AND (pr.booking_window IS NULL OR pr.booking_window @> $9::timestamptz)
+                                AND (pr.applies_to_all
+                                     OR EXISTS (SELECT 1 FROM promotion_products pp WHERE pp.promotion_id = pr.id AND pp.product_id = p.id)
+                                     OR EXISTS (SELECT 1 FROM promotion_categories pcat JOIN product_categories xc ON xc.category_id = pcat.category_id
+                                                WHERE pcat.promotion_id = pr.id AND xc.product_id = p.id))) AS promoted,
                       (SELECT min(x.sort_order) FROM product_categories x WHERE x.product_id = p.id AND x.category_id = ANY($2)) AS sub_order
                FROM products p
                LEFT JOIN product_categories rc ON rc.product_id = p.id AND rc.category_id = $13
@@ -211,6 +345,8 @@ pub async fn list(
                    SELECT min(pv.price_minor) AS price_min, max(pv.price_minor) AS price_max,
                           min(pv.compare_at_price_minor) AS compare_at, count(*) AS variants,
                           (array_agg(pv.id ORDER BY pv.is_default DESC, pv.sort_order))[1] AS default_variant,
+                          (array_agg(pv.net_quantity ORDER BY pv.price_minor, pv.sort_order))[1] AS unit_quantity,
+                          (array_agg(pv.net_unit ORDER BY pv.price_minor, pv.sort_order))[1] AS unit_name,
                           COALESCE(sum(GREATEST(lv.free, 0)) FILTER (WHERE pv.track_inventory), 0) AS free_total,
                           bool_or(NOT pv.track_inventory) AS untracked,
                           COALESCE(sum(lv.backorder) FILTER (WHERE pv.track_inventory), 0) AS backorder
@@ -234,15 +370,24 @@ pub async fn list(
                         JOIN product_options o ON o.id = pvo.option_id JOIN product_option_values ov ON ov.id = pvo.option_value_id
                         WHERE fv.product_id = p.id AND fv.status = 'active' AND fv.deleted_at IS NULL
                           AND lower(o.code::text || ':' || ov.code::text) = ANY($10)))
+                 AND (NOT $15 OR p.is_featured)
+                 AND ($16::uuid[] IS NULL OR p.id = ANY($16))
+                 AND (NOT $18 OR ((sp.available_period IS NULL OR lower(sp.available_period) IS NULL OR lower(sp.available_period) <= $9)
+                                  AND t.slug IS NOT NULL))
            )
            SELECT id AS "id!", is_featured AS "is_featured!", product_type AS "product_type!", name AS "name!", slug AS "slug!",
                   short_description AS "short_description?", image_key AS "image_key?", blurhash AS "blurhash?", price_min AS "price_min!", price_max AS "price_max!", compare_at AS "compare_at?",
                   variants AS "variants!", default_variant AS "default_variant?", free_total::bigint AS "free_total!", COALESCE(untracked, false) AS "untracked!",
-                  backorder::bigint AS "backorder!", rating_avg AS "rating_avg?", rating_count AS "rating_count!", count(*) OVER () AS "total!"
+                  backorder::bigint AS "backorder!", rating_avg AS "rating_avg?", rating_count AS "rating_count!", count(*) OVER () AS "total!",
+                  cover_media_id AS "cover_media_id?", second_media AS "second_media?", max_per_order AS "max_per_order?",
+                  season_end AS "season_end?", unit_quantity AS "unit_quantity?", unit_name AS "unit_name?", promoted AS "promoted!",
+                  published_at AS "published_at?"
            FROM base
            WHERE ($5::bigint IS NULL OR price_max >= $5) AND ($6::bigint IS NULL OR price_min <= $6)
              AND (NOT $7 OR untracked OR free_total + backorder > 0)
+             AND (NOT $17 OR compare_at IS NOT NULL OR promoted)
            ORDER BY
+             CASE WHEN $16::uuid[] IS NOT NULL THEN array_position($16, id) END ASC,
              CASE WHEN $14 THEN COALESCE(pinned, false) END DESC,
              CASE WHEN $8 = 'manual' THEN manual_order END ASC,
              CASE WHEN $8 = 'manual' THEN sub_order END ASC,
@@ -267,38 +412,89 @@ pub async fn list(
         per_page,
         (page - 1) * per_page,
         scope.as_ref().map(|s| s.root),
-        pinned_first
+        pinned_first,
+        q.featured,
+        q.ids.as_deref(),
+        q.on_sale,
+        q.section
     )
     .fetch_all(&mut *conn)
     .await?;
     let total = rows.first().map_or(0, |r| r.total);
     let data: Vec<ProductCard> = rows
         .into_iter()
-        .map(|r| ProductCard {
-            id: r.id,
-            slug: r.slug,
-            name: r.name,
-            short_description: r.short_description,
-            product_type: r.product_type,
-            image_url: r.image_key.as_deref().map(public_url),
-            image_blurhash: r.blurhash,
-            price_min_minor: r.price_min,
-            price_max_minor: r.price_max,
-            compare_at_minor: r.compare_at,
-            currency: "EUR".into(),
-            availability: if r.untracked {
+        .map(|r| {
+            let available = if r.untracked {
                 Availability::InStock
             } else {
                 availability(r.free_total, r.backorder, low_threshold)
-            },
-            variant_count: r.variants,
-            default_variant_id: (r.variants == 1).then_some(r.default_variant).flatten(),
-            rating_avg: r.rating_avg,
-            rating_count: r.rating_count,
-            is_featured: r.is_featured,
+            };
+            let line_max = r
+                .max_per_order
+                .map_or(max_per_line, |m| i64::from(m).min(max_per_line));
+            let mut badges = vec![];
+            if r.compare_at.is_some() || r.promoted {
+                badges.push("sale".to_string());
+            }
+            if r.published_at
+                .is_some_and(|t| now - t < chrono::Duration::days(30))
+            {
+                badges.push("new".to_string());
+            }
+            if r.season_end.is_some() {
+                badges.push("seasonal".to_string());
+            }
+            if available == Availability::OutOfStock {
+                badges.push("sold_out".to_string());
+            }
+            let url = ctx
+                .path(crate::modules::seo::routes::SHOP_PRODUCT, locale, &r.slug)
+                .unwrap_or_default();
+            ProductCard {
+                id: r.id,
+                url,
+                slug: r.slug,
+                name: r.name,
+                short_description: r.short_description,
+                product_type: r.product_type,
+                image_url: r.image_key.as_deref().map(public_url),
+                image_blurhash: r.blurhash,
+                price_min_minor: r.price_min,
+                price_max_minor: r.price_max,
+                compare_at_minor: r.compare_at,
+                currency: "EUR".into(),
+                availability: available,
+                variant_count: r.variants,
+                default_variant_id: (r.variants == 1).then_some(r.default_variant).flatten(),
+                rating_avg: r.rating_avg,
+                rating_count: r.rating_count,
+                is_featured: r.is_featured,
+                cover: None,
+                secondary_image: None,
+                cover_media_id: r.cover_media_id,
+                secondary_media_id: r.second_media,
+                price_minor: r.price_min,
+                compare_at_price_minor: r.compare_at,
+                price_is_from: r.price_max > r.price_min,
+                unit_price: unit_price(r.price_min, r.unit_quantity, r.unit_name.as_deref()),
+                max_quantity: if r.untracked {
+                    line_max
+                } else {
+                    line_max.min((r.free_total + r.backorder).max(0))
+                },
+                badges,
+                rating: r.rating_avg.map(|average| CardRating {
+                    average: (average * 10.0).round() / 10.0,
+                    count: r.rating_count,
+                }),
+            }
         })
         .collect();
-    let facets = facets(conn, locale).await?;
+    let facets = if q.section {
+        json!({})
+    } else {
+        facets(conn, locale).await?
+    };
     Ok(ProductList {
         next_cursor: (page * per_page < total).then(|| format!("p{}", page + 1)),
         data,

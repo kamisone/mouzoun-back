@@ -1,0 +1,311 @@
+{
+  "code": "shop_products",
+  "name": "Shop products",
+  "description": "Farm-shop products with the shop's own card (price, add to cart), picked by hand or by a rule, like Shopify's featured collection.",
+  "icon": "i-lucide-shopping-bag",
+  "category": "listing",
+  "schema_version": 1,
+  "sort_order": 41,
+  "min_items": 0,
+  "max_items": null,
+  "max_per_page": null,
+  "allowed_owners": [
+    "page"
+  ],
+  "allowed_page_types": null,
+  "required_permission": null,
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {
+        "type": "object",
+        "title": "Source",
+        "x-group": "source",
+        "x-widget": "source",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "default": "rule",
+            "title": "Mode"
+          },
+          "ids": {
+            "type": "array",
+            "maxItems": 24,
+            "uniqueItems": true,
+            "default": [],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-widget": "product_picker",
+            "x-ref": "product",
+            "x-kinds": [
+              "shop_product"
+            ],
+            "title": "Hand-picked"
+          },
+          "rule": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "category_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "x-widget": "category_picker",
+                "x-ref": "category",
+                "x-scope": "shop",
+                "title": "Category"
+              },
+              "include_subcategories": {
+                "type": "boolean",
+                "default": true,
+                "title": "Include subcategories"
+              },
+              "featured_only": {
+                "type": "boolean",
+                "default": false,
+                "title": "Featured only"
+              },
+              "in_stock_only": {
+                "type": "boolean",
+                "default": true,
+                "title": "In stock only"
+              },
+              "on_sale_only": {
+                "type": "boolean",
+                "default": false,
+                "title": "On sale only"
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "category_order",
+                  "featured",
+                  "newest",
+                  "price_asc",
+                  "price_desc",
+                  "best_selling"
+                ],
+                "default": "featured",
+                "title": "Sort"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 24,
+                "default": 8,
+                "title": "How many"
+              }
+            },
+            "required": [
+              "sort",
+              "limit"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "sort": {
+                      "const": "category_order"
+                    }
+                  },
+                  "required": [
+                    "sort"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "category_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "category_id"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "manual"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "ids": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "ids"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "rule"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rule"
+              ]
+            }
+          }
+        ]
+      },
+      "layout": {
+        "type": "string",
+        "enum": [
+          "carousel",
+          "grid_3",
+          "grid_4"
+        ],
+        "default": "carousel",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Layout"
+      },
+      "columns_mobile": {
+        "type": "integer",
+        "enum": [
+          1,
+          2
+        ],
+        "default": 2,
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Columns on phones"
+      },
+      "image_ratio": {
+        "type": "string",
+        "enum": [
+          "square",
+          "portrait",
+          "adapt"
+        ],
+        "default": "square",
+        "x-widget": "select",
+        "x-group": "layout",
+        "title": "Image ratio"
+      },
+      "show_secondary_image": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "layout",
+        "title": "Second photo on hover"
+      },
+      "show_unit_price": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "card",
+        "title": "Unit price (per kg / L)"
+      },
+      "show_rating": {
+        "type": "boolean",
+        "default": false,
+        "x-widget": "toggle",
+        "x-group": "card",
+        "title": "Rating"
+      },
+      "quick_add": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "card",
+        "title": "Add-to-cart button"
+      },
+      "show_view_all": {
+        "type": "boolean",
+        "default": true,
+        "x-widget": "toggle",
+        "x-group": "card",
+        "title": "“Shop all” link"
+      }
+    },
+    "required": [
+      "source"
+    ]
+  },
+  "content_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "view_all_label": {
+        "type": "string",
+        "maxLength": 60,
+        "x-widget": "text",
+        "x-group": "content",
+        "title": "“Shop all” label"
+      }
+    }
+  },
+  "item_settings_schema": null,
+  "item_content_schema": null,
+  "preset": {
+    "settings": {
+      "source": {
+        "mode": "rule",
+        "ids": [],
+        "rule": {
+          "category_id": null,
+          "include_subcategories": true,
+          "featured_only": true,
+          "in_stock_only": true,
+          "on_sale_only": false,
+          "sort": "featured",
+          "limit": 8
+        }
+      },
+      "layout": "carousel",
+      "columns_mobile": 2,
+      "image_ratio": "square",
+      "show_secondary_image": true,
+      "show_unit_price": true,
+      "show_rating": false,
+      "quick_add": true,
+      "show_view_all": true
+    },
+    "content": {
+      "fr": {
+        "eyebrow": "Du champ à votre table",
+        "title": "Produits de la ferme",
+        "view_all_label": "Voir toute la boutique"
+      },
+      "en": {
+        "eyebrow": "From our fields to your table",
+        "title": "Farm products",
+        "view_all_label": "Shop all"
+      },
+      "ar": {
+        "eyebrow": "من حقولنا إلى مائدتكم",
+        "title": "منتجات الضيعة",
+        "view_all_label": "تصفح المتجر"
+      }
+    }
+  }
+}

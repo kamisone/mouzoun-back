@@ -204,16 +204,7 @@ pub async fn products(
     if let Some(cached) = state.cache.get_json::<Value>(&key).await {
         return Ok(Json(cached));
     }
-    let mut conn = state.db.acquire().await?;
-    let list = catalog::list(
-        &mut conn,
-        &q,
-        locale.as_str(),
-        s.low_stock_threshold,
-        &public_url(&state),
-        Utc::now(),
-    )
-    .await?;
+    let list = catalog::listing(&state, &s, &q, locale.as_str()).await?;
     let value = serde_json::to_value(&list).unwrap_or_default();
     state.cache.set_json(&key, &value, CATALOG_TTL).await;
     Ok(Json(value))
