@@ -204,7 +204,8 @@ browser            API                                    Postgres              
 ## Adding a shipping carrier
 
 Carriers are data: add the code to `shop.carriers` (settings), create rates with that carrier
-(admin → Shipping). Tracking stays manual (number + link on the fulfilment); label / tracking APIs
+(admin → Shipping: the rate editor lists exactly these codes; a rate keeps a carrier removed from
+the list since). Relay-point search is code (Mondial Relay, Colissimo). Tracking stays manual (number + link on the fulfilment); label / tracking APIs
 are out of scope.
 
 ## Settings (`settings` table)

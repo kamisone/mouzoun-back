@@ -276,7 +276,11 @@ pub async fn shipping(State(state): State<AppState>, staff: Staff) -> AppResult<
     )
     .fetch_all(&state.db)
     .await?;
+    let carriers = crate::services::shop::settings::load(&state.db)
+        .await?
+        .carriers;
     Ok(Json(json!({
+        "carriers": carriers,
         "profiles": profiles.iter().map(|p| json!({ "id": p.id, "code": p.code, "name": p.name, "is_default": p.is_default, "product_count": p.products })).collect::<Vec<_>>(),
         "zones": zones.iter().map(|z| json!({ "id": z.id, "code": z.code, "country_codes": z.country_codes.iter().map(|c| c.trim()).collect::<Vec<_>>(),
             "region_codes": z.region_codes, "postal_code_patterns": z.postal_code_patterns, "is_export": z.is_export,
@@ -475,12 +479,23 @@ async fn save_rate(
     Json(r): Json<RateInput>,
 ) -> AppResult<Json<Value>> {
     staff.require("shop.pricing")?;
+    let id_given = id.is_some();
     let id = id.unwrap_or_else(Uuid::now_v7);
     let carriers = crate::services::shop::settings::load(&state.db)
         .await?
         .carriers;
+    // A carrier removed from the list since stays valid on the rates that already use it.
+    let current: Option<String> = if id_given {
+        sqlx::query_scalar!("SELECT carrier FROM shipping_rates WHERE id = $1", id)
+            .fetch_optional(&state.db)
+            .await?
+            .flatten()
+    } else {
+        None
+    };
     if let Some(c) = r.carrier.as_deref().filter(|c| !c.is_empty())
         && !carriers.iter().any(|x| x == c)
+        && current.as_deref() != Some(c)
     {
         return Err(invalid("choose a carrier from the shop settings list"));
     }

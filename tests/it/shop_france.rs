@@ -901,6 +901,63 @@ async fn placeholder_rates_are_not_offered_until_confirmed(db: PgPool) {
     assert!(cart.to_string().contains("fr_colissimo_0_1kg"), "{cart}");
 }
 
+/// The rate editor offers the carriers of the shop settings; another one is refused, except the
+/// one a rate already carries (a carrier removed from the list since).
+#[sqlx::test(migrations = "./migrations")]
+async fn rate_carriers_come_from_the_settings(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    shop_fr(&db).await;
+    setting(&db, "shop.carriers", json!(["colissimo", "dpd"])).await;
+    let (st, s) = app
+        .admin(Method::GET, "/v1/admin/shop/shipping", None)
+        .await;
+    assert_eq!(
+        (st, s["carriers"].clone()),
+        (StatusCode::OK, json!(["colissimo", "dpd"]))
+    );
+    let relay = s["rates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["code"] == "mondial_relay")
+        .cloned()
+        .unwrap();
+    let body = |carrier: &str| {
+        json!({ "zone_id": relay["zone_id"], "profile_id": relay["profile_id"], "code": "new_rate", "kind": "flat",
+                "carrier": carrier, "amount_minor": 500 })
+    };
+    let (st, _) = app
+        .admin(
+            Method::POST,
+            "/v1/admin/shop/shipping/rates",
+            Some(body("dpd")),
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK);
+    let (st, e) = app
+        .admin(
+            Method::POST,
+            "/v1/admin/shop/shipping/rates",
+            Some(body("amana")),
+        )
+        .await;
+    assert_eq!(
+        (st, e["error"]["code"].as_str()),
+        (StatusCode::UNPROCESSABLE_ENTITY, Some("invalid"))
+    );
+    // "mondial_relay" left the list but stays valid on the rate that uses it.
+    let mut keep = body("mondial_relay");
+    keep["code"] = json!("mondial_relay");
+    let path = format!(
+        "/v1/admin/shop/shipping/rates/{}",
+        relay["id"].as_str().unwrap()
+    );
+    let (st, _) = app.admin(Method::PUT, &path, Some(keep)).await;
+    assert_eq!(st, StatusCode::OK);
+    let (st, _) = app.admin(Method::PUT, &path, Some(body("amana"))).await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY);
+}
+
 // ---- Admin › Settings › Legal entity ------------------------------------------------------------
 
 fn company(name: &str) -> Value {
