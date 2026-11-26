@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, g.code::text AS \"code!\", g.min_age, g.max_age, g.is_active, g.counts_toward_capacity,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM guest_category_translations WHERE guest_category_id = g.id), '{}') AS \"names!\"\n           FROM guest_categories g ORDER BY g.sort_order, g.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "counts_toward_capacity",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "names!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "0315cb027eb13e1a45ceffc3c44d414815e028f11e20e575a0b4213a6427e989"
+}

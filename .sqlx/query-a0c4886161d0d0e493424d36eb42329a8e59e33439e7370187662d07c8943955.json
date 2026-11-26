@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO package_items (id, package_product_id, item_product_id, quantity, day_number, sort_order)\n             VALUES ($1, $2, $3, 1, 1, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a0c4886161d0d0e493424d36eb42329a8e59e33439e7370187662d07c8943955"
+}

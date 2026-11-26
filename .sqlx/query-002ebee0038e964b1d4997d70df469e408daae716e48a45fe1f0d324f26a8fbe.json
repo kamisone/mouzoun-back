@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.scope, c.unit_id, c.period AS \"period: DateRange\", c.reason, c.is_public\n           FROM closures c\n           WHERE (c.product_id = $1 OR c.unit_id IN (SELECT u.id FROM accommodation_units u WHERE u.product_id = $1))\n             AND c.period && daterange($2, $3)\n           ORDER BY lower(c.period)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "scope",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "unit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "period: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 4,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_public",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "002ebee0038e964b1d4997d70df469e408daae716e48a45fe1f0d324f26a8fbe"
+}

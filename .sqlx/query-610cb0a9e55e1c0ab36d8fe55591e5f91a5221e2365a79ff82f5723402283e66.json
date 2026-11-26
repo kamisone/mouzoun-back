@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE activity_slots SET capacity = $2, ends_at = $3, schedule_id = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "610cb0a9e55e1c0ab36d8fe55591e5f91a5221e2365a79ff82f5723402283e66"
+}

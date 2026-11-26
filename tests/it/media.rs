@@ -169,13 +169,16 @@ async fn refused_files_never_reach_the_bucket(db: PgPool) {
         ("x.png", "image/png", &too_big, None),
         ("x.png", "image/png", &png_bytes(32), Some("everyone")),
     ];
-    for (name, content_type, bytes, visibility) in cases {
+    let expected = [
+        StatusCode::BAD_REQUEST,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        StatusCode::BAD_REQUEST,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        StatusCode::BAD_REQUEST,
+    ];
+    for ((name, content_type, bytes, visibility), want) in cases.into_iter().zip(expected) {
         let (status, res) = upload(&app, name, content_type, bytes, visibility).await;
-        assert_eq!(
-            status,
-            StatusCode::BAD_REQUEST,
-            "{name} {content_type} -> {res}"
-        );
+        assert_eq!(status, want, "{name} {content_type} -> {res}");
     }
     assert!(app.storage.is_empty(), "nothing written");
     assert_eq!(asset_rows(&app).await, 0);
@@ -194,4 +197,91 @@ async fn bodies_over_the_route_limit_are_refused(db: PgPool) {
     .await;
     assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{res}");
     assert!(app.storage.is_empty());
+}
+
+/// Bytes starting like a real MP4 (`ftyp` box, brand isom), padded to `len`.
+fn mp4_bytes(len: usize) -> Vec<u8> {
+    let mut b = b"\0\0\0\x20ftypisom\0\0\x02\0isomiso2avc1mp41".to_vec();
+    b.resize(len.max(b.len()), 0);
+    b
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn mp4_and_webm_videos_are_accepted_up_to_their_own_limit(db: PgPool) {
+    let app = TestApp::new(db).await;
+    // The test config: images 1 MiB, videos 2 MiB.
+    let (status, mp4) = upload(
+        &app,
+        "balade.mp4",
+        "video/mp4",
+        &mp4_bytes(1536 * 1024),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{mp4}");
+    assert_eq!(mp4["kind"], "video");
+    assert_eq!(mp4["mime_type"], "video/mp4");
+    let mut webm =
+        b"\x1a\x45\xdf\xa3\x9f\x42\x86\x81\x01\x42\xf7\x81\x01\x42\x82\x84webm\x42\x87".to_vec();
+    webm.resize(4096, 0);
+    let (status, res) = upload(&app, "dunes.webm", "video/webm", &webm, None).await;
+    assert_eq!(
+        (status, res["kind"].as_str()),
+        (StatusCode::CREATED, Some("video")),
+        "{res}"
+    );
+
+    // Over the video limit.
+    let (status, res) = upload(
+        &app,
+        "long.mp4",
+        "video/mp4",
+        &mp4_bytes(2 * 1024 * 1024 + 1),
+        None,
+    )
+    .await;
+    assert_eq!(
+        (status, res["error"]["code"].as_str()),
+        (StatusCode::PAYLOAD_TOO_LARGE, Some("file_too_large")),
+        "{res}"
+    );
+    assert_eq!(res["error"]["details"]["video"], true);
+    // An image keeps its own (smaller) limit.
+    let (status, res) = upload(&app, "big.png", "image/png", &png_bytes(1536 * 1024), None).await;
+    assert_eq!(
+        (status, res["error"]["details"]["max_bytes"].as_i64()),
+        (StatusCode::PAYLOAD_TOO_LARGE, Some(1024 * 1024)),
+        "{res}"
+    );
+    // A page renamed .mp4 is not a video.
+    let (status, _) = upload(
+        &app,
+        "fake.mp4",
+        "video/mp4",
+        b"<html><body>not a video</body></html>",
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn quicktime_videos_are_refused_with_their_own_code(db: PgPool) {
+    let app = TestApp::new(db).await;
+    let mut mov = b"\0\0\0\x14ftypqt  \0\0\0\0qt  ".to_vec();
+    mov.resize(4096, 0);
+    for (name, content_type) in [
+        ("IMG_0001.MOV", "video/quicktime"),
+        ("export.mp4", "video/mp4"),
+        ("clip.mov", "application/octet-stream"),
+    ] {
+        let (status, res) = upload(&app, name, content_type, &mov, None).await;
+        assert_eq!(
+            (status, res["error"]["code"].as_str()),
+            (StatusCode::UNSUPPORTED_MEDIA_TYPE, Some("video_mov")),
+            "{name}: {res}"
+        );
+    }
+    assert!(app.storage.is_empty());
+    assert_eq!(asset_rows(&app).await, 0);
 }

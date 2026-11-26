@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, pricing_unit, amount_minor, priority, season_id, rate_plan_id, guest_category_id, days_of_week\n           FROM prices WHERE id = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "pricing_unit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "season_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "rate_plan_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "guest_category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "days_of_week",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "a1c92b011248c6b24f8e6a484f55756ccae98a84f71993aad4872166f61a6021"
+}

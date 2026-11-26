@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT b.id AS booking_id, b.reference, b.status, lower(a.stay) AS arrival, upper(a.stay) AS departure,\n                  NULL::timestamptz AS starts_at\n           FROM unit_allocations a\n           JOIN booking_items i ON i.id = a.booking_item_id\n           JOIN bookings b ON b.id = i.booking_id\n           WHERE a.unit_id = $1 AND a.released_at IS NULL AND upper(a.stay) > $2\n             AND b.status NOT IN ('cancelled', 'expired', 'no_show', 'completed')\n           ORDER BY arrival, b.reference",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "departure",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "2acc512bd65f5f187f3a00ab69bb4cb429b8625689719037c392b91672f76cde"
+}

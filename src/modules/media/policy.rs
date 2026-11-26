@@ -15,6 +15,8 @@ pub struct FileKind {
     pub content_type: &'static str,
     pub extension: &'static str,
     pub is_image: bool,
+    /// Videos have their own size limit (`MEDIA_MAX_VIDEO_BYTES`).
+    pub is_video: bool,
     magic: fn(&[u8]) -> bool,
 }
 
@@ -30,24 +32,28 @@ const ALLOWED: &[FileKind] = &[
         content_type: "image/jpeg",
         extension: "jpg",
         is_image: true,
+        is_video: false,
         magic: |b| b.starts_with(&[0xFF, 0xD8, 0xFF]),
     },
     FileKind {
         content_type: "image/png",
         extension: "png",
         is_image: true,
+        is_video: false,
         magic: |b| b.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]),
     },
     FileKind {
         content_type: "image/webp",
         extension: "webp",
         is_image: true,
+        is_video: false,
         magic: |b| b.len() >= 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP",
     },
     FileKind {
         content_type: "image/avif",
         extension: "avif",
         is_image: true,
+        is_video: false,
         magic: |b| {
             b.len() >= 12 && &b[4..8] == b"ftyp" && (&b[8..12] == b"avif" || &b[8..12] == b"avis")
         },
@@ -56,9 +62,47 @@ const ALLOWED: &[FileKind] = &[
         content_type: "application/pdf",
         extension: "pdf",
         is_image: false,
+        is_video: false,
         magic: |b| b.starts_with(b"%PDF-"),
     },
+    FileKind {
+        content_type: "video/mp4",
+        extension: "mp4",
+        is_image: false,
+        is_video: true,
+        magic: is_mp4,
+    },
+    FileKind {
+        content_type: "video/webm",
+        extension: "webm",
+        is_image: false,
+        is_video: true,
+        magic: is_webm,
+    },
 ];
+
+/// ISO base media file (`ftyp` box) with an MP4 brand. QuickTime (`qt  `) and image brands
+/// (AVIF, HEIC) are not MP4. The codec (H.264 recommended) is not checked: browsers play H.264
+/// and H.265 MP4s alike on most devices, and the editor asks for H.264.
+fn is_mp4(b: &[u8]) -> bool {
+    const BRANDS: [&[u8; 4]; 12] = [
+        b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"dash", b"MSNV",
+        b"M4V ", b"mmp4",
+    ];
+    b.len() >= 12 && &b[4..8] == b"ftyp" && BRANDS.iter().any(|brand| &b[8..12] == *brand)
+}
+
+/// Matroska / EBML header whose doctype is `webm`.
+fn is_webm(b: &[u8]) -> bool {
+    b.starts_with(&[0x1A, 0x45, 0xDF, 0xA3])
+        && b[..b.len().min(64)].windows(4).any(|w| w == b"webm")
+}
+
+/// A QuickTime file (`.mov`, what iPhones record): refused with its own message (export as MP4).
+pub fn is_quicktime(content_type: &str, head: &[u8]) -> bool {
+    content_type.trim().eq_ignore_ascii_case("video/quicktime")
+        || (head.len() >= 12 && &head[4..8] == b"ftyp" && &head[8..12] == b"qt  ")
+}
 
 pub fn kind_for(content_type: &str) -> Option<&'static FileKind> {
     let normalized = content_type.trim().to_ascii_lowercase();
@@ -124,6 +168,35 @@ mod tests {
         assert!(avif.matches(b"\0\0\0\x1cftypavif\0\0\0\0"));
         let pdf = kind_for("application/pdf").unwrap();
         assert!(pdf.matches(b"%PDF-1.7\n"));
+    }
+
+    #[test]
+    fn videos_are_mp4_or_webm_never_quicktime() {
+        let mp4 = kind_for("video/mp4").unwrap();
+        assert!(mp4.is_video);
+        assert!(mp4.matches(b"\0\0\0\x20ftypisom\0\0\x02\0isomiso2avc1mp41"));
+        assert!(mp4.matches(b"\0\0\0\x18ftypmp42\0\0\0\0"));
+        assert!(
+            !mp4.matches(b"\0\0\0\x14ftypqt  \0\0\0\0"),
+            "a .mov is not an MP4"
+        );
+        assert!(
+            !mp4.matches(b"\0\0\0\x1cftypavif\0\0\0\0"),
+            "an AVIF image is not an MP4"
+        );
+        assert!(!mp4.matches(b"<html>"));
+        let webm = kind_for("video/webm").unwrap();
+        assert!(webm.matches(
+            b"\x1a\x45\xdf\xa3\x9f\x42\x86\x81\x01\x42\xf7\x81\x01\x42\x82\x84webm\x42\x87"
+        ));
+        assert!(
+            !webm.matches(b"\x1a\x45\xdf\xa3\x9f\x42\x86\x81\x01\x42\x82\x88matroska"),
+            "plain MKV is not WebM"
+        );
+        assert!(is_quicktime("video/quicktime", b""));
+        assert!(is_quicktime("video/mp4", b"\0\0\0\x14ftypqt  \0\0\0\0"));
+        assert!(!is_quicktime("video/mp4", b"\0\0\0\x18ftypmp42\0\0\0\0"));
+        assert!(kind_for("video/quicktime").is_none());
     }
 
     #[test]

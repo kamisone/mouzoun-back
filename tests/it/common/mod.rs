@@ -64,6 +64,7 @@ pub fn test_config() -> Config {
         },
         media: MediaConfig {
             max_upload_bytes: 1024 * 1024,
+            max_video_bytes: 2 * 1024 * 1024,
             download_url_ttl: Duration::from_secs(900),
         },
         email: EmailConfig {

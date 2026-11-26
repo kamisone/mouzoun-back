@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_categories SET is_primary = false WHERE product_id = $1 AND is_primary AND category_id IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0041941edbced2289fca98ec9b53a1c5316f246a2ae5fe19fc7e48a9a41b3bf3"
+}

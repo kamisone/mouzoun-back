@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.code::text AS \"code!\", s.color, s.priority,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM season_translations WHERE season_id = s.id), '{}') AS \"names!\",\n                  COALESCE((SELECT jsonb_agg(jsonb_build_object('from', lower(period), 'to', upper(period)) ORDER BY lower(period))\n                            FROM season_periods WHERE season_id = s.id), '[]') AS \"periods!\",\n                  (SELECT count(*) FROM prices WHERE season_id = s.id) AS \"prices!\"\n           FROM seasons s ORDER BY s.priority DESC, s.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "periods!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "prices!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a930d7a85b0138ac4f1bfbfbc7bed9e073b553ba5d5940d2b8eb13f76ce77052"
+}

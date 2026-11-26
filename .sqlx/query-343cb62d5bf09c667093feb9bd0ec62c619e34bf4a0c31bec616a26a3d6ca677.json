@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gallery_items (gallery_id, media_id, sort_order) SELECT $2, media_id, sort_order FROM gallery_items WHERE gallery_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "343cb62d5bf09c667093feb9bd0ec62c619e34bf4a0c31bec616a26a3d6ca677"
+}

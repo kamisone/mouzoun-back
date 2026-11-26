@@ -402,13 +402,57 @@ fn category_requested(rule: &PriceRule, req: &PricingRequest<'_>) -> bool {
     })
 }
 
-fn specificity(rule: &PriceRule) -> u8 {
+pub fn specificity(rule: &PriceRule) -> u8 {
     u8::from(rule.rate_plan_id.is_some())
         + u8::from(rule.season_id.is_some())
         + u8::from(rule.guest_category_id.is_some())
         + u8::from(rule.valid_period.is_some())
         + u8::from(!rule.days_of_week.is_every_day())
         + u8::from(rule.min_nights.is_some())
+}
+
+/// Pairs of active rules the engine cannot tell apart: they can apply to the same night or date,
+/// guest and quantity with the same specificity and priority, so only the id decides (the admin
+/// shows both rows with a warning). Uses the same fields as `applies` and `best_of`.
+pub fn ambiguous_pairs(rules: &[PriceRule]) -> Vec<(Uuid, Uuid)> {
+    let nightly = |r: &PriceRule| {
+        matches!(
+            r.unit,
+            PricingUnit::PerUnitPerNight | PricingUnit::PerPersonPerNight
+        )
+    };
+    let periods_overlap = |a: &Option<DateRange>, b: &Option<DateRange>| match (a, b) {
+        (Some(a), Some(b)) => {
+            a.start.is_none_or(|s| b.end.is_none_or(|e| s < e))
+                && b.start.is_none_or(|s| a.end.is_none_or(|e| s < e))
+        }
+        _ => true,
+    };
+    let quantities_overlap = |a: &PriceRule, b: &PriceRule| {
+        a.min_quantity.max(b.min_quantity)
+            <= a.max_quantity
+                .unwrap_or(i32::MAX)
+                .min(b.max_quantity.unwrap_or(i32::MAX))
+    };
+    let mut out = Vec::new();
+    for (i, a) in rules.iter().enumerate() {
+        for b in &rules[i + 1..] {
+            if nightly(a) == nightly(b)
+                && a.rate_plan_id == b.rate_plan_id
+                && a.season_id == b.season_id
+                && a.guest_category_id == b.guest_category_id
+                && a.min_nights == b.min_nights
+                && a.days_of_week.0 & b.days_of_week.0 != 0
+                && periods_overlap(&a.valid_period, &b.valid_period)
+                && quantities_overlap(a, b)
+                && specificity(a) == specificity(b)
+                && a.priority == b.priority
+            {
+                out.push((a.id, b.id));
+            }
+        }
+    }
+    out
 }
 
 /// Most specific, then highest priority, then lowest id.

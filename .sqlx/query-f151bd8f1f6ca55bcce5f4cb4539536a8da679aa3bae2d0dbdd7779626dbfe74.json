@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_resource_requirements (product_id, resource_kind, units_per_group, participants_per_group)\n             VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f151bd8f1f6ca55bcce5f4cb4539536a8da679aa3bae2d0dbdd7779626dbfe74"
+}

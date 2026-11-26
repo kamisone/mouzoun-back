@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO extras (product_id, applies_to, max_quantity, requires_date, stock_quantity)\n             SELECT $2, applies_to, max_quantity, requires_date, stock_quantity FROM extras WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "78d495ee0131d1a97a1edcd73c60f7757ecf3a2ccc12e94b968ead3c92481572"
+}

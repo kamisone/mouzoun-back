@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE activity_slots SET capacity = $2, status = COALESCE($3, status),\n                guide_user_id = CASE WHEN $4 THEN $5 ELSE guide_user_id END,\n                guide_language = CASE WHEN $6 THEN $7 ELSE guide_language END,\n                notes = CASE WHEN $8 THEN $9 ELSE notes END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "16020b394d1be170a8dec3ace9bb1a1a17bda4ef22922891f3e4f08b1f44c903"
+}

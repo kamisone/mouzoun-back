@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accommodation_types (product_id, accommodation_kind, inventory_mode, max_guests, max_adults, max_children,\n                                              standard_occupancy, bed_configuration, surface_m2, min_nights, max_nights,\n                                              check_in_from, check_in_until, check_out_until, pool_capacity)\n             SELECT $2, accommodation_kind, inventory_mode, max_guests, max_adults, max_children, standard_occupancy,\n                    bed_configuration, surface_m2, min_nights, max_nights, check_in_from, check_in_until, check_out_until,\n                    pool_capacity\n             FROM accommodation_types WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d5305133462987c2d7b387c23c0107edbc9ae75baae264ef54b407171c1076f8"
+}

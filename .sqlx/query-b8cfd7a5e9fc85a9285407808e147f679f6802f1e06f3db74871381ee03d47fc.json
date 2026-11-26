@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, sku, status) VALUES ($1, 'package', 'NOMAD-BIVOUAC', 'draft') RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b8cfd7a5e9fc85a9285407808e147f679f6802f1e06f3db74871381ee03d47fc"
+}

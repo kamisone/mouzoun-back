@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM products\n           WHERE id = ANY($1) AND (kind NOT IN ('accommodation', 'activity', 'package', 'extra') OR deleted_at IS NOT NULL)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3fc4628da40e30eda09988c6ce150f2690d0ab8ad8c97a89ea2db2810160c717"
+}

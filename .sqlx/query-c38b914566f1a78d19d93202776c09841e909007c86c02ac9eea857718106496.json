@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.product_id, s.days_of_week, s.start_time, s.capacity,\n                  s.valid_period AS \"valid_period: DateRange\", a.duration_minutes\n           FROM activity_schedules s\n           JOIN activities a ON a.product_id = s.product_id\n           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL\n           WHERE s.is_active AND a.scheduling_mode = 'fixed_slots' AND ($1::uuid IS NULL OR s.product_id = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "days_of_week",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 4,
+        "name": "capacity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "valid_period: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 6,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c38b914566f1a78d19d93202776c09841e909007c86c02ac9eea857718106496"
+}

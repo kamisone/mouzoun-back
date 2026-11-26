@@ -736,6 +736,20 @@ pub async fn lookup(
                ORDER BY p.page_type = 'home' DESC, t.title LIMIT 30"#,
             by_ids, &ids, search
         ).fetch_all(&state.db).await?.into_iter().map(|r| (r.id, r.label, Some(r.hint))).collect(),
+        "tag" => sqlx::query!(
+            r#"SELECT g.id, COALESCE(t.name, g.code::text) AS "label?", g.code::text AS hint FROM tags g
+               LEFT JOIN tag_translations t ON t.tag_id = g.id AND t.locale = (SELECT code FROM locales WHERE is_default)
+               WHERE (CASE WHEN $1 THEN g.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR g.code ILIKE $3) END)
+               ORDER BY 2 LIMIT 30"#,
+            by_ids, &ids, search
+        ).fetch_all(&state.db).await?.into_iter().map(|r| (r.id, r.label, r.hint)).collect(),
+        "amenity" => sqlx::query!(
+            r#"SELECT a.id, COALESCE(t.name, a.code::text) AS "label?", a.amenity_group AS hint FROM amenities a
+               LEFT JOIN amenity_translations t ON t.amenity_id = a.id AND t.locale = (SELECT code FROM locales WHERE is_default)
+               WHERE (CASE WHEN $1 THEN a.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR a.code ILIKE $3) END)
+               ORDER BY a.sort_order, 2 LIMIT 30"#,
+            by_ids, &ids, search
+        ).fetch_all(&state.db).await?.into_iter().map(|r| (r.id, r.label, Some(r.hint))).collect(),
         _ => return Err(AppError::NotFound),
     };
     Ok(Json(

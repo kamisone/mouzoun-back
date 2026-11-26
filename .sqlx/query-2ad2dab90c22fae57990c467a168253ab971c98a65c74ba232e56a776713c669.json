@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.day, t.cap AS \"capacity!\", c.reserved\n           FROM inventory_calendar c\n           CROSS JOIN LATERAL (\n               SELECT count(*)::int AS cap FROM accommodation_units u\n               WHERE u.product_id = c.product_id AND u.status = 'active'\n                 AND NOT EXISTS (SELECT 1 FROM closures x WHERE x.scope = 'unit' AND x.unit_id = u.id AND x.period @> c.day)\n           ) t\n           WHERE c.product_id = $1 AND c.day >= $2 AND t.cap < c.reserved\n           ORDER BY c.day",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "capacity!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "reserved",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "2ad2dab90c22fae57990c467a168253ab971c98a65c74ba232e56a776713c669"
+}

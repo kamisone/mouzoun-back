@@ -1157,3 +1157,58 @@ async fn a_company_change_reaches_the_pages_but_not_issued_invoices(db: PgPool) 
         "an issued invoice never changes"
     );
 }
+
+/// The product editor sends the gift box shares as numbers (`share_percent: 70`): accepted,
+/// stored, and still read by the checkout (the split used to be refused, then ignored once
+/// saved as decimal strings).
+#[sqlx::test(migrations = "./migrations")]
+async fn a_gift_box_split_saved_from_the_editor_keeps_splitting_the_vat(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let s = shop_fr(&db).await;
+    let id: Uuid =
+        sqlx::query_scalar("SELECT product_id FROM product_variants WHERE sku = 'FR-GIFT'")
+            .fetch_one(&db)
+            .await
+            .unwrap();
+    let (_, d) = app
+        .admin(Method::GET, &format!("/v1/admin/shop/products/{id}"), None)
+        .await;
+    let mut shop = d["shop"].clone();
+    shop["bundle_vat_split"] = json!([{ "tax_class_code": "food_reduced", "share_percent": 70 }, { "tax_class_code": "standard", "share_percent": 30 }]);
+    let (st, e) = app
+        .admin(
+            Method::PUT,
+            &format!("/v1/admin/shop/products/{id}"),
+            Some(json!({
+                // Draft: the fixture lacks the texts the shop's publish check wants.
+                "status": "draft", "is_featured": d["is_featured"], "sort_order": d["sort_order"],
+                "cover_media_id": d["cover_media_id"], "gallery_media_ids": d["gallery_media_ids"],
+                "category_ids": d["category_ids"], "related_ids": d["related_ids"], "tax_ids": d["tax_ids"],
+                "tag_ids": d["tag_ids"], "translations": d["translations"], "shop": shop,
+            })),
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK, "{e}");
+    sqlx::query("UPDATE products SET status = 'published' WHERE id = $1")
+        .bind(id)
+        .execute(&db)
+        .await
+        .unwrap();
+    let mut v = Visitor::new(&app);
+    v.add(s.gift, 1).await;
+    let (_, cart) = v
+        .call(
+            Method::PUT,
+            "/v1/shop/cart/fulfillment",
+            Some(json!({ "method": "shipping", "shipping_address": serde_json::from_str::<Value>(PARIS).unwrap() })),
+            &[],
+        )
+        .await;
+    let rates: Vec<&str> = cart["totals"]["vat_breakdown"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["rate"].as_str().unwrap())
+        .collect();
+    assert_eq!(rates, vec!["20", "5.5"], "{cart}");
+}

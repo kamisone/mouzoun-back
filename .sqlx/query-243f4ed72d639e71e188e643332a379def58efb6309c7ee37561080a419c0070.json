@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_translations (product_id, locale, name, slug, subtitle, short_description, description,\n                                               highlights, included, not_included, what_to_bring, requirements, important_info,\n                                               seo_title, seo_description, og_media_id)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n             ON CONFLICT (product_id, locale) DO UPDATE SET name = $3, slug = $4, subtitle = $5, short_description = $6,\n                 description = $7, highlights = $8, included = $9, not_included = $10, what_to_bring = $11,\n                 requirements = $12, important_info = $13, seo_title = $14, seo_description = $15, og_media_id = $16",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "243f4ed72d639e71e188e643332a379def58efb6309c7ee37561080a419c0070"
+}

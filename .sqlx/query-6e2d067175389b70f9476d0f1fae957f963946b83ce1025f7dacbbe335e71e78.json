@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO closures (id, scope, unit_id, period, reason, is_public, created_by)\n                 VALUES ($1, 'unit', $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "DateRange",
+        "Text",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6e2d067175389b70f9476d0f1fae957f963946b83ce1025f7dacbbe335e71e78"
+}

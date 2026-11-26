@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id, m.object_key, m.kind, m.visibility,\n                  COALESCE((SELECT jsonb_object_agg(t.locale, t.alt_text) FROM media_asset_translations t\n                            WHERE t.media_asset_id = m.id AND t.alt_text IS NOT NULL AND t.alt_text <> ''), '{}') AS \"alt!\"\n           FROM media_assets m WHERE m.id = ANY($1) AND m.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "object_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "visibility",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "alt!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "8c5205878d838ff3f9053b05f93e60da8152b131ed32860bb59915504893b88e"
+}

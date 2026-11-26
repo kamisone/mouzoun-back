@@ -49,14 +49,23 @@ pub async fn run(pool: &PgPool, config: &Config, now: DateTime<Utc>) -> sqlx::Re
     let today = camp_time::today(now);
     let horizon = today + Duration::days(AVAILABILITY_DAYS);
 
-    // Published, bookable products without an active price in the default currency.
+    // Published, bookable products without an active price in the default currency. A package
+    // priced from its items (sum, sum minus discount) has no price of its own: each of its items
+    // needs one instead.
     let unpriced = sqlx::query!(
         r#"SELECT p.id, p.kind, COALESCE(t.name, p.id::text) AS "name!"
            FROM products p
            LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = (SELECT code FROM locales WHERE is_default)
+           LEFT JOIN packages pk ON pk.product_id = p.id
            WHERE p.status = 'published' AND p.deleted_at IS NULL AND p.booking_mode <> 'not_bookable'
-             AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.is_active
-                             AND pr.currency = (SELECT code FROM currencies WHERE is_default))
+             AND CASE WHEN pk.pricing_mode IS NOT NULL AND pk.pricing_mode <> 'fixed'
+                      THEN NOT EXISTS (SELECT 1 FROM package_items i WHERE i.package_product_id = p.id)
+                           OR EXISTS (SELECT 1 FROM package_items i WHERE i.package_product_id = p.id
+                                      AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = i.item_product_id AND pr.is_active
+                                                      AND pr.currency = (SELECT code FROM currencies WHERE is_default)))
+                      ELSE NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.is_active
+                                       AND pr.currency = (SELECT code FROM currencies WHERE is_default))
+                 END
            ORDER BY p.sort_order"#
     )
     .fetch_all(pool)

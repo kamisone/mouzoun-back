@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT location_type, scheduling_mode, duration_minutes, difficulty, min_participants, max_participants, min_age,\n                    is_guided, guide_languages, meeting_place_id, booking_cutoff_hours, pickup_available, standalone_bookable\n             FROM activities WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "location_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "scheduling_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "difficulty",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "max_participants",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "min_age",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_guided",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "guide_languages",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "meeting_place_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "booking_cutoff_hours",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "pickup_available",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "standalone_bookable",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "10e326ebf313fd270919672f75b0185946737bc43a958f4699d05c2b5457ce72"
+}

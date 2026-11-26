@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.resource_kind, r.units_per_group, r.participants_per_group,\n                  (SELECT count(*) FROM resources x WHERE x.kind = r.resource_kind AND x.status = 'active') AS \"available!\"\n           FROM product_resource_requirements r WHERE r.product_id = $1 ORDER BY r.resource_kind",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "resource_kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "units_per_group",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "participants_per_group",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "available!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c5d02180ea069063139d872a4a39f18f74d87d7df782e5cb1db4ef56e12d27fb"
+}

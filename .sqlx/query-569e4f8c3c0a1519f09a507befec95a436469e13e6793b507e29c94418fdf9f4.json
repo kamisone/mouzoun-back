@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.code::text AS \"code!\", r.cancellation_policy_id, r.meal_plan, r.deposit_type, r.deposit_percent,\n                  r.deposit_amount_minor, r.payment_mode, r.is_public, r.is_active, r.sort_order,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM rate_plan_translations WHERE rate_plan_id = r.id), '{}') AS \"names!\",\n                  COALESCE((SELECT jsonb_object_agg(locale, description) FROM rate_plan_translations WHERE rate_plan_id = r.id\n                            AND description IS NOT NULL), '{}') AS \"descriptions!\",\n                  (SELECT count(*) FROM prices WHERE rate_plan_id = r.id) AS \"prices!\"\n           FROM rate_plans r ORDER BY r.sort_order, r.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "cancellation_policy_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "meal_plan",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "deposit_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "deposit_percent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "deposit_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "payment_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "descriptions!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "prices!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "569e4f8c3c0a1519f09a507befec95a436469e13e6793b507e29c94418fdf9f4"
+}

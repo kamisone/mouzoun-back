@@ -344,6 +344,7 @@ fn food_reduced() -> String {
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 pub struct VatShare {
     pub tax_class_code: String,
+    #[serde(deserialize_with = "crate::web::percent::decimal")]
     pub share_percent: Decimal,
 }
 

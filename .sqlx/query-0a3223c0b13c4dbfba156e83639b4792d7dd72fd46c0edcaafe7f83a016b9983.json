@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT product_id, period AS \"period: DateRange\" FROM closures\n           WHERE scope IN ('site', 'product') AND (upper(period) IS NULL OR upper(period) > $1::date)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "product_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "period: DateRange",
+        "type_info": "DateRange"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "0a3223c0b13c4dbfba156e83639b4792d7dd72fd46c0edcaafe7f83a016b9983"
+}

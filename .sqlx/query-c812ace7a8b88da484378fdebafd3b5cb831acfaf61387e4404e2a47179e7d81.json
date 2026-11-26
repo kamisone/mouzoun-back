@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET sort_order = $3 WHERE id = $1 AND kind = $2 AND sort_order <> $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c812ace7a8b88da484378fdebafd3b5cb831acfaf61387e4404e2a47179e7d81"
+}

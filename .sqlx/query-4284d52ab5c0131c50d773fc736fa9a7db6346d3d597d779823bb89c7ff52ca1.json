@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM product_translations\n                                   WHERE locale = $1 AND slug = $2 AND ($3::uuid IS NULL OR product_id <> $3)) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4284d52ab5c0131c50d773fc736fa9a7db6346d3d597d779823bb89c7ff52ca1"
+}

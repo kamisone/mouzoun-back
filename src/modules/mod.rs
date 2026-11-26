@@ -9,6 +9,7 @@
 pub mod account;
 pub mod booking;
 pub mod booking_admin;
+pub mod catalog;
 pub mod media;
 pub mod pages;
 pub mod seo;

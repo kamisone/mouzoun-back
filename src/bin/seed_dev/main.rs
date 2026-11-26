@@ -443,8 +443,29 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         ],
     )
     .await?;
+    let peak = season(
+        tx,
+        "peak",
+        "#C0392B",
+        20,
+        [
+            ("fr", "Très haute saison"),
+            ("en", "Peak season"),
+            ("ar", "ذروة الموسم"),
+        ],
+    )
+    .await?;
     for year in 2026..=2028 {
         let date = |m, d| NaiveDate::from_ymd_opt(year, m, d).unwrap();
+        // Christmas → New Year and the spring holidays win over the high season.
+        period(
+            tx,
+            peak,
+            date(12, 20),
+            NaiveDate::from_ymd_opt(year + 1, 1, 4).unwrap(),
+        )
+        .await?;
+        period(tx, peak, date(4, 1), date(4, 20)).await?;
         // Desert high season: October → April; low season: May → September.
         period(tx, high, date(1, 1), date(5, 1)).await?;
         period(tx, low, date(5, 1), date(10, 1)).await?;
@@ -509,7 +530,12 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
     )
     .await?;
     accommodation(tx, pitch, "tent_pitch", "pool", 6, 2).await?;
-    units(tx, pitch, "P", 20).await?;
+    sqlx::query!(
+        "UPDATE accommodation_types SET pool_capacity = 20 WHERE product_id = $1",
+        pitch
+    )
+    .execute(&mut *tx)
+    .await?;
     price(
         tx,
         pitch,
@@ -564,7 +590,7 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         [
             (
                 "fr",
-                "Tente nomade",
+                "Khaïma nomade",
                 "tente-nomade",
                 "Tente berbère meublée, lits, tapis et lanternes.",
             ),
@@ -584,7 +610,22 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
     )
     .await?;
     accommodation(tx, nomad, "nomad_tent", "unit", 4, 2).await?;
-    units(tx, nomad, "N", 6).await?;
+    units(tx, nomad, "K-", 6).await?;
+    sqlx::query!(
+        "UPDATE accommodation_units SET status = 'maintenance', notes = 'Toile à remplacer' WHERE product_id = $1 AND code = 'K-06'",
+        nomad
+    )
+    .execute(&mut *tx)
+    .await?;
+    // Weekend surcharge: Friday and Saturday nights (more specific than the base price).
+    sqlx::query!(
+        "INSERT INTO prices (id, product_id, pricing_unit, amount_minor, currency, extra_guest_amount_minor, days_of_week)
+         VALUES ($1, $2, 'per_unit_per_night', 5_500, 'EUR', 1_500, 48)",
+        Uuid::now_v7(),
+        nomad
+    )
+    .execute(&mut *tx)
+    .await?;
     price(
         tx,
         nomad,
@@ -639,13 +680,13 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         [
             (
                 "fr",
-                "Emplacement camping-car",
+                "Emplacement van",
                 "emplacement-camping-car",
                 "Grand emplacement plat avec eau et électricité.",
             ),
             (
                 "en",
-                "Campervan pitch",
+                "Van pitch",
                 "campervan-pitch",
                 "Large flat pitch with water and electricity.",
             ),
@@ -658,8 +699,8 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         ],
     )
     .await?;
-    accommodation(tx, campervan, "campervan_pitch", "pool", 4, 2).await?;
-    units(tx, campervan, "C", 8).await?;
+    accommodation(tx, campervan, "campervan_pitch", "unit", 4, 2).await?;
+    units(tx, campervan, "V-", 8).await?;
     price(
         tx,
         campervan,
@@ -697,7 +738,7 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
             [
                 (
                     "fr",
-                    "Quad 1 h",
+                    "Balade en quad",
                     "quad-1h",
                     "Une heure de pistes et de dunes avec un guide.",
                 ),
@@ -795,7 +836,7 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         tx,
         village,
         "off_site",
-        "on_request",
+        "fixed_slots",
         Some(150),
         Some("easy"),
         None,
@@ -803,6 +844,84 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
     )
     .await?;
     price(tx, village, "per_person", 1_500, None, None, None, None).await?;
+    schedule(tx, village, "10:00", 12).await?;
+    for (n, minutes, texts) in [
+        (
+            1,
+            20,
+            [
+                ("fr", "Départ du camp", "À pied par la palmeraie."),
+                ("en", "From the camp", "On foot through the palm grove."),
+                ("ar", "الانطلاق من المخيم", "مشياً عبر الواحة."),
+            ],
+        ),
+        (
+            2,
+            40,
+            [
+                ("fr", "Le ksar", "Ruelles en terre et portes sculptées."),
+                ("en", "The ksar", "Earthen lanes and carved doors."),
+                ("ar", "القصر", "أزقة طينية وأبواب منقوشة."),
+            ],
+        ),
+        (
+            3,
+            30,
+            [
+                (
+                    "fr",
+                    "Le four à pain",
+                    "Le pain du jour, sorti du four collectif.",
+                ),
+                (
+                    "en",
+                    "The bread oven",
+                    "The day's bread from the shared oven.",
+                ),
+                ("ar", "فرن الخبز", "خبز اليوم من الفرن الجماعي."),
+            ],
+        ),
+        (
+            4,
+            60,
+            [
+                (
+                    "fr",
+                    "Thé chez l'habitant",
+                    "Thé à la menthe et dattes avec une famille.",
+                ),
+                (
+                    "en",
+                    "Tea with a family",
+                    "Mint tea and dates with a local family.",
+                ),
+                ("ar", "شاي عند السكان", "شاي بالنعناع وتمر مع عائلة."),
+            ],
+        ),
+    ] {
+        let step = sqlx::query_scalar!(
+            "INSERT INTO itinerary_steps (id, product_id, day_number, sort_order, place_id, duration_minutes)
+             VALUES ($1, $2, 1, $3, $4, $5) RETURNING id",
+            Uuid::now_v7(),
+            village,
+            n,
+            mssici,
+            minutes
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        for (locale, title, description) in texts {
+            sqlx::query!(
+                "INSERT INTO itinerary_step_translations (itinerary_step_id, locale, title, description) VALUES ($1, $2, $3, $4)",
+                step,
+                locale,
+                title,
+                description
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
     let farm = product(
         tx,
         "activity",
@@ -812,7 +931,7 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         [
             (
                 "fr",
-                "Ferme et élevage",
+                "Visite de la ferme et des troupeaux",
                 "ferme-et-elevage",
                 "Les champs, les chèvres, les dromadaires et la traite.",
             ),
@@ -884,6 +1003,52 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
     .await?;
     price(tx, camel, "per_person", 2_500, None, None, None, None).await?;
     schedule(tx, camel, "17:30", 12).await?;
+    let stars = product(
+        tx,
+        "activity",
+        "STAR-NIGHT",
+        None,
+        false,
+        [
+            (
+                "fr",
+                "Nuit sous les étoiles",
+                "nuit-sous-les-etoiles",
+                "Dîner et nuit en bivouac au milieu des dunes, sur demande.",
+            ),
+            (
+                "en",
+                "A night under the stars",
+                "night-under-the-stars",
+                "Dinner and a night in a bivouac among the dunes, on request.",
+            ),
+            (
+                "ar",
+                "ليلة تحت النجوم",
+                "layla-taht-an-nujum",
+                "عشاء ومبيت في الكثبان، حسب الطلب.",
+            ),
+        ],
+    )
+    .await?;
+    activity(
+        tx,
+        stars,
+        "off_site",
+        "on_request",
+        Some(720),
+        Some("easy"),
+        None,
+        true,
+    )
+    .await?;
+    sqlx::query!(
+        "UPDATE products SET booking_mode = 'on_request' WHERE id = $1",
+        stars
+    )
+    .execute(&mut *tx)
+    .await?;
+    price(tx, stars, "per_person", 6_500, None, None, None, None).await?;
 
     // ---- Extras & package -----------------------------------------------------------------
     let breakfast = extra(
@@ -987,6 +1152,25 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         ],
     )
     .await?;
+    let lunch = extra(
+        tx,
+        "LUNCH",
+        "any",
+        true,
+        "per_person",
+        1_200,
+        [
+            (
+                "fr",
+                "Déjeuner",
+                "dejeuner",
+                "Salade, tajine du jour et fruits.",
+            ),
+            ("en", "Lunch", "lunch", "Salad, the day's tagine and fruit."),
+            ("ar", "غداء", "ghadaa", "سلطة وطاجين اليوم وفواكه."),
+        ],
+    )
+    .await?;
     sqlx::query!(
         "UPDATE products SET place_id = $2 WHERE id = $1",
         transfer,
@@ -1037,24 +1221,101 @@ async fn seed(tx: &mut PgConnection) -> anyhow::Result<()> {
         ],
     )
     .await?;
+    // 2 nights in the khaïma + quad + village visit, priced as its parts minus 10 %.
     sqlx::query!(
-        "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode) VALUES ($1, 3, 2, 'fixed')",
+        "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode, discount_percent)
+         VALUES ($1, 3, 2, 'sum_minus_discount', 10)",
         weekend
-    ).execute(&mut *tx).await?;
-    price(tx, weekend, "per_person", 18_000, None, None, None, None).await?;
-    for (item, quantity, day) in [(nomad, 2, 1), (dinner, 2, 1), (camel, 1, 1)] {
-        sqlx::query!(
-            "INSERT INTO package_items (id, package_product_id, item_product_id, quantity, day_number) VALUES ($1, $2, $3, $4, $5)",
-            Uuid::now_v7(), weekend, item, quantity, day
-        ).execute(&mut *tx).await?;
-    }
+    )
+    .execute(&mut *tx)
+    .await?;
     let quad_1h = sqlx::query_scalar!("SELECT id FROM products WHERE sku = 'QUAD-1H'")
         .fetch_one(&mut *tx)
         .await?;
+    for (n, (item, quantity, day)) in [(nomad, 2, 1), (quad_1h, 1, 2), (village, 1, 2)]
+        .into_iter()
+        .enumerate()
+    {
+        sqlx::query!(
+            "INSERT INTO package_items (id, package_product_id, item_product_id, quantity, day_number, sort_order)
+             VALUES ($1, $2, $3, $4, $5, $6)",
+            Uuid::now_v7(),
+            weekend,
+            item,
+            quantity,
+            day,
+            i32::try_from(n)?
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    let discovery = product(
+        tx,
+        "package",
+        "DISCOVERY-DAY",
+        Some(mssici),
+        false,
+        [
+            (
+                "fr",
+                "Journée découverte",
+                "journee-decouverte",
+                "La ferme, le village et un déjeuner au camp, en une journée.",
+            ),
+            (
+                "en",
+                "Discovery day",
+                "discovery-day",
+                "The farm, the village and lunch at the camp, in one day.",
+            ),
+            (
+                "ar",
+                "يوم الاكتشاف",
+                "yawm-al-iktishaf",
+                "المزرعة والقرية وغداء في المخيم في يوم واحد.",
+            ),
+        ],
+    )
+    .await?;
     sqlx::query!(
-        "INSERT INTO package_items (id, package_product_id, item_product_id, quantity, day_number) VALUES ($1, $2, $3, 1, 2)",
-        Uuid::now_v7(), weekend, quad_1h
-    ).execute(&mut *tx).await?;
+        "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode) VALUES ($1, 1, 0, 'fixed')",
+        discovery
+    )
+    .execute(&mut *tx)
+    .await?;
+    price(tx, discovery, "per_person", 3_900, None, None, None, None).await?;
+    for (n, item) in [farm, village, lunch].into_iter().enumerate() {
+        sqlx::query!(
+            "INSERT INTO package_items (id, package_product_id, item_product_id, quantity, day_number, sort_order)
+             VALUES ($1, $2, $3, 1, 1, $4)",
+            Uuid::now_v7(),
+            discovery,
+            item,
+            i32::try_from(n)?
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    // A draft with only its French text (the editor shows the missing languages).
+    let draft = sqlx::query_scalar!(
+        "INSERT INTO products (id, kind, sku, status) VALUES ($1, 'package', 'NOMAD-BIVOUAC', 'draft') RETURNING id",
+        Uuid::now_v7()
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO product_translations (product_id, locale, name, slug, short_description)
+         VALUES ($1, 'fr', 'Bivouac des nomades', 'bivouac-des-nomades', 'Une nuit en bivouac avec les éleveurs, en préparation.')",
+        draft
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode) VALUES ($1, 2, 1, 'fixed')",
+        draft
+    )
+    .execute(&mut *tx)
+    .await?;
 
     // ---- Content: menus, FAQs (pages are seeded by `pages::seed`, through the builder) ----
     let header = menu(tx, "header", "Header").await?;

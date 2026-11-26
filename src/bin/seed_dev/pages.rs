@@ -454,6 +454,51 @@ pub async fn seed(pool: &PgPool, admin_email: &str) -> anyhow::Result<()> {
     .execute(pool)
     .await?;
     let photo = photos(pool, admin).await?;
+    // Placeholder covers (alt text in fr/en/ar) and a small gallery for the bookable products:
+    // the catalogue editors' publish checklist wants both.
+    for (sku, cover, gallery) in [
+        ("NOMAD-TENT", "nomad-tent", ["camp", "night-sky"]),
+        ("TENT-PITCH", "camp", ["hero-dunes", "night-sky"]),
+        ("CAMPERVAN-PITCH", "oasis", ["camp", "sunset-ripples"]),
+        ("QUAD-1H", "quads", ["hero-dunes", "sunset-ripples"]),
+        ("QUAD-2H", "quads", ["sunset-ripples", "hero-dunes"]),
+        ("VILLAGE-VISIT", "ksar", ["mint-tea", "oasis"]),
+        ("FARM-VISIT", "farm-fields", ["oasis", "host"]),
+        ("CAMEL-SUNSET", "caravan", ["sunset-ripples", "hero-dunes"]),
+        ("STAR-NIGHT", "night-sky", ["camp", "caravan"]),
+        ("DESERT-WEEKEND", "sunset-ripples", ["nomad-tent", "quads"]),
+        ("DISCOVERY-DAY", "mint-tea", ["farm-fields", "ksar"]),
+        ("BREAKFAST", "mint-tea", ["camp", "host"]),
+        ("DINNER", "camp", ["night-sky", "mint-tea"]),
+        ("FIREWOOD", "night-sky", ["camp", "caravan"]),
+        ("TRANSFER-RISSANI", "oasis", ["hero-dunes", "camp"]),
+        ("LUNCH", "mint-tea", ["farm-fields", "host"]),
+    ] {
+        let gallery_id = Uuid::now_v7();
+        sqlx::query("INSERT INTO galleries (id, name) VALUES ($1, $2)")
+            .bind(gallery_id)
+            .bind(format!("product {sku}"))
+            .execute(pool)
+            .await?;
+        for (n, slug) in gallery.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO gallery_items (gallery_id, media_id, sort_order) VALUES ($1, $2, $3)",
+            )
+            .bind(gallery_id)
+            .bind(photo[slug])
+            .bind(i32::try_from(n)?)
+            .execute(pool)
+            .await?;
+        }
+        sqlx::query(
+            "UPDATE products SET cover_media_id = $2, gallery_id = $3 WHERE sku = $1::text::citext",
+        )
+        .bind(sku)
+        .bind(photo[cover])
+        .bind(gallery_id)
+        .execute(pool)
+        .await?;
+    }
     let [quad, village, farm, camel] = [
         id_of(pool, "QUAD-1H").await?,
         id_of(pool, "VILLAGE-VISIT").await?,

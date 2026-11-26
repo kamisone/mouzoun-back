@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode, discount_percent)\n                 VALUES ($1, $2, $3, $4, $5)\n                 ON CONFLICT (product_id) DO UPDATE SET duration_days = $2, duration_nights = $3, pricing_mode = $4,\n                     discount_percent = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6e3585ec81466ae384e2f8bfaf912a47fce7b33285c16e639f0712a56958f87"
+}

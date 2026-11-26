@@ -7,6 +7,7 @@ pub mod health;
 pub mod limits;
 pub mod money;
 pub mod pagination;
+pub mod percent;
 
 use std::time::Duration;
 
@@ -35,9 +36,16 @@ pub fn router(state: AppState) -> Router {
     let admin = Router::new()
         .nest(
             "/media",
-            modules::media::admin_routes(state.config.media.max_upload_bytes),
+            modules::media::admin_routes(
+                state
+                    .config
+                    .media
+                    .max_upload_bytes
+                    .max(state.config.media.max_video_bytes),
+            ),
         )
         .merge(modules::booking_admin::admin_routes())
+        .merge(modules::catalog::admin_routes())
         .merge(modules::pages::admin_routes())
         .merge(modules::seo::admin_routes())
         .merge(modules::shop::admin_routes())

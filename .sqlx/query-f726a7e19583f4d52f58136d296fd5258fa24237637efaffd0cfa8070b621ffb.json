@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accommodation_units SET code = $3, name = $4, place_id = $5, status = $6, latitude = $7, longitude = $8, notes = $9\n         WHERE id = $1 AND product_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Text",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f726a7e19583f4d52f58136d296fd5258fa24237637efaffd0cfa8070b621ffb"
+}

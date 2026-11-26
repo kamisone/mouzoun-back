@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.code::text AS \"code!\", p.rules, p.is_default,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM cancellation_policy_translations WHERE cancellation_policy_id = p.id), '{}') AS \"names!\",\n                  COALESCE((SELECT jsonb_object_agg(locale, description) FROM cancellation_policy_translations\n                            WHERE cancellation_policy_id = p.id AND description IS NOT NULL), '{}') AS \"descriptions!\",\n                  (SELECT count(*) FROM rate_plans WHERE cancellation_policy_id = p.id) AS \"plans!\"\n           FROM cancellation_policies p ORDER BY p.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "rules",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "names!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "descriptions!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "plans!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0fa00a20d901c4fa068e55996da97b5a0faadeb5399a6f279ba587f657bf1ec5"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_calendar SET capacity = $3 WHERE product_id = $1 AND day = ANY($2) AND capacity <> $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "DateArray",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "36c05c34888d95e78c0622f1d4430e1a10dacfc4314c029bde8fb82c439d0780"
+}

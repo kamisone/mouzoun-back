@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT day FROM inventory_calendar WHERE product_id = $1 AND day >= $2 ORDER BY day FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a05ddb3318c361c8a02dc27137f146c391a51170a00fe87e4fe5197cfbd9952d"
+}

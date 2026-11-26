@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.starts_at, s.reserved,\n                EXISTS (SELECT 1 FROM booking_items i WHERE i.activity_slot_id = s.id) AS \"used!\"\n         FROM activity_slots s JOIN activity_schedules sc ON sc.id = s.schedule_id\n         WHERE sc.product_id = $1 AND NOT (sc.id = ANY($2)) AND s.starts_at > $3\n         ORDER BY s.id FOR UPDATE OF s",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "reserved",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "used!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f9f9bed6d7defdcff871c10b245c7259b499dba658d57d7c3a60aa6fcff13079"
+}

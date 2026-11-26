@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_calendar SET\n             stop_sell = COALESCE($3, stop_sell),\n             min_nights_override = CASE WHEN $4 THEN $5 ELSE min_nights_override END,\n             closed_to_arrival = COALESCE($6, closed_to_arrival),\n             closed_to_departure = COALESCE($7, closed_to_departure)\n         WHERE product_id = $1 AND day = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "DateArray",
+        "Bool",
+        "Bool",
+        "Int2",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "313bbf690c353788625bc941b3dc51b4ba258ebde32cdd57523f64a8b4e4e76a"
+}

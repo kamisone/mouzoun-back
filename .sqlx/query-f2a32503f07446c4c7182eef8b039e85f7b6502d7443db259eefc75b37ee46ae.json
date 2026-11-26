@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rate_plans (id, code, cancellation_policy_id, meal_plan, deposit_type, deposit_percent, deposit_amount_minor,\n                                 deposit_currency, payment_mode, is_public, is_active, sort_order)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n         ON CONFLICT (id) DO UPDATE SET code = $2, cancellation_policy_id = $3, meal_plan = $4, deposit_type = $5,\n             deposit_percent = $6, deposit_amount_minor = $7, deposit_currency = $8, payment_mode = $9, is_public = $10,\n             is_active = $11, sort_order = $12",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Uuid",
+        "Text",
+        "Text",
+        "Numeric",
+        "Int8",
+        "Bpchar",
+        "Text",
+        "Bool",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2a32503f07446c4c7182eef8b039e85f7b6502d7443db259eefc75b37ee46ae"
+}

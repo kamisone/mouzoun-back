@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO activity_slots (id, product_id, starts_at, ends_at, capacity, guide_user_id, guide_language)\n         VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (product_id, starts_at) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4680e95f6e0780ce6255dd941907e20d04ac478c1ca716d14cdf121bad438faf"
+}

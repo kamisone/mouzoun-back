@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, status, booking_mode, is_featured, place_id, cover_media_id, video_media_id, sort_order,\n                               created_by, updated_by)\n         SELECT $2, kind, 'draft', booking_mode, false, place_id, cover_media_id, video_media_id,\n                (SELECT COALESCE(max(sort_order) + 1, 0) FROM products WHERE kind = p.kind), $3, $3\n         FROM products p WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6f0c74f04c8dedeb6eb571c741a9f88d34a07aab0f528cb921480c32a57a4d88"
+}

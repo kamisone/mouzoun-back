@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET deleted_at = now(), status = 'archived', updated_by = $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f9b7decece53abfd4c4bfb4f593811633cbde43e1f260e98f3ed7229b3b2b39"
+}

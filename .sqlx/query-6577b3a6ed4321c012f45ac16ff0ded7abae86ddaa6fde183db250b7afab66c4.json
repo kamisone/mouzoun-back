@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO products (id, kind, status, booking_mode, sort_order, created_by, updated_by)\n         VALUES ($1, $2, 'draft', $3, (SELECT COALESCE(max(sort_order) + 1, 0) FROM products WHERE kind = $2), $4, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6577b3a6ed4321c012f45ac16ff0ded7abae86ddaa6fde183db250b7afab66c4"
+}

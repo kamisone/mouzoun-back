@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accommodation_types SET inventory_mode = $2, pool_capacity = $3 WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a00f49dabccdb57ea3a1368bac01ccd3ffe8f04f4ba69c44f630ae38440f246c"
+}

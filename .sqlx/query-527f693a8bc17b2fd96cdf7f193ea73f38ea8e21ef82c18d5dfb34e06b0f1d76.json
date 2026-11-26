@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO season_periods (season_id, period) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "DateRange"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "527f693a8bc17b2fd96cdf7f193ea73f38ea8e21ef82c18d5dfb34e06b0f1d76"
+}

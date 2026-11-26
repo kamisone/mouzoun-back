@@ -242,6 +242,10 @@ pub struct ProductPage {
     /// Slug in every locale (hreflang, language switcher).
     pub alternates: Vec<Value>,
     pub gallery: Vec<MediaRef>,
+    /// The product's video (a public library file), shown as the first slide of the gallery with
+    /// the cover as poster. `None` without one. Default for pages cached before it existed.
+    #[serde(default)]
+    pub video: Option<MediaRef>,
     pub amenities: Vec<Value>,
     pub accommodation: Option<Value>,
     pub activity: Option<Value>,
@@ -333,6 +337,24 @@ pub async fn detail(
     .into_iter()
     .filter_map(|m| media(&state, Some(m.id), Some(m.object_key), m.width, m.height, m.blurhash, m.alt))
     .collect();
+
+    let video = sqlx::query!(
+        r#"SELECT m.id, m.object_key, m.width, m.height,
+                  (SELECT COALESCE(mt.alt_text, md.alt_text, mt.title, md.title) FROM media_assets x
+                   LEFT JOIN media_asset_translations mt ON mt.media_asset_id = x.id AND mt.locale = $2
+                   LEFT JOIN media_asset_translations md ON md.media_asset_id = x.id
+                        AND md.locale = (SELECT code FROM locales WHERE is_default)
+                   WHERE x.id = m.id) AS "alt?"
+           FROM products p
+           JOIN media_assets m ON m.id = p.video_media_id AND m.deleted_at IS NULL AND m.kind = 'video'
+                AND m.visibility = 'public'
+           WHERE p.id = $1 AND p.kind IN ('accommodation', 'activity', 'package')"#,
+        id,
+        loc
+    )
+    .fetch_optional(db)
+    .await?
+    .and_then(|m| media(&state, Some(m.id), Some(m.object_key), m.width, m.height, None, m.alt));
 
     let amenities = sqlx::query!(
         r#"SELECT a.code::text AS "code!", a.amenity_group, a.icon,
@@ -561,6 +583,7 @@ pub async fn detail(
         seo_description: text.seo_description,
         alternates,
         gallery,
+        video,
         amenities,
         accommodation,
         activity,

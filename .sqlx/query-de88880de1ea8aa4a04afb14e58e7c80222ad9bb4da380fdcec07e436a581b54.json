@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO itinerary_step_translations (itinerary_step_id, locale, title, description)\n             SELECT $2, locale, title, description FROM itinerary_step_translations WHERE itinerary_step_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de88880de1ea8aa4a04afb14e58e7c80222ad9bb4da380fdcec07e436a581b54"
+}

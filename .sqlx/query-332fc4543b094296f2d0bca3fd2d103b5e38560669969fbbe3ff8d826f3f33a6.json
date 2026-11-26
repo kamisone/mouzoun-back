@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM package_items i JOIN products k ON k.id = i.package_product_id\n                          WHERE i.item_product_id = $1 AND k.deleted_at IS NULL) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "332fc4543b094296f2d0bca3fd2d103b5e38560669969fbbe3ff8d826f3f33a6"
+}

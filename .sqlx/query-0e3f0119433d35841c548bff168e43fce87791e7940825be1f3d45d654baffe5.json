@@ -1,0 +1,174 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.status, p.booking_mode, p.sort_order, p.updated_at, p.sku::text AS \"sku?\", p.is_featured,\n                  COALESCE(NULLIF(t.name, ''), d.name, '') AS \"name!\", m.object_key AS \"cover_key?\", m.visibility AS \"cover_visibility?\",\n                  ARRAY(SELECT l FROM unnest(ARRAY['fr', 'en', 'ar']) l\n                        WHERE NOT EXISTS (SELECT 1 FROM product_translations x WHERE x.product_id = p.id AND x.locale = l\n                                          AND x.name <> '')) AS \"missing!\",\n                  a.inventory_mode AS \"inventory_mode?\", a.max_guests AS \"max_guests?\", a.pool_capacity AS \"pool_capacity?\",\n                  (SELECT count(*) FROM accommodation_units u WHERE u.product_id = p.id AND u.status = 'active') AS \"units!\",\n                  act.duration_minutes AS \"duration_minutes?\", act.scheduling_mode AS \"scheduling_mode?\",\n                  (SELECT min(s.starts_at) FROM activity_slots s WHERE s.product_id = p.id AND s.starts_at > $4 AND s.status = 'open')\n                      AS \"next_departure?\",\n                  (SELECT sum(GREATEST(s.capacity - s.reserved, 0))::int8 FROM activity_slots s WHERE s.product_id = p.id\n                      AND s.starts_at > $4 AND s.starts_at < $4 + interval '7 days' AND s.status = 'open') AS \"seats_week?\",\n                  pk.duration_nights AS \"nights?\", pk.duration_days AS \"days?\", pk.pricing_mode AS \"pricing_mode?\",\n                  (SELECT count(*) FROM package_items i WHERE i.package_product_id = p.id) AS \"items!\",\n                  x.applies_to AS \"applies_to?\", x.stock_quantity AS \"stock_quantity?\"\n           FROM products p\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = $2\n           LEFT JOIN product_translations d ON d.product_id = p.id AND d.locale = 'fr'\n           LEFT JOIN media_assets m ON m.id = p.cover_media_id AND m.deleted_at IS NULL\n           LEFT JOIN accommodation_types a ON a.product_id = p.id\n           LEFT JOIN activities act ON act.product_id = p.id\n           LEFT JOIN packages pk ON pk.product_id = p.id\n           LEFT JOIN extras x ON x.product_id = p.id\n           WHERE p.kind = $1 AND p.deleted_at IS NULL\n             AND ($3::text IS NULL OR t.name ILIKE $3 OR d.name ILIKE $3 OR p.sku ILIKE $3)\n             AND ($5::text IS NULL OR p.status = $5)\n             AND ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = $6))\n             AND ($7::uuid IS NULL OR p.place_id = $7)\n             AND ($8::text IS NULL OR p.booking_mode = $8)\n           ORDER BY CASE WHEN $9 = 'name' THEN COALESCE(NULLIF(t.name, ''), d.name) END,\n                    CASE WHEN $9 = 'updated' THEN p.updated_at END DESC,\n                    p.sort_order, p.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "booking_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_order",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "sku?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_featured",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "cover_key?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "cover_visibility?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "missing!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 11,
+        "name": "inventory_mode?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "max_guests?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "pool_capacity?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "units!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "duration_minutes?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "scheduling_mode?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "next_departure?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "seats_week?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "nights?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "days?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 21,
+        "name": "pricing_mode?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "items!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 23,
+        "name": "applies_to?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "stock_quantity?",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      null,
+      true,
+      false,
+      null,
+      null,
+      true,
+      true,
+      false,
+      null,
+      false,
+      true
+    ]
+  },
+  "hash": "0e3f0119433d35841c548bff168e43fce87791e7940825be1f3d45d654baffe5"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pk.pricing_mode,\n                  (SELECT count(*) FROM package_items i WHERE i.package_product_id = pk.product_id) AS \"items!\",\n                  (SELECT count(*) FROM package_items i JOIN products p ON p.id = i.item_product_id\n                   WHERE i.package_product_id = pk.product_id AND NOT i.is_optional\n                     AND (p.status <> 'published' OR p.deleted_at IS NOT NULL)) AS \"unpublished!\",\n                  (SELECT count(*) FROM package_items i\n                   WHERE i.package_product_id = pk.product_id\n                     AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = i.item_product_id AND pr.is_active)) AS \"no_price!\"\n           FROM packages pk WHERE pk.product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pricing_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "items!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "unpublished!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "no_price!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1b77dd8788ac19b9b38b3b5d5f73f74634c68432d852c2da2c5f4c0c4d4a3be6"
+}

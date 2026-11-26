@@ -12,6 +12,7 @@ mod booking_admin;
 mod booking_api;
 mod booking_trip;
 mod catalog;
+mod catalog_admin;
 mod crm;
 mod email;
 mod go_live;

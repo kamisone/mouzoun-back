@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.code::text AS \"code!\", r.is_public, r.is_active, r.cancellation_policy_id, r.deposit_type, r.payment_mode,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM rate_plan_translations WHERE rate_plan_id = r.id), '{}') AS \"names!\"\n           FROM rate_plans r ORDER BY r.sort_order, r.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "cancellation_policy_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "deposit_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "payment_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "names!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "2dfc937a2cc63a233552085e74f99d89c7999ae4586720f066f776ba02aa57df"
+}

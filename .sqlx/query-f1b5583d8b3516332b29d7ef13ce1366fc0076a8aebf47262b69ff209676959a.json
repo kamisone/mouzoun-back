@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT b.id AS booking_id, b.reference, b.status, NULL::date AS arrival, NULL::date AS departure,\n                  s.starts_at AS \"starts_at?\"\n           FROM booking_items i JOIN bookings b ON b.id = i.booking_id\n           JOIN activity_slots s ON s.id = i.activity_slot_id\n           WHERE i.activity_slot_id = ANY($1) AND i.status = 'active'\n             AND b.status NOT IN ('cancelled', 'expired', 'no_show', 'completed')\n           ORDER BY \"starts_at?\", b.reference",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "departure",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "starts_at?",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "f1b5583d8b3516332b29d7ef13ce1366fc0076a8aebf47262b69ff209676959a"
+}

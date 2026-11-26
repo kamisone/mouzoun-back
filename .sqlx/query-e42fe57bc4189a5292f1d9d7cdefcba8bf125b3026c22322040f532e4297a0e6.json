@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guest_categories (id, code, min_age, max_age, counts_toward_capacity, sort_order, is_active)\n         VALUES ($1, $2, $3, $4, $5, $6, $7)\n         ON CONFLICT (id) DO UPDATE SET code = $2, min_age = $3, max_age = $4, counts_toward_capacity = $5, sort_order = $6,\n             is_active = $7",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Int2",
+        "Int2",
+        "Bool",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e42fe57bc4189a5292f1d9d7cdefcba8bf125b3026c22322040f532e4297a0e6"
+}

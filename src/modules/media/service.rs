@@ -1,4 +1,6 @@
+use axum::http::StatusCode;
 use chrono::Utc;
+use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -45,21 +47,41 @@ impl MediaService {
     /// is stored, so a refused file never reaches the bucket.
     pub async fn upload(&self, file: NewUpload, uploaded_by: Uuid) -> AppResult<MediaDto> {
         let filename = policy::sanitize_filename(&file.filename);
-        let kind = policy::kind_for(&file.content_type).ok_or_else(|| {
-            AppError::BadRequest(format!(
-                "unsupported content type, allowed: {}",
-                policy::allowed_content_types().join(", ")
-            ))
-        })?;
         let size = i64::try_from(file.bytes.len()).unwrap_or(i64::MAX);
         if size == 0 {
             return Err(AppError::BadRequest("the file is empty".into()));
         }
-        if size > self.config.max_upload_bytes {
-            return Err(AppError::BadRequest(format!(
-                "file too large, maximum is {} bytes",
-                self.config.max_upload_bytes
-            )));
+        let declared_mov = file.filename.to_ascii_lowercase().ends_with(".mov");
+        if declared_mov || policy::is_quicktime(&file.content_type, &file.bytes) {
+            return Err(AppError::domain(
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                "video_mov",
+                "QuickTime (.mov) videos are not accepted: export the video as MP4 (H.264)",
+            ));
+        }
+        let kind = policy::kind_for(&file.content_type).ok_or_else(|| {
+            AppError::domain(
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                "unsupported_type",
+                format!(
+                    "unsupported content type, allowed: {}",
+                    policy::allowed_content_types().join(", ")
+                ),
+            )
+            .with_details(json!({ "allowed": policy::allowed_content_types() }))
+        })?;
+        let max = if kind.is_video {
+            self.config.max_video_bytes
+        } else {
+            self.config.max_upload_bytes
+        };
+        if size > max {
+            return Err(AppError::domain(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "file_too_large",
+                format!("file too large, maximum is {max} bytes"),
+            )
+            .with_details(json!({ "max_bytes": max, "video": kind.is_video })));
         }
         if !kind.matches(&file.bytes) {
             tracing::warn!(

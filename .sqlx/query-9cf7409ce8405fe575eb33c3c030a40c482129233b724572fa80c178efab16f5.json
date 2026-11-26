@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT applies_to, max_quantity, requires_date, stock_quantity FROM extras WHERE product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "applies_to",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "requires_date",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "stock_quantity",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "9cf7409ce8405fe575eb33c3c030a40c482129233b724572fa80c178efab16f5"
+}

@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, COALESCE(t.name, g.code::text) AS \"label?\", g.code::text AS hint FROM tags g\n               LEFT JOIN tag_translations t ON t.tag_id = g.id AND t.locale = (SELECT code FROM locales WHERE is_default)\n               WHERE (CASE WHEN $1 THEN g.id = ANY($2) ELSE ($3::text IS NULL OR t.name ILIKE $3 OR g.code ILIKE $3) END)\n               ORDER BY 2 LIMIT 30",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "label?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "cc322d705e8efa80ca94959dc19e7305cbe3b4f2e7056b9ffa778d014d0b7e39"
+}

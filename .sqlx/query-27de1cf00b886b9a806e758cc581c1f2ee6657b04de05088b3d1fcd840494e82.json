@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.code::text AS \"code!\", s.color, s.priority, sp.period AS \"period: DateRange\",\n                  COALESCE((SELECT name FROM season_translations WHERE season_id = s.id AND locale = 'fr'), s.code::text) AS \"name!\"\n           FROM seasons s JOIN season_periods sp ON sp.season_id = s.id WHERE sp.period && daterange($1, $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "period: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 5,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "27de1cf00b886b9a806e758cc581c1f2ee6657b04de05088b3d1fcd840494e82"
+}

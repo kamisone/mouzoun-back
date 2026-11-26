@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT id FROM guest_categories WHERE code = 'adult') AS \"adult?\",\n                  (SELECT standard_occupancy FROM accommodation_types WHERE product_id = $1) AS \"occ?\",\n                  (SELECT duration_minutes FROM activities WHERE product_id = $1) AS \"minutes?\",\n                  (SELECT pricing_mode FROM packages WHERE product_id = $1) AS \"mode?\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "adult?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "occ?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "minutes?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "mode?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "945909acb5d029326177d0a99a503ba9c67c8a4a41fa3ba021b9309a3dc0b088"
+}

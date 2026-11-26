@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.kind, p.status, COALESCE(t.name, '') AS \"name!\"\n           FROM product_extras e JOIN products p ON p.id = e.product_id AND p.deleted_at IS NULL\n           LEFT JOIN product_translations t ON t.product_id = p.id AND t.locale = 'fr'\n           WHERE e.extra_product_id = $1 AND e.is_mandatory",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c9aa360252609afd5fdee7fe2390cd211d9acdd87bbeaea9ab21a3ccc87c230e"
+}

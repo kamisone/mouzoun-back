@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO itinerary_steps (id, product_id, day_number, sort_order, place_id, duration_minutes, media_id)\n             SELECT $3, $2, day_number, sort_order, place_id, duration_minutes, media_id FROM itinerary_steps WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2508edad3e18b441519cbdb46da445a23b8eb258192830a530dfc0fc34f85f7"
+}

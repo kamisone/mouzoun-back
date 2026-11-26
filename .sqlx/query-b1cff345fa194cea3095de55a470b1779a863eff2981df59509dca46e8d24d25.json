@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_calendar c SET capacity = t.cap\n         FROM (SELECT c2.day, (SELECT count(*) FROM accommodation_units u\n                               WHERE u.product_id = $1 AND u.status = 'active'\n                                 AND NOT EXISTS (SELECT 1 FROM closures x WHERE x.scope = 'unit' AND x.unit_id = u.id\n                                                                         AND x.period @> c2.day))::int AS cap\n               FROM inventory_calendar c2 WHERE c2.product_id = $1 AND c2.day >= $2) t\n         WHERE c.product_id = $1 AND c.day = t.day AND c.capacity <> t.cap",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b1cff345fa194cea3095de55a470b1779a863eff2981df59509dca46e8d24d25"
+}

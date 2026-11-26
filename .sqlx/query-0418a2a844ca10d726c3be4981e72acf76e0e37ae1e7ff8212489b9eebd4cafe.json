@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accommodation_types SET accommodation_kind = $2, max_guests = $3, max_adults = $4, max_children = $5,\n                        standard_occupancy = $6, bed_configuration = $7, surface_m2 = $8, min_nights = $9, max_nights = $10,\n                        check_in_from = $11, check_in_until = $12, check_out_until = $13\n                 WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Jsonb",
+        "Numeric",
+        "Int4",
+        "Int4",
+        "Time",
+        "Time",
+        "Time"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0418a2a844ca10d726c3be4981e72acf76e0e37ae1e7ff8212489b9eebd4cafe"
+}

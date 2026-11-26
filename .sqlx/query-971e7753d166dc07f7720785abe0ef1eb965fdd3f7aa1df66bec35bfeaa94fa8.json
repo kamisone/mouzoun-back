@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT CASE WHEN a.inventory_mode = 'pool' AND a.pool_capacity IS NOT NULL THEN a.pool_capacity > 0\n                       ELSE EXISTS (SELECT 1 FROM accommodation_units u WHERE u.product_id = a.product_id AND u.status = 'active')\n                  END AS \"x!\"\n           FROM accommodation_types a WHERE a.product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "971e7753d166dc07f7720785abe0ef1eb965fdd3f7aa1df66bec35bfeaa94fa8"
+}

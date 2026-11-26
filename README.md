@@ -15,7 +15,9 @@ cargo run --bin seed_dev      # optional: fr/en/ar demo content (SEED_ADMIN_EMAI
 The first super admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if none exists.
 The database (schema, conventions, migrations, outbox, adding a language or a product kind) is
 documented in [`docs/database/README.md`](docs/database/README.md), transactional emails (outbox
-worker, templates, providers, retries) in [`docs/email/README.md`](docs/email/README.md).
+worker, templates, providers, retries) in [`docs/email/README.md`](docs/email/README.md). The admin
+editors of stays, activities, packages and extras (units, calendar, departures, price rules,
+publication) are in [`docs/catalog/README.md`](docs/catalog/README.md).
 
 ## Architecture
 
@@ -74,9 +76,16 @@ admin ── POST /v1/admin/media (multipart: file, visibility) ──► API
 
 - The bytes are checked **before** anything is stored: a renamed `.exe`/`.html` never reaches
   the bucket. If the database insert fails, the object is deleted again.
-- Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts). Max
-  `MEDIA_MAX_UPLOAD_BYTES` (15 MB). Only this route raises the body limit (the rest of the API
-  keeps 1 MiB); nginx allows 16M on `location = /api/v1/admin/media` only.
+- Allowed: JPEG, PNG, WebP, AVIF, PDF (SVG refused: it can carry scripts), max
+  `MEDIA_MAX_UPLOAD_BYTES` (15 MB); videos MP4 (H.264 recommended, `ftyp` box with an MP4 brand)
+  and WebM (EBML doctype `webm`), max `MEDIA_MAX_VIDEO_BYTES` (100 MB). QuickTime `.mov` (declared
+  type, `.mov` name or `qt  ` brand) is refused with the code `video_mov`: the admin asks for an
+  MP4 export. Only this route raises the body limit, to the larger of the two (the rest of the API
+  keeps 1 MiB); nginx allows 101M (5-minute timeouts) on `location = /api/v1/admin/media` only.
+  The file is held in memory while it is checked and written to the bucket.
+- Every upload field of the admin says what it is for (`MzMediaField` `purpose`: title, one-line
+  hint ending with the accepted formats and the limit, upload button named after it), in the
+  catalogue, the shop and the page builder (`media.purposes.builder.<section>.<field>`).
 - Keys are opaque (`media/YYYY/MM/<uuid>.<ext>`), never derived from filenames.
 - One bucket, fine-grained access control, ACL chosen per file (`media_assets.visibility`):
   - `visibility=public` (default: site photos) → predefined ACL `publicRead`, served at its

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accommodation_units SET status = 'maintenance', notes = 'Toile à remplacer' WHERE product_id = $1 AND code = 'K-06'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e9192d3482c58ecc559ac4c0284105de84469f753fc57e5f308f4f45ae08d481"
+}

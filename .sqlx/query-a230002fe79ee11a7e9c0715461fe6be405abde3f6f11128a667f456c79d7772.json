@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, rate_plan_id, season_id, guest_category_id, pricing_unit AS \"pricing_unit: PricingUnit\",\n                  amount_minor, extra_guest_amount_minor, min_quantity, max_quantity, min_nights, days_of_week,\n                  valid_period AS \"valid_period: DateRange\", priority, is_active\n           FROM prices WHERE product_id = $1 ORDER BY priority DESC, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rate_plan_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "season_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "guest_category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "pricing_unit: PricingUnit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "extra_guest_amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "min_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "min_nights",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "days_of_week",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 11,
+        "name": "valid_period: DateRange",
+        "type_info": "DateRange"
+      },
+      {
+        "ordinal": 12,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "is_active",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a230002fe79ee11a7e9c0715461fe6be405abde3f6f11128a667f456c79d7772"
+}

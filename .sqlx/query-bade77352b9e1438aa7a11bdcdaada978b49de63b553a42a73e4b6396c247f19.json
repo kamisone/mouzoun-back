@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM closures c WHERE c.id = $1\n             AND (c.product_id = $2 OR c.unit_id IN (SELECT u.id FROM accommodation_units u WHERE u.product_id = $2))\n           RETURNING c.scope, c.period AS \"period: DateRange\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scope",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "period: DateRange",
+        "type_info": "DateRange"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "bade77352b9e1438aa7a11bdcdaada978b49de63b553a42a73e4b6396c247f19"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_translations (product_id, locale, name, slug, short_description)\n         VALUES ($1, 'fr', 'Bivouac des nomades', 'bivouac-des-nomades', 'Une nuit en bivouac avec les éleveurs, en préparation.')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2101eed0f391d5d3fea0ad7a33f09ba7c27f0695c998ceeed6adef63860a2b68"
+}

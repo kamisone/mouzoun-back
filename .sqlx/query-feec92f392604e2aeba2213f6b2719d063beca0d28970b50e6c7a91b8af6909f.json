@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT b.id AS booking_id, b.reference, b.status, lower(i.service_period) AS arrival,\n                  upper(i.service_period) AS departure, i.starts_at\n           FROM booking_items i JOIN bookings b ON b.id = i.booking_id\n           WHERE i.product_id = $1 AND i.status = 'active'\n             AND b.status NOT IN ('cancelled', 'expired', 'no_show', 'completed')\n             AND (upper(i.service_period) > $2 OR i.starts_at >= $2::date::timestamptz\n                  OR (i.service_period IS NULL AND i.starts_at IS NULL))\n           ORDER BY arrival, b.reference\n           LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "arrival",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "departure",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "starts_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "feec92f392604e2aeba2213f6b2719d063beca0d28970b50e6c7a91b8af6909f"
+}

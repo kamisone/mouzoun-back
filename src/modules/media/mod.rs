@@ -23,7 +23,8 @@ use crate::state::AppState;
 /// Room for the multipart envelope around the largest allowed file.
 const MULTIPART_OVERHEAD: usize = 64 * 1024;
 
-/// `/v1/admin/media` (staff guard applied by the admin router).
+/// `/v1/admin/media` (staff guard applied by the admin router). `max_upload_bytes` is the largest
+/// allowed file of any kind (videos); the service then checks each kind's own limit.
 pub fn admin_routes(max_upload_bytes: i64) -> Router<AppState> {
     let limit = usize::try_from(max_upload_bytes).unwrap_or(0) + MULTIPART_OVERHEAD;
     Router::new()

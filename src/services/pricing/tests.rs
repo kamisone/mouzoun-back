@@ -532,3 +532,35 @@ fn amounts_in_another_currency_never_apply() {
     let q = quote(&stay(&guests, d(2027, 1, 4), d(2027, 1, 6)), &c).unwrap();
     assert_eq!(q.discount_minor, 600);
 }
+
+#[test]
+fn two_equal_rules_are_ambiguous_a_different_priority_or_weekday_is_not() {
+    let a = rule(1, PricingUnit::PerUnitPerNight, 3_000);
+    let b = rule(2, PricingUnit::PerUnitPerNight, 3_500);
+    assert_eq!(ambiguous_pairs(&[a.clone(), b.clone()]), vec![(a.id, b.id)]);
+    let mut higher = b.clone();
+    higher.priority = 1;
+    assert!(ambiguous_pairs(&[a.clone(), higher]).is_empty());
+    // Weekend rule vs every day: more specific, the engine knows which wins.
+    let mut weekend = b.clone();
+    weekend.days_of_week = DaysOfWeek(32 | 64);
+    assert!(ambiguous_pairs(&[a.clone(), weekend.clone()]).is_empty());
+    // Two weekend rules (same days) with the same priority: ambiguous again.
+    let mut weekend2 = weekend.clone();
+    weekend2.id = Uuid::from_u128(3);
+    assert_eq!(
+        ambiguous_pairs(&[weekend.clone(), weekend2.clone()]).len(),
+        1
+    );
+    // Saturday-only vs Sunday-only never meet.
+    weekend.days_of_week = DaysOfWeek(32);
+    weekend2.days_of_week = DaysOfWeek(64);
+    assert!(ambiguous_pairs(&[weekend, weekend2]).is_empty());
+    // Disjoint validity periods or a nightly vs a dated unit never meet either.
+    let mut spring = a.clone();
+    spring.valid_period = Some(DateRange::new(d(2027, 3, 1), d(2027, 6, 1)));
+    let mut autumn = b.clone();
+    autumn.valid_period = Some(DateRange::new(d(2027, 9, 1), d(2027, 12, 1)));
+    assert!(ambiguous_pairs(&[spring, autumn]).is_empty());
+    assert!(ambiguous_pairs(&[a, rule(4, PricingUnit::PerPerson, 1_000)]).is_empty());
+}

@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.booking_mode, p.cover_media_id, p.gallery_id,\n                  fr.name AS \"fr_name?\", fr.slug AS \"fr_slug?\", fr.short_description AS \"fr_short?\", fr.seo_description AS \"fr_seo?\",\n                  EXISTS (SELECT 1 FROM product_translations x WHERE x.product_id = p.id AND x.locale = 'en' AND x.name <> '') AS \"has_en!\",\n                  EXISTS (SELECT 1 FROM product_translations x WHERE x.product_id = p.id AND x.locale = 'ar' AND x.name <> '') AS \"has_ar!\",\n                  EXISTS (SELECT 1 FROM media_asset_translations mt WHERE mt.media_asset_id = p.cover_media_id\n                          AND mt.locale = 'fr' AND btrim(COALESCE(mt.alt_text, '')) <> '') AS \"cover_alt!\",\n                  EXISTS (SELECT 1 FROM gallery_items gi WHERE gi.gallery_id = p.gallery_id) AS \"has_gallery!\",\n                  NOT EXISTS (SELECT 1 FROM gallery_items gi WHERE gi.gallery_id = p.gallery_id\n                              AND NOT EXISTS (SELECT 1 FROM media_asset_translations mt WHERE mt.media_asset_id = gi.media_id\n                                              AND mt.locale = 'fr' AND btrim(COALESCE(mt.alt_text, '')) <> '')) AS \"gallery_alt!\",\n                  EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id) AS \"has_category!\",\n                  EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.is_active) AS \"has_price!\",\n                  -- A cancellation policy reachable through a rate plan the product's prices allow.\n                  EXISTS (SELECT 1 FROM rate_plans rp\n                          WHERE rp.is_active AND rp.cancellation_policy_id IS NOT NULL\n                            AND EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.is_active\n                                        AND (pr.rate_plan_id IS NULL OR pr.rate_plan_id = rp.id))) AS \"has_policy!\"\n           FROM products p\n           LEFT JOIN product_translations fr ON fr.product_id = p.id AND fr.locale = 'fr'\n           WHERE p.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "booking_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "cover_media_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "gallery_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "fr_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "fr_slug?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "fr_short?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "fr_seo?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_en!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "has_ar!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "cover_alt!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "has_gallery!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "gallery_alt!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "has_category!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "has_price!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "has_policy!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "47cabcc28632ac3083e4be7f93bcf4551bdded48ff501c916725d4ad73077012"
+}

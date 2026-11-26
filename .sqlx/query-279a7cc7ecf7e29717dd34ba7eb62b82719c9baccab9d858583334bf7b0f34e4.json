@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO resources (id, kind, code, name, seats, user_id, status, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n         ON CONFLICT (id) DO UPDATE SET kind = $2, code = $3, name = $4, seats = $5, user_id = $6, status = $7, notes = $8",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        {
+          "Custom": {
+            "name": "citext",
+            "kind": "Simple"
+          }
+        },
+        "Text",
+        "Int4",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "279a7cc7ecf7e29717dd34ba7eb62b82719c9baccab9d858583334bf7b0f34e4"
+}

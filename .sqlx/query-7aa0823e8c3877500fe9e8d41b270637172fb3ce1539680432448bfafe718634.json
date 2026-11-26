@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM activity_slots s WHERE id = ANY($1) AND reserved = 0\n               AND NOT EXISTS (SELECT 1 FROM booking_items i WHERE i.activity_slot_id = s.id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7aa0823e8c3877500fe9e8d41b270637172fb3ce1539680432448bfafe718634"
+}

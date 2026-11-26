@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.code::text AS \"code!\", s.color, s.priority,\n                  COALESCE((SELECT jsonb_object_agg(locale, name) FROM season_translations WHERE season_id = s.id), '{}') AS \"names!\"\n           FROM seasons s ORDER BY s.priority DESC, s.code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "names!",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "6cb177ea75aacbcdebeb2bc4eb79d885a4f650c46fb191306eaa3a142ac597c7"
+}

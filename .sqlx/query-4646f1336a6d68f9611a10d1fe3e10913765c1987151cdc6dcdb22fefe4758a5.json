@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode) VALUES ($1, 1, 0, 'fixed')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4646f1336a6d68f9611a10d1fe3e10913765c1987151cdc6dcdb22fefe4758a5"
+}

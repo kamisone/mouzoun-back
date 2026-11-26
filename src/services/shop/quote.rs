@@ -266,8 +266,14 @@ fn class_shares(class: &str, bundle: Option<&serde_json::Value>) -> Vec<(String,
             a.iter()
                 .filter_map(|p| {
                     let c = p["tax_class_code"].as_str()?.to_string();
-                    let pct = p["share_percent"].as_f64()?;
-                    Some((c, (pct * 100.0).round() as u32))
+                    // Stored as a number by older saves, as a decimal string since the admin
+                    // serialises `Decimal` (both are read: a string used to be dropped here).
+                    let pct = crate::web::percent::from_json(&p["share_percent"])?;
+                    let basis_points = (pct * rust_decimal::Decimal::ONE_HUNDRED).round();
+                    Some((
+                        c,
+                        rust_decimal::prelude::ToPrimitive::to_u32(&basis_points)?,
+                    ))
                 })
                 .collect()
         })
@@ -605,4 +611,26 @@ pub async fn load(
         now,
     };
     Ok(Loaded { input, facts })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::class_shares;
+    use serde_json::json;
+
+    #[test]
+    fn a_gift_box_split_is_read_whether_saved_as_numbers_or_strings() {
+        let expected = vec![
+            ("food_reduced".to_string(), 7_000),
+            ("standard".to_string(), 3_000),
+        ];
+        let numbers = json!([{"tax_class_code": "food_reduced", "share_percent": 70}, {"tax_class_code": "standard", "share_percent": 30}]);
+        let strings = json!([{"tax_class_code": "food_reduced", "share_percent": "70"}, {"tax_class_code": "standard", "share_percent": "30"}]);
+        assert_eq!(class_shares("food_reduced", Some(&numbers)), expected);
+        assert_eq!(class_shares("food_reduced", Some(&strings)), expected);
+        assert_eq!(
+            class_shares("standard", None),
+            vec![("standard".to_string(), 10_000)]
+        );
+    }
 }

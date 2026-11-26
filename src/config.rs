@@ -444,7 +444,10 @@ impl fmt::Debug for StorageConfig {
 /// Upload rules and lifetimes for the media module.
 #[derive(Clone, Debug)]
 pub struct MediaConfig {
+    /// Images and documents.
     pub max_upload_bytes: i64,
+    /// Videos (MP4, WebM).
+    pub max_video_bytes: i64,
     pub download_url_ttl: Duration,
 }
 
@@ -605,6 +608,7 @@ impl MediaConfig {
     fn from_env() -> Result<Self> {
         Ok(Self {
             max_upload_bytes: parse_or("MEDIA_MAX_UPLOAD_BYTES", 15 * 1024 * 1024)?,
+            max_video_bytes: parse_or("MEDIA_MAX_VIDEO_BYTES", 100 * 1024 * 1024)?,
             download_url_ttl: Duration::from_secs(parse_or(
                 "MEDIA_DOWNLOAD_URL_TTL_SECS",
                 15 * 60,
@@ -740,6 +744,7 @@ mod tests {
             },
             media: MediaConfig {
                 max_upload_bytes: 1,
+                max_video_bytes: 1,
                 download_url_ttl: Duration::from_secs(1),
             },
             email: EmailConfig {

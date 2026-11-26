@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE activity_slots SET status = CASE WHEN reserved >= capacity THEN 'full' ELSE 'open' END\n         WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "379c1956dffa606bdd98b4a2b20f08ebc6229deaa67327d9ae730d8ee41cdd9f"
+}

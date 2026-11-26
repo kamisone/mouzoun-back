@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.scheduling_mode,\n                  EXISTS (SELECT 1 FROM activity_schedules s WHERE s.product_id = a.product_id AND s.is_active) AS \"schedule!\",\n                  EXISTS (SELECT 1 FROM activity_slots s WHERE s.product_id = a.product_id AND s.starts_at > now()\n                          AND s.status = 'open') AS \"slots!\"\n           FROM activities a WHERE a.product_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scheduling_mode",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "schedule!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "slots!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "0613385b30c8765d3944cd1213e905069b05a2a4af4863746aaed4b0286df654"
+}

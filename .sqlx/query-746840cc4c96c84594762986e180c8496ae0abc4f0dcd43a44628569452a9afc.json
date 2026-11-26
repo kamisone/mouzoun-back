@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode, discount_percent)\n             SELECT $2, duration_days, duration_nights, pricing_mode, discount_percent FROM packages WHERE product_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "746840cc4c96c84594762986e180c8496ae0abc4f0dcd43a44628569452a9afc"
+}

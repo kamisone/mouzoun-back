@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_extras (product_id, extra_product_id, is_mandatory, sort_order) VALUES ($1, $2, $3, $4)\n             ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cdce1e5dcad30a8f4530099ccd4e63c0e56223ba6d7e7a31d77bd1f575afac76"
+}

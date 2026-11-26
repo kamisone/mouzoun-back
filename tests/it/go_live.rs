@@ -177,3 +177,68 @@ async fn the_site_gets_the_bot_check_key_from_the_api(db: PgPool) {
     assert_eq!(config["captcha"], true);
     assert_eq!(config["captcha_site_key"], "0x4AAAAAAAsite");
 }
+
+/// A package priced from its items has no price of its own: the check looks at its items.
+#[sqlx::test(migrations = "./migrations")]
+async fn a_package_priced_from_its_items_needs_prices_on_its_items(db: PgPool) {
+    let tent = accommodation(&db, "unit", 2).await; // priced
+    let (pk, quad): (uuid::Uuid, uuid::Uuid) = (uuid::Uuid::now_v7(), uuid::Uuid::now_v7());
+    for (id, kind) in [(pk, "package"), (quad, "activity")] {
+        sqlx::query("INSERT INTO products (id, kind, status) VALUES ($1, $2, 'published')")
+            .bind(id)
+            .bind(kind)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+    sqlx::query("INSERT INTO activities (product_id, location_type, scheduling_mode) VALUES ($1, 'off_site', 'anytime')")
+        .bind(quad)
+        .execute(&db)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO packages (product_id, duration_days, duration_nights, pricing_mode, discount_percent) VALUES ($1, 2, 1, 'sum_minus_discount', 10)")
+        .bind(pk)
+        .execute(&db)
+        .await
+        .unwrap();
+    for (item, qty) in [(tent, 1), (quad, 1)] {
+        sqlx::query("INSERT INTO package_items (package_product_id, item_product_id, quantity, day_number) VALUES ($1, $2, $3, 1)")
+            .bind(pk)
+            .bind(item)
+            .bind(qty)
+            .execute(&db)
+            .await
+            .unwrap();
+    }
+    let config = crate::common::test_config();
+    let unpriced = |list: &mouzoun_api::services::booking::go_live::Checklist| {
+        serde_json::to_value(list).unwrap()["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["key"] == "prices")
+            .unwrap()["details"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["product"].as_str().unwrap_or_default().to_string())
+            .collect::<Vec<_>>()
+    };
+    let list = mouzoun_api::services::booking::go_live::run(&db, &config, Utc::now())
+        .await
+        .unwrap();
+    let missing = unpriced(&list);
+    assert!(
+        missing.contains(&pk.to_string()),
+        "the activity has no price: {missing:?}"
+    );
+    assert!(missing.contains(&quad.to_string()));
+    price(&db, quad, "per_person", 1_000).await;
+    let list = mouzoun_api::services::booking::go_live::run(&db, &config, Utc::now())
+        .await
+        .unwrap();
+    assert!(
+        !unpriced(&list).contains(&pk.to_string()),
+        "no price rule needed on the package itself"
+    );
+}

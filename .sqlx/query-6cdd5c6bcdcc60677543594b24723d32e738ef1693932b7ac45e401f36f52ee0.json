@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO prices (id, product_id, pricing_unit, amount_minor, currency, extra_guest_amount_minor, days_of_week)\n         VALUES ($1, $2, 'per_unit_per_night', 5_500, 'EUR', 1_500, 48)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6cdd5c6bcdcc60677543594b24723d32e738ef1693932b7ac45e401f36f52ee0"
+}

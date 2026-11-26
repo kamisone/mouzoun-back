@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT count(*) FROM prices WHERE guest_category_id = $1) AS \"prices!\",\n                  (SELECT count(*) FROM booking_item_guests WHERE guest_category_id = $1) AS \"bookings!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "prices!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "bookings!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "9c9369aa78dae56abe9d4b785daf7e30ee59f684fdd6ba6f27053b90fff90755"
+}
