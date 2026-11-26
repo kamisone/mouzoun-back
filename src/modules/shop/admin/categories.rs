@@ -1,7 +1,12 @@
-//! Shop categories admin (`/v1/admin/shop/categories`): the tree (one call saves a whole move),
-//! the full form (translations, description, cover, icon, SEO, visibility, default sort), safe
-//! delete with an impact preview and reassignment, manual product order and pins. Every write is
-//! audited and clears the shop and menu caches. Rules: `services::shop::categories`.
+//! Categories admin: the tree (one call saves a whole move), the full form (translations,
+//! description, cover, icon, SEO, visibility, default sort), safe delete with an impact preview
+//! and reassignment, manual product order and pins. Every write is audited and clears the shop
+//! and menu caches. Rules: `services::shop::categories`.
+//!
+//! One implementation, two scopes (`Scope`): shop categories (`/v1/admin/shop/categories`, the
+//! handlers below without suffix) and stay/activity categories (`/v1/admin/catalog/categories`,
+//! `modules::catalog::categories` calls the `*_in` functions with `Scope::Product`). Only shop
+//! categories have public pages, so only they take part in SEO redirects and reserved slugs.
 //!
 //! Also: a customer's orders (customer page, orders tab).
 
@@ -28,7 +33,8 @@ use crate::{
         cache_invalidation::{MENUS_PREFIX, SHOP_CATALOG_PREFIX},
         outbox::{self, Event},
         shop::categories::{
-            self as cat, Node, SORTS, check_tree, link_products, map_tree_error, shop_path, slugify,
+            self as cat, Node, SORTS, Scope, check_tree, link_products, map_tree_error, shop_path,
+            slugify,
         },
     },
     state::AppState,
@@ -66,6 +72,19 @@ async fn changed(tx: &mut PgConnection, id: Uuid) -> AppResult<()> {
     Ok(())
 }
 
+/// The category exists in this scope (product order endpoints take any id otherwise).
+async fn in_scope(conn: &mut PgConnection, id: Uuid, scope: Scope) -> AppResult<()> {
+    sqlx::query_scalar!(
+        "SELECT id FROM categories WHERE id = $1 AND scope = $2",
+        id,
+        scope.code()
+    )
+    .fetch_optional(conn)
+    .await?
+    .ok_or(AppError::NotFound)?;
+    Ok(())
+}
+
 /// After commit: category trees, category pages, product lists and menus read categories.
 async fn invalidate(state: &AppState) {
     state.cache.delete_prefix(SHOP_CATALOG_PREFIX).await.ok();
@@ -94,14 +113,19 @@ async fn covers(
 
 // ---- List (tree) ---------------------------------------------------------------------------------
 
-/// All shop categories, flat and in order (the client builds the tree), with product counts
-/// (own and including subcategories, all and published), the tree version and the depth limit.
 pub async fn list(State(state): State<AppState>, staff: Staff) -> AppResult<Json<Value>> {
-    staff.require("shop.read")?;
+    list_in(&state, &staff, Scope::Shop).await
+}
+
+/// All categories of the scope, flat and in order (the client builds the tree), with product
+/// counts (own and including subcategories, all and published), the tree version and the depth
+/// limit.
+pub async fn list_in(state: &AppState, staff: &Staff, scope: Scope) -> AppResult<Json<Value>> {
+    staff.require(scope.read_permission())?;
     let mut conn = state.db.acquire().await?;
     let rows = sqlx::query!(
         r#"WITH RECURSIVE sub AS (
-               SELECT id AS root, id FROM categories WHERE scope = 'shop'
+               SELECT id AS root, id FROM categories WHERE scope = $1
                UNION ALL
                SELECT sub.root, c.id FROM categories c JOIN sub ON c.parent_id = sub.id),
            counts AS (
@@ -121,14 +145,15 @@ pub async fn list(State(state): State<AppState>, staff: Staff) -> AppResult<Json
                   COALESCE(n.total, 0) AS "total!", COALESCE(n.published, 0) AS "published!"
            FROM categories c
            LEFT JOIN counts n ON n.root = c.id
-           WHERE c.scope = 'shop' ORDER BY c.sort_order, c.created_at"#
+           WHERE c.scope = $1 ORDER BY c.sort_order, c.created_at"#,
+        scope.code()
     )
     .fetch_all(&mut *conn)
     .await?;
-    let version = cat::tree_version(&mut conn).await?;
-    let max_depth = cat::max_depth(&mut conn).await?;
+    let version = cat::tree_version(&mut conn, scope).await?;
+    let max_depth = cat::max_depth(&mut conn, scope).await?;
     let covers = covers(
-        &state,
+        state,
         &mut conn,
         &rows
             .iter()
@@ -157,12 +182,26 @@ pub async fn detail(
     staff: Staff,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
-    staff.require("shop.read")?;
-    let mut conn = state.db.acquire().await?;
-    Ok(Json(detail_json(&state, &mut conn, id).await?))
+    detail_in(&state, &staff, id, Scope::Shop).await
 }
 
-async fn detail_json(state: &AppState, conn: &mut PgConnection, id: Uuid) -> AppResult<Value> {
+pub async fn detail_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    staff.require(scope.read_permission())?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Json(detail_json(state, &mut conn, id, scope).await?))
+}
+
+async fn detail_json(
+    state: &AppState,
+    conn: &mut PgConnection,
+    id: Uuid,
+    scope: Scope,
+) -> AppResult<Value> {
     let c = sqlx::query!(
         r#"SELECT c.id, c.parent_id, c.icon, c.cover_media_id, c.sort_order, c.is_active, c.show_in_menu, c.default_sort,
                   c.first_activated_at, c.created_at, c.updated_at,
@@ -170,8 +209,9 @@ async fn detail_json(state: &AppState, conn: &mut PgConnection, id: Uuid) -> App
                             WHERE media_asset_id = c.cover_media_id AND alt_text IS NOT NULL), '{}') AS "cover_alt!",
                   COALESCE((SELECT jsonb_object_agg(locale, jsonb_build_object('name', name, 'slug', slug, 'description', description,
                             'seo_title', seo_title, 'seo_description', seo_description)) FROM category_translations WHERE category_id = c.id), '{}') AS "translations!"
-           FROM categories c WHERE c.id = $1 AND c.scope = 'shop'"#,
-        id
+           FROM categories c WHERE c.id = $1 AND c.scope = $2"#,
+        id,
+        scope.code()
     )
     .fetch_optional(&mut *conn)
     .await?
@@ -188,9 +228,11 @@ async fn detail_json(state: &AppState, conn: &mut PgConnection, id: Uuid) -> App
         None => None,
     };
     let default_locale = cat::default_locale(conn).await?;
+    // Only shop categories have a page of their own.
     let urls: HashMap<String, String> = c
         .translations
         .as_object()
+        .filter(|_| scope.has_pages())
         .map(|o| {
             o.iter()
                 .filter_map(|(l, t)| {
@@ -263,15 +305,19 @@ async fn save(
     staff: &Staff,
     id: Option<Uuid>,
     c: CategoryInput,
+    scope: Scope,
 ) -> AppResult<Uuid> {
-    staff.require("shop.catalog")?;
+    staff.require(scope.write_permission())?;
     let mut tx = state.db.begin().await?;
     let creating = id.is_none();
     let id = id.unwrap_or_else(Uuid::now_v7);
     // Tree changes are serialised (the tree endpoint takes the same lock).
-    sqlx::query!("SELECT id FROM categories WHERE scope = 'shop' FOR UPDATE")
-        .fetch_all(&mut *tx)
-        .await?;
+    sqlx::query!(
+        "SELECT id FROM categories WHERE scope = $1 FOR UPDATE",
+        scope.code()
+    )
+    .fetch_all(&mut *tx)
+    .await?;
     let existing = if creating {
         None
     } else {
@@ -279,8 +325,9 @@ async fn save(
             sqlx::query_as!(
                 Existing,
                 "SELECT parent_id, icon, cover_media_id, sort_order, is_active, show_in_menu, default_sort
-                 FROM categories WHERE id = $1 AND scope = 'shop'",
-                id
+                 FROM categories WHERE id = $1 AND scope = $2",
+                id,
+                scope.code()
             )
             .fetch_optional(&mut *tx)
             .await?
@@ -339,19 +386,20 @@ async fn save(
     if parent_id == Some(id) {
         return Err(cat::TreeError::Cycle(id).into());
     }
-    let mut nodes = cat::nodes(&mut tx).await?;
+    let mut nodes = cat::nodes(&mut tx, scope).await?;
     match nodes.iter_mut().find(|n| n.id == id) {
         Some(n) => n.parent_id = parent_id,
         None => nodes.push(Node { id, parent_id }),
     }
-    check_tree(&nodes, cat::max_depth(&mut tx).await?)?;
+    check_tree(&nodes, cat::max_depth(&mut tx, scope).await?)?;
     let sort_order = match c.sort_order.or(existing.as_ref().map(|e| e.sort_order)) {
         Some(s) => s,
         None => {
             sqlx::query_scalar!(
                 r#"SELECT COALESCE(max(sort_order) + 1, 0) AS "n!" FROM categories
-               WHERE scope = 'shop' AND parent_id IS NOT DISTINCT FROM $1"#,
-                parent_id
+               WHERE scope = $2 AND parent_id IS NOT DISTINCT FROM $1"#,
+                parent_id,
+                scope.code()
             )
             .fetch_one(&mut *tx)
             .await?
@@ -411,7 +459,7 @@ async fn save(
             .unwrap_or_else(|| slugify(&name));
         if slug.is_empty() {
             errors.push((format!("translations.{locale}.slug"), "required"));
-        } else if cat::is_reserved(&slug) {
+        } else if scope.has_pages() && cat::is_reserved(&slug) {
             errors.push((format!("translations.{locale}.slug"), "reserved"));
         }
         let description = clean(t.description.as_deref())
@@ -488,17 +536,17 @@ async fn save(
         return Err(field_errors(&errors));
     }
 
-    let urls = if creating {
+    let urls = if creating || !scope.has_pages() {
         None
     } else {
         seo::snapshot(&mut tx, SHOP_CATEGORY, id).await?
     };
     sqlx::query!(
         "INSERT INTO categories (id, scope, parent_id, icon, cover_media_id, sort_order, is_active, show_in_menu, default_sort)
-         VALUES ($1, 'shop', $2, $3, $4, $5, $6, $7, $8)
+         VALUES ($1, $9, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id) DO UPDATE SET parent_id = $2, icon = $3, cover_media_id = $4, sort_order = $5, is_active = $6,
                                         show_in_menu = $7, default_sort = $8
-         WHERE categories.scope = 'shop'",
+         WHERE categories.scope = $9",
         id,
         parent_id,
         icon.as_deref(),
@@ -506,7 +554,8 @@ async fn save(
         sort_order,
         is_active,
         show_in_menu,
-        default_sort
+        default_sort,
+        scope.code()
     )
     .execute(&mut *tx)
     .await?;
@@ -555,7 +604,9 @@ async fn save(
     )
     .await?;
     // Old addresses redirect (site-wide layer); a deactivated category keeps an inactive one.
-    seo::after_change(&mut tx, &staff.actor(), SHOP_CATEGORY, id, urls).await?;
+    if scope.has_pages() {
+        seo::after_change(&mut tx, &staff.actor(), SHOP_CATEGORY, id, urls).await?;
+    }
     changed(&mut tx, id).await?;
     tx.commit().await.map_err(map_tree_error)?;
     invalidate(state).await;
@@ -567,11 +618,20 @@ pub async fn create(
     staff: Staff,
     Json(c): Json<CategoryInput>,
 ) -> AppResult<(StatusCode, Json<Value>)> {
-    let id = save(&state, &staff, None, c).await?;
+    create_in(&state, &staff, c, Scope::Shop).await
+}
+
+pub async fn create_in(
+    state: &AppState,
+    staff: &Staff,
+    c: CategoryInput,
+    scope: Scope,
+) -> AppResult<(StatusCode, Json<Value>)> {
+    let id = save(state, staff, None, c, scope).await?;
     let mut conn = state.db.acquire().await?;
     Ok((
         StatusCode::CREATED,
-        Json(detail_json(&state, &mut conn, id).await?),
+        Json(detail_json(state, &mut conn, id, scope).await?),
     ))
 }
 
@@ -581,9 +641,19 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(c): Json<CategoryInput>,
 ) -> AppResult<Json<Value>> {
-    save(&state, &staff, Some(id), c).await?;
+    update_in(&state, &staff, id, c, Scope::Shop).await
+}
+
+pub async fn update_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    c: CategoryInput,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    save(state, staff, Some(id), c, scope).await?;
     let mut conn = state.db.acquire().await?;
-    Ok(Json(detail_json(&state, &mut conn, id).await?))
+    Ok(Json(detail_json(state, &mut conn, id, scope).await?))
 }
 
 // ---- Tree move -------------------------------------------------------------------------------------
@@ -608,19 +678,31 @@ pub async fn save_tree(
     staff: Staff,
     Json(body): Json<TreeBody>,
 ) -> AppResult<Json<Value>> {
-    staff.require("shop.catalog")?;
+    save_tree_in(&state, &staff, body, Scope::Shop).await
+}
+
+pub async fn save_tree_in(
+    state: &AppState,
+    staff: &Staff,
+    body: TreeBody,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    staff.require(scope.write_permission())?;
     let mut tx = state.db.begin().await?;
-    sqlx::query!("SELECT id FROM categories WHERE scope = 'shop' FOR UPDATE")
-        .fetch_all(&mut *tx)
-        .await?;
-    if cat::tree_version(&mut tx).await? != body.version {
+    sqlx::query!(
+        "SELECT id FROM categories WHERE scope = $1 FOR UPDATE",
+        scope.code()
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    if cat::tree_version(&mut tx, scope).await? != body.version {
         return Err(AppError::domain(
             StatusCode::CONFLICT,
             "tree_changed",
             "the categories changed meanwhile: reload",
         ));
     }
-    let mut nodes = cat::nodes(&mut tx).await?;
+    let mut nodes = cat::nodes(&mut tx, scope).await?;
     let mut seen = HashSet::new();
     for item in &body.items {
         if !seen.insert(item.id) {
@@ -631,13 +713,14 @@ pub async fn save_tree(
         };
         n.parent_id = item.parent_id;
     }
-    check_tree(&nodes, cat::max_depth(&mut tx).await?)?;
+    check_tree(&nodes, cat::max_depth(&mut tx, scope).await?)?;
     for item in &body.items {
         sqlx::query!(
-            "UPDATE categories SET parent_id = $2, sort_order = $3 WHERE id = $1 AND scope = 'shop'",
+            "UPDATE categories SET parent_id = $2, sort_order = $3 WHERE id = $1 AND scope = $4",
             item.id,
             item.parent_id,
-            item.sort_order
+            item.sort_order,
+            scope.code()
         )
         .execute(&mut *tx)
         .await?;
@@ -647,16 +730,16 @@ pub async fn save_tree(
         &staff.actor(),
         "category.tree_saved",
         "category_tree",
-        "shop",
+        scope.code(),
         json!({ "items": body.items.iter().map(|i| json!({ "id": i.id, "parent_id": i.parent_id, "sort_order": i.sort_order })).collect::<Vec<_>>() }),
     )
     .await?;
     for item in &body.items {
         changed(&mut tx, item.id).await?;
     }
-    let version = cat::tree_version(&mut tx).await?;
+    let version = cat::tree_version(&mut tx, scope).await?;
     tx.commit().await.map_err(map_tree_error)?;
-    invalidate(&state).await;
+    invalidate(state).await;
     Ok(Json(json!({ "version": version })))
 }
 
@@ -667,9 +750,18 @@ pub async fn impact(
     staff: Staff,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
-    staff.require("shop.read")?;
+    impact_in(&state, &staff, id, Scope::Shop).await
+}
+
+pub async fn impact_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    staff.require(scope.read_permission())?;
     let mut conn = state.db.acquire().await?;
-    Ok(Json(json!(cat::impact(&mut conn, id).await?)))
+    Ok(Json(json!(cat::impact(&mut conn, id, scope).await?)))
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -693,17 +785,31 @@ pub async fn delete(
     Path(id): Path<Uuid>,
     body: Bytes,
 ) -> AppResult<StatusCode> {
-    staff.require("shop.catalog")?;
+    delete_in(&state, &staff, id, &body, Scope::Shop).await
+}
+
+#[allow(clippy::too_many_lines)]
+pub async fn delete_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    body: &[u8],
+    scope: Scope,
+) -> AppResult<StatusCode> {
+    staff.require(scope.write_permission())?;
     let o: DeleteOptions = if body.is_empty() {
         DeleteOptions::default()
     } else {
-        serde_json::from_slice(&body).map_err(|e| AppError::BadRequest(e.to_string()))?
+        serde_json::from_slice(body).map_err(|e| AppError::BadRequest(e.to_string()))?
     };
     let mut tx = state.db.begin().await?;
-    sqlx::query!("SELECT id FROM categories WHERE scope = 'shop' FOR UPDATE")
-        .fetch_all(&mut *tx)
-        .await?;
-    let impact = cat::impact(&mut tx, id).await?;
+    sqlx::query!(
+        "SELECT id FROM categories WHERE scope = $1 FOR UPDATE",
+        scope.code()
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    let impact = cat::impact(&mut tx, id, scope).await?;
     if impact.blocked {
         return Err(AppError::domain(
             StatusCode::CONFLICT,
@@ -717,7 +823,7 @@ pub async fn delete(
     {
         return Err(field_errors(&[("confirm_name".into(), "mismatch")]));
     }
-    let nodes = cat::nodes(&mut tx).await?;
+    let nodes = cat::nodes(&mut tx, scope).await?;
     let doomed = cat::subtree(&nodes, id);
     let exists = |t: Uuid| nodes.iter().any(|n| n.id == t);
     if let Some(t) = o.products_to
@@ -739,9 +845,10 @@ pub async fn delete(
     let new_parent = o.subcategories_to.or(impact.parent_id);
     let base: i32 = sqlx::query_scalar!(
         r#"SELECT COALESCE(max(sort_order) + 1, 0) AS "n!" FROM categories
-           WHERE scope = 'shop' AND parent_id IS NOT DISTINCT FROM $1 AND id <> $2"#,
+           WHERE scope = $3 AND parent_id IS NOT DISTINCT FROM $1 AND id <> $2"#,
         new_parent,
-        id
+        id,
+        scope.code()
     )
     .fetch_one(&mut *tx)
     .await?;
@@ -825,7 +932,8 @@ pub async fn delete(
         }
     }
 
-    // Old addresses → the replacement in the same language (or that language's shop home).
+    // Old addresses → the replacement in the same language (or that language's shop home). Only
+    // shop categories have addresses.
     let default_locale = cat::default_locale(&mut tx).await?;
     let slugs = sqlx::query!(
         "SELECT locale, slug FROM category_translations WHERE category_id = $1",
@@ -838,7 +946,7 @@ pub async fn delete(
         std::collections::BTreeMap::new(),
         std::collections::BTreeMap::new(),
     );
-    for s in &slugs {
+    for s in slugs.iter().filter(|_| scope.has_pages()) {
         let target =
             match replacement {
                 Some(r) => sqlx::query_scalar!(
@@ -856,7 +964,9 @@ pub async fn delete(
         paths.insert(s.locale.clone(), from);
         targets.insert(s.locale.clone(), to);
     }
-    seo::record_removal(&mut tx, SHOP_CATEGORY, id, &paths, &targets, true).await?;
+    if scope.has_pages() {
+        seo::record_removal(&mut tx, SHOP_CATEGORY, id, &paths, &targets, true).await?;
+    }
 
     sqlx::query!("DELETE FROM categories WHERE id = $1", id)
         .execute(&mut *tx)
@@ -879,7 +989,7 @@ pub async fn delete(
         outbox::enqueue(&mut tx, &Event::MenuUpdated { menu_id: m }).await?;
     }
     tx.commit().await.map_err(map_tree_error)?;
-    invalidate(&state).await;
+    invalidate(state).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -890,17 +1000,27 @@ pub async fn products(
     staff: Staff,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Value>> {
-    staff.require("shop.read")?;
+    products_in(&state, &staff, id, Scope::Shop).await
+}
+
+pub async fn products_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    staff.require(scope.read_permission())?;
     let mut conn = state.db.acquire().await?;
     let c = sqlx::query_scalar!(
-        "SELECT default_sort FROM categories WHERE id = $1 AND scope = 'shop'",
-        id
+        "SELECT default_sort FROM categories WHERE id = $1 AND scope = $2",
+        id,
+        scope.code()
     )
     .fetch_optional(&mut *conn)
     .await?
     .ok_or(AppError::NotFound)?;
     let rows = sqlx::query!(
-        r#"SELECT p.id, p.status, pc.sort_order, pc.is_pinned, pc.is_primary,
+        r#"SELECT p.id, p.kind, p.status, pc.sort_order, pc.is_pinned, pc.is_primary,
                   COALESCE(t.name, '') AS "name!", m.object_key AS "image_key?",
                   (SELECT COALESCE(sum(l.on_hand - l.reserved), 0) FROM product_variants v JOIN inventory_levels l ON l.variant_id = v.id
                    WHERE v.product_id = p.id AND v.deleted_at IS NULL)::bigint AS "stock!"
@@ -916,7 +1036,7 @@ pub async fn products(
     Ok(Json(json!({
         "default_sort": c,
         "data": rows.iter().map(|r| json!({
-            "product_id": r.id, "name": r.name, "status": r.status, "sort_order": r.sort_order, "is_pinned": r.is_pinned,
+            "product_id": r.id, "kind": r.kind, "name": r.name, "status": r.status, "sort_order": r.sort_order, "is_pinned": r.is_pinned,
             "is_primary": r.is_primary, "stock": r.stock, "image_url": r.image_key.as_deref().map(|k| state.media.public_url(k)),
         })).collect::<Vec<_>>(),
     })))
@@ -937,8 +1057,19 @@ pub async fn order_products(
     Path(id): Path<Uuid>,
     Json(items): Json<Vec<ProductOrder>>,
 ) -> AppResult<StatusCode> {
-    staff.require("shop.catalog")?;
+    order_products_in(&state, &staff, id, items, Scope::Shop).await
+}
+
+pub async fn order_products_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    items: Vec<ProductOrder>,
+    scope: Scope,
+) -> AppResult<StatusCode> {
+    staff.require(scope.write_permission())?;
     let mut tx = state.db.begin().await?;
+    in_scope(&mut tx, id, scope).await?;
     for i in &items {
         let n = sqlx::query!(
             "UPDATE product_categories SET sort_order = $3, is_pinned = $4 WHERE category_id = $1 AND product_id = $2",
@@ -968,7 +1099,7 @@ pub async fn order_products(
     .await?;
     changed(&mut tx, id).await?;
     tx.commit().await?;
-    invalidate(&state).await;
+    invalidate(state).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -983,11 +1114,27 @@ pub async fn add_products(
     Path(id): Path<Uuid>,
     Json(body): Json<AddProducts>,
 ) -> AppResult<Json<Value>> {
-    staff.require("shop.catalog")?;
+    add_products_in(&state, &staff, id, body, Scope::Shop).await
+}
+
+pub async fn add_products_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    body: AddProducts,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    staff.require(scope.write_permission())?;
     let mut tx = state.db.begin().await?;
+    let kinds: Vec<String> = scope
+        .product_kinds()
+        .iter()
+        .map(|k| (*k).to_string())
+        .collect();
     let known = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM products WHERE id = ANY($1) AND kind = 'shop_product' AND deleted_at IS NULL"#,
-        &body.product_ids
+        r#"SELECT count(*) AS "n!" FROM products WHERE id = ANY($1) AND kind = ANY($2) AND deleted_at IS NULL"#,
+        &body.product_ids,
+        &kinds
     )
     .fetch_one(&mut *tx)
     .await?;
@@ -995,13 +1142,7 @@ pub async fn add_products(
     if known != i64::try_from(unique.len()).unwrap_or(i64::MAX) {
         return Err(field_errors(&[("product_ids".into(), "invalid")]));
     }
-    sqlx::query_scalar!(
-        "SELECT id FROM categories WHERE id = $1 AND scope = 'shop'",
-        id
-    )
-    .fetch_optional(&mut *tx)
-    .await?
-    .ok_or(AppError::NotFound)?;
+    in_scope(&mut tx, id, scope).await?;
     let added = link_products(&mut tx, id, &body.product_ids).await?;
     audit::record(
         &mut tx,
@@ -1014,7 +1155,7 @@ pub async fn add_products(
     .await?;
     changed(&mut tx, id).await?;
     tx.commit().await?;
-    invalidate(&state).await;
+    invalidate(state).await;
     Ok(Json(json!({ "added": added })))
 }
 
@@ -1023,8 +1164,19 @@ pub async fn remove_product(
     staff: Staff,
     Path((id, product)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
-    staff.require("shop.catalog")?;
+    remove_product_in(&state, &staff, id, product, Scope::Shop).await
+}
+
+pub async fn remove_product_in(
+    state: &AppState,
+    staff: &Staff,
+    id: Uuid,
+    product: Uuid,
+    scope: Scope,
+) -> AppResult<StatusCode> {
+    staff.require(scope.write_permission())?;
     let mut tx = state.db.begin().await?;
+    in_scope(&mut tx, id, scope).await?;
     let n = sqlx::query!(
         "DELETE FROM product_categories WHERE category_id = $1 AND product_id = $2",
         id,
@@ -1048,30 +1200,53 @@ pub async fn remove_product(
     .await?;
     changed(&mut tx, id).await?;
     tx.commit().await?;
-    invalidate(&state).await;
+    invalidate(state).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
 // ---- Suggested categories ----------------------------------------------------------------------
 
-/// Empty state: the usual farm shop categories, inactive (to review), skipping taken addresses.
 pub async fn create_suggested(
     State(state): State<AppState>,
     staff: Staff,
 ) -> AppResult<Json<Value>> {
-    const SUGGESTED: [[&str; 3]; 5] = [
-        ["Dattes", "Dates", "تمور"],
-        [
-            "Huile d'olive & olives",
-            "Olive oil & olives",
-            "زيت الزيتون والزيتون",
-        ],
-        ["Épices & épicerie", "Spices & pantry", "توابل وبقالة"],
-        ["Artisanat", "Crafts", "صناعة تقليدية"],
-        ["Coffrets cadeaux", "Gift boxes", "علب هدايا"],
-    ];
+    create_suggested_in(&state, &staff, Scope::Shop).await
+}
+
+/// Usual farm shop categories.
+const SUGGESTED_SHOP: &[[&str; 3]] = &[
+    ["Dattes", "Dates", "تمور"],
+    [
+        "Huile d'olive & olives",
+        "Olive oil & olives",
+        "زيت الزيتون والزيتون",
+    ],
+    ["Épices & épicerie", "Spices & pantry", "توابل وبقالة"],
+    ["Artisanat", "Crafts", "صناعة تقليدية"],
+    ["Coffrets cadeaux", "Gift boxes", "علب هدايا"],
+];
+
+/// Usual stay and activity categories (the dev seed creates the same ones, active).
+pub const SUGGESTED_PRODUCT: &[[&str; 3]] = &[
+    ["Aventure désert", "Desert adventure", "مغامرة في الصحراء"],
+    ["Vie à la ferme", "Farm life", "الحياة في المزرعة"],
+    ["Culture & village", "Culture & village", "الثقافة والقرية"],
+    ["Hébergements", "Accommodation", "الإقامة"],
+];
+
+/// Empty state: the usual categories of the scope, inactive (to review), skipping taken
+/// addresses.
+pub async fn create_suggested_in(
+    state: &AppState,
+    staff: &Staff,
+    scope: Scope,
+) -> AppResult<Json<Value>> {
+    let suggested = match scope {
+        Scope::Shop => SUGGESTED_SHOP,
+        Scope::Product => SUGGESTED_PRODUCT,
+    };
     let mut created = 0;
-    for names in SUGGESTED {
+    for names in suggested {
         let taken = sqlx::query_scalar!(
             r#"SELECT EXISTS (SELECT 1 FROM category_translations WHERE locale = 'fr' AND slug = $1) AS "x!""#,
             slugify(names[0])
@@ -1088,7 +1263,7 @@ pub async fn create_suggested(
                 (
                     (*l).to_string(),
                     TranslationInput {
-                        name: n.into(),
+                        name: (*n).to_string(),
                         slug: None,
                         description: None,
                         seo_title: None,
@@ -1098,14 +1273,15 @@ pub async fn create_suggested(
             })
             .collect();
         save(
-            &state,
-            &staff,
+            state,
+            staff,
             None,
             CategoryInput {
                 is_active: Some(false),
                 translations,
                 ..CategoryInput::default()
             },
+            scope,
         )
         .await?;
         created += 1;

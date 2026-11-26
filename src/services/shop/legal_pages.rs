@@ -504,6 +504,17 @@ pub const COOKIES: &[CookieDecl] = &[
         ),
         KEPT
     ),
+    c!(
+        "mz-admin-product-categories-collapsed",
+        Local,
+        Preferences,
+        (
+            "Catégories repliées (administration)",
+            "Collapsed categories (administration)",
+            "الفئات المطوية (الإدارة)"
+        ),
+        KEPT
+    ),
 ];
 
 /// The categories the consent banner knows (anything else is undeclared).

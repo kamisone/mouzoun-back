@@ -71,6 +71,7 @@
                 "type": "string",
                 "format": "uuid",
                 "x-widget": "category_picker",
+                "x-scope": "product",
                 "x-ref": "category",
                 "title": "Category"
               },

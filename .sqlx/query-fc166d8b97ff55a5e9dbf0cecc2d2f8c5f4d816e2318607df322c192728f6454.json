@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT count(*) AS \"n!\" FROM products WHERE id = ANY($1) AND kind = 'shop_product' AND deleted_at IS NULL",
+  "query": "SELECT count(*) AS \"n!\" FROM products WHERE id = ANY($1) AND kind = ANY($2) AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "UuidArray"
+        "UuidArray",
+        "TextArray"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "ebcfe347fc900ca3af0fa652f90830ef771cfbe30bdc238a94133cfb35ba0141"
+  "hash": "fc166d8b97ff55a5e9dbf0cecc2d2f8c5f4d816e2318607df322c192728f6454"
 }

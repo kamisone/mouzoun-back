@@ -12,6 +12,7 @@
 //! `cargo run --bin seed_dev -- staff <email> <password> <role>` creates or resets a staff
 //! account (development only; e.g. the full-stack tests' E2E_STAFF_EMAIL).
 
+mod categories;
 mod pages;
 mod seo;
 mod shop;
@@ -78,10 +79,24 @@ async fn main() -> anyhow::Result<()> {
         println!("shop seeded (status catalog_only): 7 products, camp farm store, shipping zones");
         return Ok(());
     }
+    if args.as_slice() == ["categories"] {
+        // Adds the demo stay/activity categories to a database seeded before they existed.
+        let present: bool = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM categories WHERE scope = 'product') AS "x!""#
+        )
+        .fetch_one(&pool)
+        .await?;
+        if present {
+            bail!("stay/activity categories already present");
+        }
+        categories::seed(&pool).await?;
+        println!("stay and activity categories: 4, with their demo products");
+        return Ok(());
+    }
     if let [command, reference] = args.as_slice() {
         if command != "confirm" {
             bail!(
-                "usage: seed_dev [shop | confirm <booking reference> | staff <email> <password> <role>]"
+                "usage: seed_dev [shop | categories | confirm <booking reference> | staff <email> <password> <role>]"
             );
         }
         let id = sqlx::query_scalar!("SELECT id FROM bookings WHERE reference = $1", reference)
@@ -127,6 +142,10 @@ async fn main() -> anyhow::Result<()> {
     .await?;
     pages::seed(&pool, &email).await?;
     println!("home and about pages published (revision 1)");
+    categories::seed(&pool).await?;
+    println!(
+        "stay and activity categories: 4 (Aventure désert, Vie à la ferme, Culture & village, Hébergements)"
+    );
     shop::seed(&pool).await?;
     println!("shop seeded (status catalog_only): 7 products, camp farm store, shipping zones");
     seo::seed(&pool).await?;

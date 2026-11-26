@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM categories WHERE id = $1 AND scope = 'shop'",
+  "query": "SELECT id FROM categories WHERE id = $1 AND scope = $2",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "1260dbc6682d47323912e85a8786ff7fbbd17445a60eaf714df99377e6af4964"
+  "hash": "3b4cf71e18c9e8e9ae97b9c7eb38c4916d99efeeb10a4ace9f92c64032b62824"
 }

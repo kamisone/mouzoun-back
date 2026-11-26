@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT md5(COALESCE(string_agg(id::text || ':' || COALESCE(parent_id::text, '') || ':' || sort_order, ',' ORDER BY id), '')) AS \"v!\"\n           FROM categories WHERE scope = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "v!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b574b85f38528c15ca9c6d6bbb71980cf80f91c21e278d29659f26874c5fe081"
+}

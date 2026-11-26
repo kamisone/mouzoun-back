@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, parent_id FROM categories WHERE scope = 'shop'",
+  "query": "SELECT id, parent_id FROM categories WHERE scope = $1",
   "describe": {
     "columns": [
       {
@@ -15,12 +15,14 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
       true
     ]
   },
-  "hash": "13efce225d2988effc458a4a457efb617ddbd8a0db121190b837c19128720509"
+  "hash": "fa53db2d732ccdd9f79ad6e146d44932abddab3da2ec65585e933323881b030f"
 }

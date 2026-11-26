@@ -7,12 +7,14 @@
 //! | content, media, SEO, organisation, status, itinerary, package items | products.read | products.write |
 //! | price rules, product taxes, simulator, seasons, rate plans, guest categories, policies | products.read / pricing.read | pricing.write |
 //! | units, calendar, closures, schedules, departures, resource requirements, resources | inventory.read | inventory.write |
+//! | stay/activity categories (`categories`, scope `product`) | products.read | products.write |
 //!
 //! Availability and prices are never computed here: the calendar and slot generators live in
 //! `services::inventory`, the simulator and the package check call the booking funnel's
 //! `services::booking::trip::quote`.
 
 mod activities;
+mod categories;
 mod packages;
 mod pricing;
 mod products;
@@ -84,6 +86,34 @@ pub fn admin_routes() -> Router<AppState> {
             put(settings::update_resource).delete(settings::delete_resource),
         )
         .route("/catalog/guides", get(activities::guides))
+        // Stay/activity categories (static `categories` wins over `{kind}`).
+        .route(
+            "/catalog/categories",
+            get(categories::list).post(categories::create),
+        )
+        .route("/catalog/categories/tree", put(categories::save_tree))
+        .route(
+            "/catalog/categories/suggested",
+            post(categories::create_suggested),
+        )
+        .route(
+            "/catalog/categories/{id}",
+            get(categories::detail)
+                .patch(categories::update)
+                .put(categories::update)
+                .delete(categories::delete),
+        )
+        .route("/catalog/categories/{id}/impact", get(categories::impact))
+        .route(
+            "/catalog/categories/{id}/products",
+            get(categories::products)
+                .put(categories::order_products)
+                .post(categories::add_products),
+        )
+        .route(
+            "/catalog/categories/{id}/products/{product_id}",
+            delete(categories::remove_product),
+        )
         .route("/catalog/slots/{slot_id}", patch(activities::patch_slot))
         // Products of one kind (`stays`, `activities`, `packages`, `extras`).
         .route(

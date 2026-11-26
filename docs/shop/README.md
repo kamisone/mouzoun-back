@@ -40,7 +40,9 @@ variation or value used by a product cannot be deleted (409 `variation_in_use`),
 Managed in **Admin › Boutique › Catégories** (`/admin/shop/categories`, form at `/admin/shop/categories/{id}`;
 migration `0031_shop_categories`; API `modules/shop/admin/categories.rs`, rules `services/shop/categories.rs`).
 Viewing needs `shop.read`, every change `shop.catalog`. Shipping, promotions, the variation library and the
-product editor only *pick* categories (`MzCategoryPicker`); nothing edits them elsewhere. The old
+product editor only *pick* categories (`MzCategoryPicker`); nothing edits them elsewhere. The same
+code manages stay and activity categories (scope `product`, Admin › Catalogue › Catégories): see
+docs/catalog/README.md, "Categories". The old
 `/admin/shop/shipping?tab=categories` link redirects to the new page.
 
 - **Tree rules**: no cycle, parent in the same scope, at most `shop.category_max_depth` levels (default 3).

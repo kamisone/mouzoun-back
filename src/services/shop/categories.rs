@@ -1,8 +1,11 @@
-//! Shop categories (`categories.scope = 'shop'`): tree rules, public addresses and their 301
-//! redirects, the primary category of a product, manual product order, delete impact.
+//! Categories managed in the back office: shop categories (`scope = 'shop'`, Admin › Boutique ›
+//! Catégories) and stay/activity categories (`scope = 'product'`, Admin › Catalogue ›
+//! Catégories). Tree rules, public addresses of shop categories and their 301 redirects, the
+//! primary category of a product, manual product order, delete impact.
 //!
 //! Tree rules are checked here (clear errors before writing) and again by the database
-//! (`categories_tree_check`, deferred to commit). See docs/shop/README.md, "Categories".
+//! (`categories_tree_check`, deferred to commit). See docs/shop/README.md, "Categories", and
+//! docs/catalog/README.md, "Categories".
 
 use std::collections::{HashMap, HashSet};
 
@@ -24,6 +27,55 @@ pub const SORTS: &[&str] = &[
     "name",
 ];
 pub const DEFAULT_MAX_DEPTH: i64 = 3;
+/// Stay/activity categories are one flat, ordered list: the builder's rules (carousel, tiles)
+/// match a category exactly, so subcategories would silently show nothing.
+pub const PRODUCT_MAX_DEPTH: i64 = 1;
+
+/// Which categories a back-office screen manages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
+    /// Farm shop categories: public pages, menus, SEO redirects, `shop.*` permissions.
+    Shop,
+    /// Stays, activities, packages and extras: no page of their own, `products.*` permissions.
+    Product,
+}
+
+impl Scope {
+    /// `categories.scope`.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Shop => "shop",
+            Self::Product => "product",
+        }
+    }
+
+    pub fn read_permission(self) -> &'static str {
+        match self {
+            Self::Shop => "shop.read",
+            Self::Product => "products.read",
+        }
+    }
+
+    pub fn write_permission(self) -> &'static str {
+        match self {
+            Self::Shop => "shop.catalog",
+            Self::Product => "products.write",
+        }
+    }
+
+    /// `products.kind` values its categories may hold.
+    pub fn product_kinds(self) -> &'static [&'static str] {
+        match self {
+            Self::Shop => &["shop_product"],
+            Self::Product => &["accommodation", "activity", "package", "extra"],
+        }
+    }
+
+    /// Shop categories have a public page (address, redirects, sitemap).
+    pub fn has_pages(self) -> bool {
+        self == Self::Shop
+    }
+}
 /// Shop sub-paths a category slug may not take (`/boutique/p/...`, `/boutique/cart`...).
 const RESERVED_SLUGS: &[&str] = &["p", "cart", "checkout", "orders"];
 
@@ -137,21 +189,25 @@ pub fn subtree(nodes: &[Node], root: Uuid) -> HashSet<Uuid> {
     }
 }
 
-pub async fn nodes(conn: &mut PgConnection) -> sqlx::Result<Vec<Node>> {
-    Ok(
-        sqlx::query!("SELECT id, parent_id FROM categories WHERE scope = 'shop'")
-            .fetch_all(conn)
-            .await?
-            .into_iter()
-            .map(|r| Node {
-                id: r.id,
-                parent_id: r.parent_id,
-            })
-            .collect(),
+pub async fn nodes(conn: &mut PgConnection, scope: Scope) -> sqlx::Result<Vec<Node>> {
+    Ok(sqlx::query!(
+        "SELECT id, parent_id FROM categories WHERE scope = $1",
+        scope.code()
     )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|r| Node {
+        id: r.id,
+        parent_id: r.parent_id,
+    })
+    .collect())
 }
 
-pub async fn max_depth(conn: &mut PgConnection) -> sqlx::Result<i64> {
+pub async fn max_depth(conn: &mut PgConnection, scope: Scope) -> sqlx::Result<i64> {
+    if scope == Scope::Product {
+        return Ok(PRODUCT_MAX_DEPTH);
+    }
     let v: Option<Value> =
         sqlx::query_scalar!("SELECT value FROM settings WHERE key = 'shop.category_max_depth'")
             .fetch_optional(conn)
@@ -163,10 +219,11 @@ pub async fn max_depth(conn: &mut PgConnection) -> sqlx::Result<i64> {
 
 /// Fingerprint of the tree shape (ids, parents, order): a tree move sent with an older one is
 /// refused (someone else changed the tree meanwhile).
-pub async fn tree_version(conn: &mut PgConnection) -> sqlx::Result<String> {
+pub async fn tree_version(conn: &mut PgConnection, scope: Scope) -> sqlx::Result<String> {
     sqlx::query_scalar!(
         r#"SELECT md5(COALESCE(string_agg(id::text || ':' || COALESCE(parent_id::text, '') || ':' || sort_order, ',' ORDER BY id), '')) AS "v!"
-           FROM categories WHERE scope = 'shop'"#
+           FROM categories WHERE scope = $1"#,
+        scope.code()
     )
     .fetch_one(conn)
     .await
@@ -268,7 +325,7 @@ pub struct Impact {
     pub name: String,
     pub parent_id: Option<Uuid>,
     pub products: i64,
-    /// Products that would have no shop category left if their link is just removed.
+    /// Products that would have no category of this scope left if their link is just removed.
     pub products_without_category: i64,
     pub subcategories: Vec<Named>,
     pub promotions: Vec<Named>,
@@ -281,12 +338,13 @@ pub struct Impact {
     pub blocked: bool,
 }
 
-pub async fn impact(conn: &mut PgConnection, id: Uuid) -> Result<Impact, AppError> {
+pub async fn impact(conn: &mut PgConnection, id: Uuid, scope: Scope) -> Result<Impact, AppError> {
     let c = sqlx::query!(
         r#"SELECT c.parent_id, COALESCE(t.name, '') AS "name!"
            FROM categories c LEFT JOIN category_translations t ON t.category_id = c.id AND t.locale = 'fr'
-           WHERE c.id = $1 AND c.scope = 'shop'"#,
-        id
+           WHERE c.id = $1 AND c.scope = $2"#,
+        id,
+        scope.code()
     )
     .fetch_optional(&mut *conn)
     .await?
@@ -294,11 +352,12 @@ pub async fn impact(conn: &mut PgConnection, id: Uuid) -> Result<Impact, AppErro
     let counts = sqlx::query!(
         r#"SELECT count(*) AS "products!",
                   count(*) FILTER (WHERE NOT EXISTS (
-                      SELECT 1 FROM product_categories o JOIN categories oc ON oc.id = o.category_id AND oc.scope = 'shop'
+                      SELECT 1 FROM product_categories o JOIN categories oc ON oc.id = o.category_id AND oc.scope = $2
                       WHERE o.product_id = pc.product_id AND o.category_id <> $1)) AS "orphans!"
            FROM product_categories pc JOIN products p ON p.id = pc.product_id AND p.deleted_at IS NULL
            WHERE pc.category_id = $1"#,
-        id
+        id,
+        scope.code()
     )
     .fetch_one(&mut *conn)
     .await?;
@@ -421,6 +480,10 @@ mod tests {
         assert_eq!(shop_path("ar", "fr", Some("تمور")), "/ar/boutique/تمور");
         assert_eq!(shop_path("en", "fr", None), "/en/shop");
         assert!(is_reserved("p"));
+        assert_eq!(Scope::Product.code(), "product");
+        assert_eq!(Scope::Product.write_permission(), "products.write");
+        assert!(!Scope::Product.has_pages() && Scope::Shop.has_pages());
+        assert!(!Scope::Product.product_kinds().contains(&"shop_product"));
         assert_eq!(slugify("Huile d'olive & olives"), "huile-d-olive-olives");
     }
 }

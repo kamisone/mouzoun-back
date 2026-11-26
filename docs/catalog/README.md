@@ -205,6 +205,39 @@ is a soft delete (`deleted_at`) allowed only for products never booked (`booking
 schedules or units asks for its French name (`?confirm=`). A product used by a published package
 or as a mandatory extra cannot be archived or unpublished until it is removed there.
 
+## Categories
+
+Stays, activities, packages and extras are grouped in **Admin › Catalogue › Catégories**
+(`/admin/catalog/categories`, form at `/admin/catalog/categories/{id}`): `categories` rows with
+`scope = 'product'`. The screens and the API are the shop categories' ones (docs/shop/README.md,
+"Categories") with a scope parameter: `services::shop::categories::Scope`, handlers
+`modules/shop/admin/categories.rs` (`*_in`), routes `modules/catalog/categories.rs`; front
+`MzCategoriesScreen` / `MzCategoryForm` / `MzCategoryTree` / `MzCategoryProducts` /
+`MzCategoryDeleteDialog` / `MzCategoryPicker` with `scope="product"` (`useCategoryScope`).
+
+Differences with shop categories:
+
+- **One flat, ordered list** (`PRODUCT_MAX_DEPTH = 1`): the builder's rules match one category
+  exactly (no "include subcategories"), so subcategories would silently show nothing. Moves only
+  reorder; a parent is refused (`category_too_deep`, or `category_parent_unknown` for a parent of
+  another scope).
+- **No public page**: no address shown in the form, no search preview, no 301 on a slug change or
+  delete, no reserved slugs (`p`, `cart`… are shop sub-paths). The slug feeds the "Catégories"
+  section's links (`/activities?category=<slug>`, which the activities page does not filter yet).
+  SEO title and description are stored for a future category page.
+- No menus visibility, default product sort or stock; products are the bookable kinds only
+  (`accommodation`, `activity`, `package`, `extra`), searched with the lookup and linked to their
+  editor.
+- Permissions `products.read` / `products.write` (not `shop.*`).
+
+Slugs share the `(locale, slug)` uniqueness of `category_translations` with every scope (a stay
+category cannot take "dattes"). Each endpoint only sees its own scope (404 otherwise, product
+order endpoints included). Pickers: the editor's Categories field (`scope=product`, refused
+otherwise with `wrong_scope`), the builder's "Hébergements et activités" rule and "Catégories"
+tiles (`"x-scope": "product"` in `section_types/product_carousel.json` and `category_tiles.json`,
+`scope_not_allowed` on save). Empty state: "Créer les catégories suggérées" creates the four below,
+inactive.
+
 ## Permissions
 
 | | super_admin / manager | editor | reception | guide |
@@ -232,6 +265,11 @@ transfer from Rissani, lunch; packages "Week-end dans le désert" (2 nights kha�
 sum minus 10 %), "Journée découverte" (fixed price: farm + village + lunch) and the draft "Bivouac
 des nomades" (French only). Placeholder covers and galleries with alt text in fr/en/ar.
 
+Categories (`seed_dev/categories.rs`, active, cover, icon, fr/en/ar texts and SEO): "Aventure
+désert" (camel ride, quads, night under the stars, desert weekend), "Vie à la ferme" (farm visit),
+"Culture & village" (village visit), "Hébergements" (every stay). On a database seeded before
+they existed: `cargo run --bin seed_dev -- categories`.
+
 ## API
 
 `/v1/admin/catalog/...` (kind = `stays`, `activities`, `packages`, `extras`):
@@ -249,6 +287,9 @@ des nomades" (French only). Placeholder covers and galleries with alt text in fr
 - Pricing: `GET/PUT .../prices`, `POST .../price-quote`, `PUT .../taxes`; CRUD of
   `/catalog/pricing/seasons|rate-plans|guest-categories|cancellation-policies` and
   `/catalog/resources`; `GET /catalog/references` (lists for the editors' selects).
+- Categories: `GET/POST /catalog/categories`, `PUT /catalog/categories/tree` (order, with the
+  `version`), `POST /catalog/categories/suggested`, `GET/PATCH/PUT/DELETE /catalog/categories/{id}`,
+  `GET .../{id}/impact`, `GET/PUT/POST .../{id}/products`, `DELETE .../{id}/products/{product_id}`.
 
 Errors use the admin format: `invalid_fields` with paths (`translations.ar.slug`,
 `prices[2].amount_minor`, `items[1].quantity`), and stable codes for refusals (`stale`,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM categories WHERE scope = 'shop' FOR UPDATE",
+  "query": "SELECT id FROM categories WHERE scope = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,13 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "695543566fdc19cf4879039311aed4743297e978a4ad187a18b0e7df719eb5e4"
+  "hash": "b2cc47945edbb119e8e8ab5d700240ec895091fce33b63d8fa590804bbcc7abd"
 }

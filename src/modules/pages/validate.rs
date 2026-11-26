@@ -1007,6 +1007,43 @@ mod tests {
     }
 
     #[test]
+    fn stay_and_activity_sections_only_take_product_categories() {
+        let reg = reg();
+        let (cat_product, cat_shop) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        let found: HashMap<Uuid, String> = [
+            (cat_product, "product".to_string()),
+            (cat_shop, "shop".to_string()),
+        ]
+        .into();
+        let mut carousel = from_preset(&reg, "product_carousel");
+        carousel.settings["source"]["rule"]["category_id"] = json!(cat_shop);
+        let mut tiles = from_preset(&reg, "category_tiles");
+        tiles.settings["source"] = json!({ "mode": "manual", "ids": [cat_product, cat_shop] });
+        let errors = restricted_errors(
+            &restricted_refs(&reg, &[carousel.clone(), tiles], "/blocks"),
+            &found,
+        );
+        let got: Vec<(&str, &str)> = errors
+            .iter()
+            .map(|e| (e.path.as_str(), e.code.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (
+                    "/blocks/0/settings/source/rule/category_id",
+                    "scope_not_allowed"
+                ),
+                ("/blocks/1/settings/source/ids/1", "scope_not_allowed"),
+            ]
+        );
+        carousel.settings["source"]["rule"]["category_id"] = json!(cat_product);
+        assert!(
+            restricted_errors(&restricted_refs(&reg, &[carousel], "/blocks"), &found).is_empty()
+        );
+    }
+
+    #[test]
     fn the_category_order_needs_a_category() {
         let reg = reg();
         let mut shop = from_preset(&reg, "shop_products");
