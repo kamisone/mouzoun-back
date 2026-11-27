@@ -98,6 +98,28 @@ pub async fn create_page(
     Ok((StatusCode::CREATED, Json(json!({ "id": id }))))
 }
 
+/// `PUT /pages/{id}/type`: fixes the type chosen at creation (page, landing, post, legal; never
+/// the home page). Draft only: the next publication takes it live. Publishers only, since it
+/// decides which publishing rules apply (legal pages).
+pub async fn change_type(
+    State(state): State<AppState>,
+    staff: Staff,
+    client: ClientInfo,
+    Path(id): Path<Uuid>,
+    Json(input): Json<service::ChangeType>,
+) -> AppResult<Json<Value>> {
+    staff.require(PUBLISH)?;
+    let page_type = service::change_type(
+        &state.db,
+        &state.sections,
+        &actor(&staff, &client),
+        id,
+        input,
+    )
+    .await?;
+    Ok(Json(json!({ "id": id, "page_type": page_type })))
+}
+
 // ---- Builder ------------------------------------------------------------------------------------
 
 pub async fn builder(

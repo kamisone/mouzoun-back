@@ -27,7 +27,7 @@ pub mod validate;
 
 use axum::{
     Router,
-    routing::{get, patch, post},
+    routing::{get, patch, post, put},
 };
 
 pub use registry::SectionRegistry;
@@ -40,6 +40,7 @@ pub fn admin_routes() -> Router<AppState> {
         .route("/section-types/{code}", patch(handlers::patch_section_type))
         .route("/pages", get(handlers::pages).post(handlers::create_page))
         .route("/pages/legal-tokens", get(handlers::legal_tokens))
+        .route("/pages/{id}/type", put(handlers::change_type))
         .route(
             "/pages/{id}/builder",
             get(handlers::builder).put(handlers::save_builder),

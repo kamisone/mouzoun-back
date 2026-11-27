@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET page_type = $2, updated_at = now(),\n             has_unpublished_changes = has_unpublished_changes OR status IN ('published', 'scheduled')\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc6918fa9208a1e1a042d338bc756b69e45585772de87be27a30bfb64452fbc7"
+}

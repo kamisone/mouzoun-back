@@ -1353,3 +1353,170 @@ async fn version_1_gallery_drafts_are_upgraded_and_old_snapshots_still_render(db
     let (status, body) = publish(&app, page, json!({})).await;
     assert_eq!(status, StatusCode::CREATED, "{body}");
 }
+
+// ---- Page type ---------------------------------------------------------------------------------
+
+async fn change_type(app: &TestApp, page: Uuid, page_type: &str) -> (StatusCode, Value) {
+    app.admin(
+        Method::PUT,
+        &format!("/v1/admin/pages/{page}/type"),
+        Some(json!({ "page_type": page_type })),
+    )
+    .await
+}
+
+fn body_section(body: &str) -> Value {
+    section(
+        "rich_text",
+        json!({"max_width": "normal"}),
+        json!({"fr": {"title": "Mentions", "body": body}}),
+    )
+}
+
+/// A page created with the wrong type is fixed afterwards. Like any edit it changes the draft:
+/// the live page keeps its type until the next publication, which lists the change.
+#[sqlx::test(migrations = "./migrations")]
+async fn a_page_type_change_goes_live_with_the_next_publication(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "page", "mentions").await;
+    save_ok(
+        &app,
+        page,
+        json!([body_section("<p>Éditeur : {{seller.legal_name}}</p>")]),
+    )
+    .await;
+    let (status, body) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+
+    let (status, body) = change_type(&app, page, "legal").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["page_type"], "legal");
+    let draft = tree(&app, page).await;
+    assert_eq!(draft["page"]["page_type"], "legal");
+    assert_eq!(draft["has_unpublished_changes"], true);
+    // Live: still the published revision, unchanged.
+    let (_, live) = public(&app, "/v1/pages/by-slug/mentions").await;
+    assert_eq!(live["page"]["type"], "page");
+    let stored: String = sqlx::query_scalar(
+        "SELECT snapshot -> 'page' ->> 'page_type' FROM page_revisions WHERE page_id = $1",
+    )
+    .bind(page)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(stored, "page", "published revisions are never rewritten");
+    let action: String = sqlx::query_scalar(
+        "SELECT action FROM audit_logs WHERE entity_id = $1 ORDER BY id DESC LIMIT 1",
+    )
+    .bind(page.to_string())
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(action, "page.type_changed");
+
+    // The publish check lists it; publishing takes it live.
+    let (status, check) = app
+        .admin(
+            Method::GET,
+            &format!("/v1/admin/pages/{page}/publish-check"),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{check}");
+    assert_eq!(
+        check["diff"]["page_type"],
+        json!({"from": "page", "to": "legal"})
+    );
+    let (status, body) = publish(&app, page, json!({})).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let (_, live) = public(&app, "/v1/pages/by-slug/mentions").await;
+    assert_eq!(live["page"]["type"], "legal");
+    let (_, check) = app
+        .admin(
+            Method::GET,
+            &format!("/v1/admin/pages/{page}/publish-check"),
+            None,
+        )
+        .await;
+    assert!(check["diff"]["page_type"].is_null());
+
+    // The same type again changes nothing.
+    let (status, _) = change_type(&app, page, "legal").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(tree(&app, page).await["has_unpublished_changes"], false);
+}
+
+/// The home page keeps its type and no page becomes the home page; unknown types are refused.
+#[sqlx::test(migrations = "./migrations")]
+async fn the_home_page_type_cannot_change(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let home = new_page(&app, "home", "accueil").await;
+    let (status, body) = change_type(&app, home, "page").await;
+    assert_eq!(status, StatusCode::CONFLICT, "{body}");
+    assert_eq!(body["error"]["code"], "home_type_locked");
+
+    let page = new_page(&app, "page", "infos").await;
+    for target in ["home", "article"] {
+        let (status, body) = change_type(&app, page, target).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+        assert_eq!(body["error"]["code"], "invalid_page_type");
+    }
+    assert_eq!(tree(&app, page).await["page"]["page_type"], "page");
+}
+
+/// Becoming a legal page runs the publishing checks on the draft, so problems show at once.
+#[sqlx::test(migrations = "./migrations")]
+async fn becoming_a_legal_page_runs_the_publishing_checks(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "page", "cgv").await;
+
+    // A section without its French text.
+    let arabic_only = section(
+        "rich_text",
+        json!({"max_width": "normal"}),
+        json!({"ar": {"title": "شروط", "body": "<p>نص</p>"}}),
+    );
+    save_ok(&app, page, json!([arabic_only])).await;
+    let (status, body) = change_type(&app, page, "legal").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(body["error"]["code"], "french_required");
+
+    // A token the renderer does not know.
+    save_ok(&app, page, json!([body_section("<p>{{seller.nope}}</p>")])).await;
+    let (status, body) = change_type(&app, page, "legal").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(body["error"]["code"], "unknown_tokens");
+    assert_eq!(tree(&app, page).await["page"]["page_type"], "page");
+
+    // Fixed: it goes through. Other types need no legal checks.
+    save_ok(
+        &app,
+        page,
+        json!([body_section("<p>{{seller.legal_name}}</p>")]),
+    )
+    .await;
+    let (status, body) = change_type(&app, page, "legal").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    save_ok(&app, page, json!([body_section("<p>{{seller.nope}}</p>")])).await;
+    let (status, body) = change_type(&app, page, "landing").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+}
+
+/// The type decides which publishing rules apply: publishers only.
+#[sqlx::test(migrations = "./migrations")]
+async fn only_publishers_change_a_page_type(db: PgPool) {
+    let app = TestApp::new(db.clone()).await;
+    let page = new_page(&app, "page", "infos").await;
+    let editor = create_user(&db, "editor@test.ma", "x", true, Some("editor")).await;
+    let editor = jwt::issue(JWT_SECRET, editor, true, 60).unwrap();
+    let (status, _) = app
+        .request(
+            Method::PUT,
+            &format!("/v1/admin/pages/{page}/type"),
+            Some(json!({ "page_type": "legal" })),
+            Some(&editor),
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(tree(&app, page).await["page"]["page_type"], "page");
+}

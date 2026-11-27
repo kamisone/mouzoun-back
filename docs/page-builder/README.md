@@ -125,6 +125,16 @@ public GET /v1/pages/home | /v1/pages/by-slug/{slug}  ─► the published snaps
   Deleted sections are soft-deleted; sending one again (undo) revives it.
 - `GET /pages/{id}/publish-check`: validation errors and the diff (added, removed, changed,
   reordered) against the published revision.
+- `PUT /pages/{id}/type` `{page_type}` (`content.publish`; Admin › Pages › row menu "Changer le
+  type") fixes the type chosen at creation: `page`, `landing`, `post`, `legal` only
+  (`422 invalid_page_type`); the home page keeps its type (`409 home_type_locked`). Like any
+  edit it changes the **draft only** (`has_unpublished_changes`): the live page keeps its type
+  until the next publication, published revisions are never rewritten, and publish-check lists
+  it (`diff.page_type {from, to}`). The draft must allow the new type (`allowed_page_types`);
+  becoming `legal` also runs the publishing checks at once (`invalid_sections`,
+  `french_required`, `unknown_tokens`). A revision already scheduled keeps the type it was
+  scheduled with. Audit `page.type_changed {from, to}`. Elsewhere `pages.page_type` is read
+  live (sitemap posts/pages, the shop launch checklist), so those follow at once.
 - `POST /revisions/{id}/restore` copies a snapshot back into the draft (placements whose shared
   section still exists become placements again) and **does not publish**; it returns the
   sections that no longer pass today's rules. `POST /revisions/{id}/cancel` cancels a scheduled

@@ -112,6 +112,23 @@ fn french_complete(snapshot: &Snapshot) -> AppResult<()> {
     .with_details(json!({ "title": title_ok, "sections": missing })))
 }
 
+/// What a legal page needs before going live: its French text complete, and only tokens the
+/// renderer knows (`{{seller.siren}}`...).
+fn legal_checks(snapshot: &Snapshot) -> AppResult<()> {
+    french_complete(snapshot)?;
+    let blocks = serde_json::to_value(&snapshot.blocks).map_err(anyhow::Error::from)?;
+    let unknown = crate::services::shop::legal_pages::unknown_tokens(&blocks);
+    if !unknown.is_empty() {
+        return Err(AppError::domain(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unknown_tokens",
+            format!("unknown tokens: {}", unknown.join(", ")),
+        )
+        .with_details(json!({ "tokens": unknown })));
+    }
+    Ok(())
+}
+
 fn invalid(errors: Vec<FieldError>) -> AppError {
     AppError::domain(
         StatusCode::UNPROCESSABLE_ENTITY,
@@ -946,17 +963,7 @@ pub async fn publish(
         return Err(invalid(errors));
     }
     if page.page_type == "legal" {
-        french_complete(&snapshot)?;
-        let blocks = serde_json::to_value(&snapshot.blocks).map_err(anyhow::Error::from)?;
-        let unknown = crate::services::shop::legal_pages::unknown_tokens(&blocks);
-        if !unknown.is_empty() {
-            return Err(AppError::domain(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "unknown_tokens",
-                format!("unknown tokens: {}", unknown.join(", ")),
-            )
-            .with_details(json!({ "tokens": unknown })));
-        }
+        legal_checks(&snapshot)?;
     }
     let number = next_revision_number(&mut tx, page_id).await?;
     let scheduled = req.publish_at.filter(|at| *at > now);
@@ -1303,10 +1310,18 @@ pub struct SectionRef {
 
 #[derive(Debug, Serialize, Default)]
 pub struct Diff {
+    /// The page type, when the draft's differs from the published one (`Change type`).
+    pub page_type: Option<PageTypeChange>,
     pub added: Vec<SectionRef>,
     pub removed: Vec<SectionRef>,
     pub changed: Vec<SectionRef>,
     pub moved: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PageTypeChange {
+    pub from: String,
+    pub to: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1345,17 +1360,26 @@ pub async fn publish_check(
     let (published_revision, before) = match published {
         Some(p) => (
             Some(p.revision_number),
-            serde_json::from_value::<Snapshot>(p.snapshot)
-                .map(|s| s.blocks)
-                .unwrap_or_default(),
+            serde_json::from_value::<Snapshot>(p.snapshot).ok(),
         ),
-        None => (None, Vec::new()),
+        None => (None, None),
     };
+    let mut d = diff(
+        before.as_ref().map_or(&[][..], |s| &s.blocks),
+        &draft.blocks,
+        &default_locale,
+    );
+    d.page_type = before
+        .filter(|s| s.page.page_type != draft.page.page_type)
+        .map(|s| PageTypeChange {
+            from: s.page.page_type,
+            to: draft.page.page_type.clone(),
+        });
     Ok(PublishCheck {
         errors,
         warnings,
         published_revision,
-        diff: diff(&before, &draft.blocks, &default_locale),
+        diff: d,
     })
 }
 
@@ -1736,6 +1760,96 @@ pub async fn create_page(
     .await?;
     tx.commit().await?;
     Ok(id)
+}
+
+/// Types a page can be switched between afterwards. The home page keeps its type, and no page
+/// becomes the home page (there is one, created with the site).
+pub const CHANGEABLE_TYPES: [&str; 4] = ["page", "landing", "post", "legal"];
+
+#[derive(Debug, Deserialize)]
+pub struct ChangeType {
+    pub page_type: String,
+}
+
+/// Changes the type of a page (a page created as "page" that should have been "legal"...).
+///
+/// Like any other edit, it changes the draft only: the live page keeps its type until the next
+/// publication, which lists the change and runs the checks of the new type again. Published
+/// revisions are never rewritten. The draft must allow the new type (sections restricted to some
+/// page types); a page becoming legal is also checked as for publishing (valid sections, French
+/// text complete, known tokens), so the problem shows here rather than at publication.
+pub async fn change_type(
+    db: &PgPool,
+    reg: &SectionRegistry,
+    actor: &Actor,
+    page_id: Uuid,
+    input: ChangeType,
+) -> AppResult<String> {
+    let to = input.page_type;
+    if !CHANGEABLE_TYPES.contains(&to.as_str()) {
+        return Err(AppError::domain(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "invalid_page_type",
+            "a page can become a page, a landing page, a post or a legal page",
+        )
+        .with_details(json!({ "allowed": CHANGEABLE_TYPES })));
+    }
+    let mut tx = db.begin().await?;
+    let page = lock_page(&mut tx, page_id).await?;
+    let from = page.page_type.clone();
+    if from == "home" {
+        return Err(AppError::domain(
+            StatusCode::CONFLICT,
+            "home_type_locked",
+            "the home page keeps its type",
+        ));
+    }
+    if from == to {
+        return Ok(to);
+    }
+
+    // The draft, read as a page of the new type.
+    let legal = to == "legal";
+    let next = PageRow {
+        page_type: to.clone(),
+        ..page.clone()
+    };
+    let (draft, errors) = draft_snapshot(&mut tx, reg, &next).await?;
+    let errors: Vec<FieldError> = if legal {
+        errors
+    } else {
+        errors
+            .into_iter()
+            .filter(|e| e.code == "page_type_not_allowed")
+            .collect()
+    };
+    if !errors.is_empty() {
+        return Err(invalid(errors));
+    }
+    if legal {
+        legal_checks(&draft)?;
+    }
+
+    sqlx::query!(
+        "UPDATE pages SET page_type = $2, updated_at = now(),
+             has_unpublished_changes = has_unpublished_changes OR status IN ('published', 'scheduled')
+         WHERE id = $1",
+        page_id,
+        to
+    )
+    .execute(&mut *tx)
+    .await?;
+    audit::record(
+        &mut tx,
+        actor,
+        "page.type_changed",
+        "page",
+        &page_id.to_string(),
+        json!({ "from": from, "to": to }),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(to)
 }
 
 #[derive(Debug, Serialize)]
